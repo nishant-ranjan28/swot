@@ -106,49 +106,56 @@
 
     <script async src="https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js" charset="utf-8"></script>
     <script>
-        // Mock stock data for the demonstration
-        const stockData = [
-            "Tata Consultancy Services Ltd.",
-            "Reliance Industries Ltd.",
-            "Infosys Ltd.",
-            "HDFC Bank Ltd.",
-            "ICICI Bank Ltd.",
-            "State Bank of India",
-            "Bharti Airtel Ltd.",
-            "Maruti Suzuki India Ltd."
-        ];
-
         const stockSearchInput = document.getElementById("stock-search-input");
         const suggestionsBox = document.getElementById("suggestions");
         const swotWidget = document.getElementById("swot-widget");
 
         stockSearchInput.addEventListener("input", function () {
-            const input = stockSearchInput.value.toLowerCase();
-            suggestionsBox.innerHTML = "";
+            const input = stockSearchInput.value.trim();
+            suggestionsBox.innerHTML = ""; // Clear previous suggestions
+
             if (input.length === 0) {
-                suggestionsBox.style.display = "none";
+                suggestionsBox.style.display = "none"; // Hide suggestions if input is empty
                 return;
             }
 
-            const filteredStocks = stockData.filter(stock => stock.toLowerCase().includes(input));
-            suggestionsBox.style.display = filteredStocks.length > 0 ? "block" : "none";
+            // Use a CORS proxy to fetch stock data from Yahoo Finance API
+            fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://query1.finance.yahoo.com/v1/finance/search?q=' + input + '&region=IN')}`)
+                .then(response => response.json())
+                .then(data => {
+                    const stocks = JSON.parse(data.contents).quotes || []; // Extract the quotes array
+                    const uniqueStocks = new Set(); // To track unique stock names
 
-            filteredStocks.forEach(stock => {
-                const div = document.createElement("div");
-                div.textContent = stock;
-                div.className = "suggestion-item";
-                div.onclick = () => {
-                    stockSearchInput.value = stock;
+                    stocks.forEach(stock => {
+                        const stockName = stock.shortname; // Access the stock short name
+                        const stockSymbol = stock.symbol; // Access the stock symbol
+
+                        // Filter for Indian stocks (NSE or BSE)
+                        if (stockName && !uniqueStocks.has(stockName) && (stockSymbol.endsWith('.NS') || stockSymbol.endsWith('.BO'))) {
+                            uniqueStocks.add(stockName);
+                            const div = document.createElement("div");
+                            div.textContent = stockName;
+                            div.className = "suggestion-item";
+                            div.onclick = () => {
+                                stockSearchInput.value = stockName;
+                                suggestionsBox.style.display = "none";
+                                updateSwotWidget(stockName);
+                            };
+                            suggestionsBox.appendChild(div);
+                        }
+                    });
+
+                    suggestionsBox.style.display = uniqueStocks.size > 0 ? "block" : "none";
+                })
+                .catch(error => {
+                    console.error('Error fetching stock data:', error);
                     suggestionsBox.style.display = "none";
-                    updateSwotWidget(stock);
-                };
-                suggestionsBox.appendChild(div);
-            });
+                });
         });
 
         document.addEventListener("click", function (e) {
             if (!e.target.closest(".stock-search")) {
-                suggestionsBox.style.display = "none";
+                suggestionsBox.style.display = "none"; // Hide suggestions when clicking outside
             }
         });
 
