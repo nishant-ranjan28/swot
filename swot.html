@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWOT Analysis Widget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+        .left-section {
+            width: 50%;
+        }
+        .right-section {
+            width: 45%;
+        }
+        .stock-search {
+            margin-top: 20px;
+        }
+        .stock-search label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .stock-search input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+        .buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .buttons .apply-btn {
+            background-color: #006aff;
+            color: #fff;
+        }
+        .buttons .cancel-btn {
+            background-color: #f0f2f5;
+            color: #000;
+        }
+        .suggestions {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+            position: absolute;
+            width: 90%;
+            z-index: 1000;
+        }
+        .suggestion-item {
+            padding: 8px;
+            cursor: pointer;
+        }
+        .suggestion-item:hover {
+            background-color: #f0f2f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-section">
+            <!-- Embed the SWOT Analysis Widget -->
+            <blockquote class="trendlyne-widgets" 
+                        id="swot-widget"
+                        data-get-url="https://trendlyne.com/web-widget/swot-widget/Poppins/TCS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E" 
+                        data-theme="light">
+            </blockquote>
+        </div>
+        <div class="right-section">
+            <div class="stock-search">
+                <label for="stock-search-input">Select Stock</label>
+                <input type="text" id="stock-search-input" placeholder="Enter Stock Name">
+                <div class="suggestions" id="suggestions"></div>
+            </div>
+        </div>
+    </div>
+
+    <script async src="https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js" charset="utf-8"></script>
+    <script>
+        // Mock stock data for the demonstration
+        const stockData = [
+            "Tata Consultancy Services Ltd.",
+            "Reliance Industries Ltd.",
+            "Infosys Ltd.",
+            "HDFC Bank Ltd.",
+            "ICICI Bank Ltd.",
+            "State Bank of India",
+            "Bharti Airtel Ltd.",
+            "Maruti Suzuki India Ltd."
+        ];
+
+        const stockSearchInput = document.getElementById("stock-search-input");
+        const suggestionsBox = document.getElementById("suggestions");
+        const swotWidget = document.getElementById("swot-widget");
+
+        stockSearchInput.addEventListener("input", function () {
+            const input = stockSearchInput.value.toLowerCase();
+            suggestionsBox.innerHTML = "";
+            if (input.length === 0) {
+                suggestionsBox.style.display = "none";
+                return;
+            }
+
+            const filteredStocks = stockData.filter(stock => stock.toLowerCase().includes(input));
+            suggestionsBox.style.display = filteredStocks.length > 0 ? "block" : "none";
+
+            filteredStocks.forEach(stock => {
+                const div = document.createElement("div");
+                div.textContent = stock;
+                div.className = "suggestion-item";
+                div.onclick = () => {
+                    stockSearchInput.value = stock;
+                    suggestionsBox.style.display = "none";
+                    updateSwotWidget(stock);
+                };
+                suggestionsBox.appendChild(div);
+            });
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!e.target.closest(".stock-search")) {
+                suggestionsBox.style.display = "none";
+            }
+        });
+
+        function updateSwotWidget(stock) {
+            // Encode the stock name for URL
+            const encodedStock = encodeURIComponent(stock);
+            // Update the data-get-url of the SWOT widget
+            swotWidget.setAttribute("data-get-url", `https://trendlyne.com/web-widget/swot-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`);
+            // Reload the widget script to reflect changes
+            window.trendlyneWidgets.loadWidgets();
+        }
+    </script>
+</body>
+</html>
