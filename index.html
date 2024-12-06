@@ -26,14 +26,24 @@
             width: 100%;
             display: flex;
             justify-content: space-between;
+            flex-wrap: wrap;
+            /* Allow wrapping */
         }
 
-        .left-section {
-            width: 50%;
-        }
-
+        .left-section,
         .right-section {
-            width: 45%;
+            width: 100%;
+            /* Default to full width */
+        }
+
+        @media (min-width: 768px) {
+            .left-section {
+                width: 50%;
+            }
+
+            .right-section {
+                width: 45%;
+            }
         }
 
         .stock-search {
@@ -42,60 +52,34 @@
 
         .stock-search label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            font-size: 1.2em;
             font-weight: bold;
         }
 
         .stock-search input {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border-radius: 4px;
+            padding: 10px;
+            font-size: 1em;
             border: 1px solid #ccc;
-        }
-
-        .buttons {
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .buttons button {
-            padding: 10px 20px;
-            border: none;
             border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .buttons .apply-btn {
-            background-color: #006aff;
-            color: #fff;
-        }
-
-        .buttons .cancel-btn {
-            background-color: #f0f2f5;
-            color: #000;
         }
 
         .suggestions {
+            margin-top: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            background-color: #fff;
             max-height: 150px;
             overflow-y: auto;
-            display: none;
-            position: absolute;
-            width: 90%;
-            z-index: 1000;
         }
 
         .suggestion-item {
-            padding: 8px;
+            padding: 10px;
             cursor: pointer;
         }
 
         .suggestion-item:hover {
-            background-color: #f0f2f5;
+            background-color: #f0f0f0;
         }
     </style>
 </head>
@@ -117,7 +101,6 @@
             </div>
         </div>
     </div>
-
     <script async src="https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js" charset="utf-8"></script>
     <script>
         const stockSearchInput = document.getElementById("stock-search-input");
