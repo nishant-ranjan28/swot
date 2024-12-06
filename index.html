@@ -48,6 +48,11 @@
 
         .stock-search {
             margin-top: 20px;
+            padding: 0 10px;
+            /* Add padding to the left and right */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .stock-search label {
@@ -71,6 +76,8 @@
             border-radius: 4px;
             max-height: 150px;
             overflow-y: auto;
+            width: 100%;
+            /* Match the width of the input */
         }
 
         .suggestion-item {
@@ -95,7 +102,7 @@
         </div>
         <div class="right-section">
             <div class="stock-search">
-                <label for="stock-search-input">Select Stock</label>
+                <label for="stock-search-input">Select Indian Market Stock</label>
                 <input type="text" id="stock-search-input" placeholder="Enter Stock Name">
                 <div class="suggestions" id="suggestions"></div>
             </div>
