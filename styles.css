@@ -1,5 +1,4 @@
-/* General Styles */
-body {
+/* General Styles */ body {
 	font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 	background-color: #f4f6f8;
 	margin: 0;
@@ -15,7 +14,7 @@ body {
 }
 
 /* Left Section */
-.left-section {
+	.left-section {
 	flex: 1;
 	margin-right: 20px;
 }
@@ -42,7 +41,7 @@ body {
 }
 
 /* Widgets */
-.trendlyne-widgets {
+	.trendlyne-widgets {
 	width: 100%;
 	height: 450px;
 	border: none;
@@ -57,7 +56,7 @@ body {
 }
 
 /* Right Section */
-.right-section {
+	.right-section {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
@@ -131,10 +130,7 @@ body {
 }
 
 /* Footer */
-footer {
-	background-color: #ffffff;
-	padding: 15px 20px;
-	text-align: center;
+	footer {
 	border-top: 1px solid #ddd;
 	margin-top: 40px;
 	border-radius: 8px;
@@ -159,9 +155,13 @@ footer img {
 		padding: 10px;
 	}
 
-	.left-section,
+	/* Reorder sections: Move right-section (search) above left-section (widgets) */
 	.right-section {
-		margin-right: 0;
+		order: 1;
+	}
+
+	.left-section {
+		order: 2;
 	}
 
 	#stock-chart-container {
@@ -170,5 +170,43 @@ footer img {
 
 	.trendlyne-widgets {
 		height: 350px;
+	}
+
+	/* Enhanced Mobile Styling */
+	.stock-search {
+		padding: 15px;
+	}
+
+	.stock-search label {
+		font-size: 1em;
+	}
+
+	#stock-search-input {
+		padding: 10px 15px;
+		font-size: 1em;
+	}
+
+	.suggestions {
+		width: calc(100% - 30px); /* Adjusted width for padding */
+	}
+
+	#swot-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	#swot-stock-name {
+		font-size: 1.5em;
+	}
+
+	#swot-stock-price {
+		font-size: 1.2em;
+		color: #27ae60;
+		margin-top: 5px;
+	}
+
+	/* Adjust Chart Height for Mobile */
+	#stock-chart-container {
+		height: 400px;
 	}
 }
