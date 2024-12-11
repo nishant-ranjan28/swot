@@ -42,6 +42,7 @@ stockSearchInput.addEventListener("input", () => {
 					suggestionsBox.appendChild(div);
 				}
 			}
+
 			suggestionsBox.style.display = uniqueStocks.size > 0 ? "block" : "none";
 		})
 		.catch((error) => {
