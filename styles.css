@@ -173,10 +173,18 @@ footer img {
 
 	.left-section {
 		order: 2;
+		margin-right: 0;
+		margin-top: 20px;
+	}
+
+	/* Add margin to separate stock price cards from the chart */
+	.stock-price {
+		margin-bottom: 20px; /* Adds 20px space below the stock price cards */
 	}
 
 	#stock-chart-container {
-		height: 500px;
+		margin-top: 20px; /* Adds 20px space above the stock chart */
+		height: 400px; /* Adjusted height for mobile */
 	}
 
 	.trendlyne-widgets {
@@ -216,8 +224,22 @@ footer img {
 		margin-top: 5px;
 	}
 
-	/* Adjust Chart Height for Mobile */
-	#stock-chart-container {
-		height: 400px;
+	.stock-price {
+		background-color: #ffffff;
+		padding: 15px;
+		border-radius: 8px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.stock-price h2 {
+		font-size: 1.5em;
+	}
+
+	.stock-price span {
+		font-size: 1.2em;
+		margin-left: 10px; /* Adds space between stock name and price */
 	}
 }
