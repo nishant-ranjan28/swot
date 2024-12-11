@@ -1,7 +1,7 @@
-<img width="1022" alt="image" src="https://github.com/user-attachments/assets/fa0ea79b-0a15-4371-840c-4c2b8aa21879">
+<img width="1132" alt="image" src="https://github.com/user-attachments/assets/fb7ebe5e-0ee7-483b-890d-15d81fa3eb41" />
 
 
 Demo Video:
 
-https://github.com/user-attachments/assets/1864e7a5-90d4-4713-b749-1a20cb36eb81
+https://github.com/user-attachments/assets/165e1865-f87d-4bf0-80dd-e6a308ca0a72
 
