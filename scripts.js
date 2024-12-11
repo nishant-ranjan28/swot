@@ -8,9 +8,9 @@ const stockChartContainer = document.getElementById("stock-chart");
 
 /* Initialize with default stock */
 document.addEventListener("DOMContentLoaded", () => {
-	// Fetch and display TCS stock price by default
-	fetchStockPrice("TCS.NS", null, "TCS");
-	updateStockChart("TCS.NS");
+	// Fetch and display Infosys stock price by default
+	fetchStockPrice("INFY.NS", null, "Infosys");
+	updateStockChart("INFY.NS");
 });
 
 /* Handle stock search input */
@@ -20,7 +20,7 @@ stockSearchInput.addEventListener("input", () => {
 
 	if (input.length === 0) {
 		suggestionsBox.style.display = "none"; // Hide suggestions if input is empty
-		swotStockName.textContent = "TCS"; // Reset to default stock name
+		swotStockName.textContent = "Infosys"; // Reset to default stock name
 		swotStockPrice.textContent = ""; // Clear stock price
 		stockChartContainer.innerHTML = ""; // Clear stock chart
 		return;
