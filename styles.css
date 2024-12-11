@@ -1,84 +1,114 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f0f2f5;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+	font-family: Arial, sans-serif;
+	background-color: #f0f2f5;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	height: 100vh;
 }
 
 .container {
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    max-width: 900px;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap; /* Allow wrapping */
+	background: #fff;
+	padding: 20px;
+	border-radius: 8px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	max-width: 900px;
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: wrap; /* Allow wrapping */
 }
 
-.left-section, .right-section {
-    width: 100%; /* Default to full width */
+.left-section,
+.right-section {
+	width: 100%; /* Default to full width */
 }
 
 @media (min-width: 768px) {
-    .left-section {
-        width: 50%;
-    }
+	.left-section {
+		width: 50%;
+	}
 
-    .right-section {
-        width: 45%;
-    }
+	.right-section {
+		width: 45%;
+	}
+}
+
+@media (max-width: 767px) {
+	.container {
+		padding: 20px 10px; /* Add padding for smaller screens */
+	}
 }
 
 .stock-search {
-    margin-top: 20px;
-    padding: 0 10px; /* Add padding to the left and right */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+	margin-top: 20px;
+	padding: 0 10px; /* Add padding to the left and right */
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
 
 .stock-search label {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 1.2em;
-    font-weight: bold;
+	display: block;
+	margin-bottom: 10px;
+	font-size: 1.2em;
+	font-weight: bold;
 }
 
 .stock-search input {
-    width: 100%;
-    padding: 10px;
-    font-size: 1em;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+	width: 100%;
+	padding: 10px;
+	font-size: 1em;
+	border: 1px solid #ccc;
+	border-radius: 4px;
 }
 
 .suggestions {
-    margin-top: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    max-height: 150px;
-    overflow-y: auto;
-    width: 100%; /* Match the width of the input */
+	margin-top: 10px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	max-height: 150px;
+	overflow-y: auto;
+	width: 100%; /* Match the width of the input */
 }
 
 .suggestion-item {
-    padding: 10px;
-    cursor: pointer;
+	padding: 10px;
+	cursor: pointer;
 }
 
 .suggestion-item:hover {
-    background-color: #f0f0f0;
+	background-color: #f0f0f0;
+}
+
+.stock-price {
+	margin-top: 10px;
+	font-size: 1.2em;
+	color: #333;
 }
 
 footer {
-    margin-top: 20px;
-    font-size: 1em;
-    color: #555;
+	margin-top: 20px;
+	font-size: 1em;
+	color: #555;
+}
+
+#swot-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
+}
+
+#swot-stock-name {
+	font-size: 1.5em;
+	font-weight: bold;
+}
+
+#swot-stock-price {
+	font-size: 1.2em;
+	color: #333;
 }
