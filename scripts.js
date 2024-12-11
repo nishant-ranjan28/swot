@@ -1,16 +1,19 @@
 const stockSearchInput = document.getElementById("stock-search-input");
 const suggestionsBox = document.getElementById("suggestions");
 const swotWidget = document.getElementById("swot-widget");
+const qvtWidget = document.getElementById("qvt-widget");
 const swotStockName = document.getElementById("swot-stock-name");
 const swotStockPrice = document.getElementById("swot-stock-price");
 const stockChartContainer = document.getElementById("stock-chart");
 
+/* Initialize with default stock */
 document.addEventListener("DOMContentLoaded", () => {
 	// Fetch and display TCS stock price by default
 	fetchStockPrice("TCS.NS", null, "TCS");
 	updateStockChart("TCS.NS");
 });
 
+/* Handle stock search input */
 stockSearchInput.addEventListener("input", () => {
 	const input = stockSearchInput.value.trim();
 	suggestionsBox.innerHTML = ""; // Clear previous suggestions
@@ -65,19 +68,24 @@ stockSearchInput.addEventListener("input", () => {
 		});
 });
 
+/* Hide suggestions when clicking outside */
 document.addEventListener("click", (e) => {
 	if (!e.target.closest(".stock-search")) {
 		suggestionsBox.style.display = "none"; // Hide suggestions when clicking outside
 	}
 });
 
+/* Update SWOT and QVT widgets */
 function updateSwotWidget(stock) {
 	// Encode the stock name for URL
 	const encodedStock = encodeURIComponent(stock).split(".")[0];
 	// Update the src of the SWOT widget
 	swotWidget.src = `https://trendlyne.com/web-widget/swot-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+	// Update the src of the QVT widget
+	qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
 }
 
+/* Fetch and display stock price */
 function fetchStockPrice(stockSymbol, div = null, stockName = null) {
 	// Use a CORS proxy to fetch stock price data from Yahoo Finance API
 	fetch(
@@ -104,45 +112,38 @@ function fetchStockPrice(stockSymbol, div = null, stockName = null) {
 		});
 }
 
+/* Update TradingView Stock Chart */
 function updateStockChart(stockSymbol) {
-	// Clean up existing chart
+	const cleanSymbol = stockSymbol.split(".")[0];
+	// Removed exchange prefix
+	// const exchange = stockSymbol.endsWith(".NS") ? "NSE" : "BSE";
+
+	// Clear any existing widget
 	stockChartContainer.innerHTML = "";
 
-	// Create new container
-	const container = document.createElement("div");
-	container.id = "tradingview_chart";
-	container.style.height = "500px";
-	stockChartContainer.appendChild(container);
+	// Create a container for the widget
+	const widgetContainer = document.createElement("div");
+	const widgetId = `tradingview_${cleanSymbol}`;
+	widgetContainer.id = widgetId;
+	widgetContainer.className = "tradingview-widget-container";
+	widgetContainer.style.height = "600px"; // Increased height for better visibility
+	stockChartContainer.appendChild(widgetContainer);
 
-	// Clean symbol (remove .NS or .BO)
-	const cleanSymbol = stockSymbol.split(".")[0];
-
-	try {
-		new TradingView.widget({
-			autosize: true,
-			symbol: cleanSymbol,
-			interval: "D",
-			timezone: "Asia/Kolkata",
-			theme: "Light",
-			style: "1",
-			locale: "in",
-			toolbar_bg: "#f1f3f6",
-			enable_publishing: false,
-			allow_symbol_change: true,
-			save_image: false,
-			container_id: "tradingview_chart",
-			hide_top_toolbar: false,
-			hide_side_toolbar: false,
-			withdateranges: true,
-			details: true,
-			hotlist: true,
-			calendar: true,
-			width: "100%",
-			height: "100%",
-		});
-	} catch (error) {
-		console.error("TradingView widget error:", error);
-		stockChartContainer.innerHTML =
-			"<p>Chart temporarily unavailable. Please try again later.</p>";
-	}
+	// Initialize the TradingView widget without exchange prefix
+	new TradingView.widget({
+		autosize: true,
+		symbol: cleanSymbol, // Removed exchange prefix
+		interval: "D",
+		timezone: "Asia/Kolkata",
+		theme: "light",
+		style: "1",
+		locale: "in",
+		toolbar_bg: "#f1f3f6",
+		enable_publishing: false,
+		allow_symbol_change: true,
+		save_image: false,
+		container_id: widgetId,
+		width: "100%",
+		height: "600",
+	});
 }
