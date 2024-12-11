@@ -1,5 +1,5 @@
 body {
-	font-family: Arial, sans-serif;
+	font-family: "Roboto", sans-serif;
 	background-color: #f0f2f5;
 	margin: 0;
 	padding: 0;
@@ -13,8 +13,8 @@ body {
 .container {
 	background: #fff;
 	padding: 20px;
-	border-radius: 8px;
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	border-radius: 12px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	max-width: 900px;
 	width: 100%;
 	display: flex;
@@ -56,28 +56,38 @@ body {
 	margin-bottom: 10px;
 	font-size: 1.2em;
 	font-weight: bold;
+	color: #333;
 }
 
 .stock-search input {
 	width: 100%;
-	padding: 10px;
+	padding: 12px;
 	font-size: 1em;
 	border: 1px solid #ccc;
-	border-radius: 4px;
+	border-radius: 8px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	transition: border-color 0.3s;
+}
+
+.stock-search input:focus {
+	border-color: #007bff;
+	outline: none;
 }
 
 .suggestions {
 	margin-top: 10px;
 	border: 1px solid #ccc;
-	border-radius: 4px;
+	border-radius: 8px;
 	max-height: 150px;
 	overflow-y: auto;
 	width: 100%; /* Match the width of the input */
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .suggestion-item {
 	padding: 10px;
 	cursor: pointer;
+	transition: background-color 0.3s;
 }
 
 .suggestion-item:hover {
@@ -94,6 +104,7 @@ footer {
 	margin-top: 20px;
 	font-size: 1em;
 	color: #555;
+	text-align: center;
 }
 
 #swot-header {
@@ -111,4 +122,19 @@ footer {
 #swot-stock-price {
 	font-size: 1.2em;
 	color: #333;
+}
+
+#stock-chart-container {
+	width: 100%;
+	height: 500px;
+	margin-top: 20px;
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+#tradingview_chart {
+	width: 100%;
+	height: 100%;
 }
