@@ -138,3 +138,8 @@ footer {
 	width: 100%;
 	height: 100%;
 }
+
+.widget-container {
+	margin-top: 20px;
+	width: 100%;
+}
