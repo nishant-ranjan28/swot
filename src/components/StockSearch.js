@@ -33,33 +33,33 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart }) =>
             });
     }, [input]);
 
-    const handleSuggestionClick = (stock) => {
-        setInput(stock.name);
+    const handleInputChange = (event) => {
+        setInput(event.target.value);
+    };
+
+    const handleSuggestionClick = (suggestion) => {
+        setInput(suggestion.name);
+        updateSwotWidget(suggestion.symbol);
+        fetchStockPrice(suggestion.symbol);
+        updateStockChart(suggestion.symbol);
         setSuggestions([]);
-        updateSwotWidget(stock.symbol);
-        fetchStockPrice(stock.symbol, null, stock.name);
-        updateStockChart(stock.symbol);
     };
 
     return (
-        <div className="stock-search">
-            <label htmlFor="stock-search-input">Select Indian Market Stock</label>
+        <div>
             <input
                 type="text"
-                id="stock-search-input"
-                placeholder="Enter Stock Name"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInputChange}
+                placeholder="Search for stocks..."
             />
-            {suggestions.length > 0 && (
-                <div className="suggestions">
-                    {suggestions.map(stock => (
-                        <div key={stock.symbol} className="suggestion-item" onClick={() => handleSuggestionClick(stock)}>
-                            {stock.name}
-                        </div>
-                    ))}
-                </div>
-            )}
+            <ul>
+                {suggestions.map((suggestion, index) => (
+                    <li key={index} onClick={() => handleSuggestionClick(suggestion)}>
+                        {suggestion.name} ({suggestion.symbol})
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 };
