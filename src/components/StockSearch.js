@@ -5,32 +5,41 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
     const [suggestions, setSuggestions] = useState([]);
 
     useEffect(() => {
-        if (input.length === 0) {
+        if (input.trim().length === 0) {
             setSuggestions([]);
             return;
         }
 
-        fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v1/finance/search?q=${input}&region=IN`)}`)
-            .then(response => response.json())
-            .then(data => {
+        const fetchStocks = async () => {
+            try {
+                const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v1/finance/search?q=${input}&region=IN`)}`);
+                const data = await response.json();
                 const stocks = JSON.parse(data.contents).quotes || [];
                 const uniqueStocks = new Set();
 
-                const newSuggestions = stocks.filter(stock => {
-                    const stockName = stock.shortname;
-                    const stockSymbol = stock.symbol;
-                    return stockName && !uniqueStocks.has(stockName) && (stockSymbol.endsWith('.NS') || stockSymbol.endsWith('.BO'));
-                }).map(stock => {
-                    uniqueStocks.add(stock.shortname);
-                    return { name: stock.shortname, symbol: stock.symbol, price: stock.regularMarketPrice };
-                });
+                const newSuggestions = stocks
+                    .filter(stock => {
+                        const stockName = stock.shortname;
+                        const stockSymbol = stock.symbol;
+                        return stockName && !uniqueStocks.has(stockName) && (stockSymbol.endsWith('.NS') || stockSymbol.endsWith('.BO'));
+                    })
+                    .map(stock => {
+                        uniqueStocks.add(stock.shortname);
+                        return {
+                            name: stock.shortname,
+                            symbol: stock.symbol,
+                            price: stock.price ?? 'N/A' // Updated to use 'price' instead of 'regularMarketPrice'
+                        };
+                    });
 
                 setSuggestions(newSuggestions);
-            })
-            .catch(error => {
+            } catch (error) {
                 console.error('Error fetching stock data:', error);
                 setSuggestions([]);
-            });
+            }
+        };
+
+        fetchStocks();
     }, [input]);
 
     const handleInputChange = (event) => {
@@ -41,9 +50,15 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
         setInput(suggestion.name);
         updateSelectedStock && updateSelectedStock(suggestion);
         updateSwotWidget(suggestion.symbol);
-        fetchStockPrice(suggestion.symbol);
+        fetchStockPrice(suggestion.symbol, null, suggestion.name);
         updateStockChart(suggestion.symbol);
         setSuggestions([]);
+    };
+
+    // Function to format the price with commas and two decimal places
+    const formatPrice = (price) => {
+        if (price === 'N/A') return price;
+        return price.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
     };
 
     return (
@@ -61,9 +76,14 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
                         <li
                             key={index}
                             onClick={() => handleSuggestionClick(suggestion)}
-                            className="p-3 cursor-pointer hover:bg-gray-100 transition"
+                            className="p-3 cursor-pointer hover:bg-gray-100 transition flex justify-between items-center"
                         >
-                            <strong>{suggestion.name}</strong> ({suggestion.symbol}) - ₹{suggestion.price}
+                            <div>
+                                <strong>{suggestion.name}</strong> ({suggestion.symbol})
+                            </div>
+                            <div className={`ml-4 text-sm ${suggestion.price === 'N/A' ? 'text-red-500' : 'text-green-600'}`}>
+                                {formatPrice(suggestion.price)}
+                            </div>
                         </li>
                     ))}
                 </ul>
