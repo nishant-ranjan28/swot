@@ -39,7 +39,7 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
 
     const handleSuggestionClick = (suggestion) => {
         setInput(suggestion.name);
-        updateSelectedStock(suggestion);
+        updateSelectedStock && updateSelectedStock(suggestion);
         updateSwotWidget(suggestion.symbol);
         fetchStockPrice(suggestion.symbol);
         updateStockChart(suggestion.symbol);
@@ -53,15 +53,21 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Search for stocks..."
-                className="w-full p-3 mb-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 outline-none"
+                className="w-full p-3 border-2 border-gray-300 rounded-lg shadow focus:border-blue-500 outline-none transition duration-200"
             />
-            <ul className="absolute w-full bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto z-10">
-                {suggestions.map((suggestion, index) => (
-                    <li key={index} onClick={() => handleSuggestionClick(suggestion)} className="p-2 cursor-pointer hover:bg-gray-100">
-                        <strong>{suggestion.name}</strong> ({suggestion.symbol}) - ${suggestion.price}
-                    </li>
-                ))}
-            </ul>
+            {suggestions.length > 0 && (
+                <ul className="absolute w-full bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto mt-2 z-20">
+                    {suggestions.map((suggestion, index) => (
+                        <li
+                            key={index}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="p-3 cursor-pointer hover:bg-gray-100 transition"
+                        >
+                            <strong>{suggestion.name}</strong> ({suggestion.symbol}) - ₹{suggestion.price}
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 };

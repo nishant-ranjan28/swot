@@ -69,45 +69,60 @@ function App() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 flex flex-col md:flex-row gap-4">
-      <div className="flex-1">
-        <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow">
-          <h2 id="swot-stock-name" className="text-2xl font-bold text-gray-800">Infosys</h2>
-          <span id="swot-stock-price" className="text-xl text-green-600"></span>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col md:flex-row p-6 gap-6">
+        {/* Left Side: Stock Search, SWOT Analysis, and QVT Widgets */}
+        <div className="w-full md:w-1/3 flex flex-col gap-6">
+          {/* Stock Search */}
+          <StockSearch
+            updateSwotWidget={updateSwotWidget}
+            fetchStockPrice={fetchStockPrice}
+            updateStockChart={updateStockChart}
+          />
+
+          {/* SWOT Analysis */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h2 id="swot-stock-name" className="text-2xl font-semibold text-gray-800">Infosys</h2>
+              <span id="swot-stock-price" className="text-xl text-green-600"></span>
+            </div>
+            <iframe
+              className="w-full h-60 rounded-lg shadow-md"
+              id="swot-widget"
+              src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
+          </div>
+
+          {/* QVT Widget */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <iframe
+              className="w-full h-60 rounded-lg shadow-md"
+              id="qvt-widget"
+              src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
+          </div>
         </div>
-        <iframe
-          className="w-full h-96 border-none rounded-lg mt-4 shadow"
-          id="swot-widget"
-          src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-          data-theme="light"
-          frameBorder="0"
-        ></iframe>
-        <div className="mt-4 w-full">
-          <iframe
-            className="w-full h-96 border-none rounded-lg shadow"
-            id="qvt-widget"
-            src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-            data-theme="light"
-            frameBorder="0"
-          ></iframe>
+
+        {/* Right Side: Trading View Chart */}
+        <div className="w-full md:w-2/3 bg-white p-6 rounded-xl shadow-lg">
+          <div id="stock-chart-container" className="h-full">
+            <div id="stock-chart"></div>
+          </div>
         </div>
-      </div>
-      <div className="flex-1 flex flex-col">
-        <StockSearch
-          updateSwotWidget={updateSwotWidget}
-          fetchStockPrice={fetchStockPrice}
-          updateStockChart={updateStockChart}
-        />
-        <div id="stock-chart-container" className="mt-8 bg-white rounded-lg shadow overflow-hidden">
-          <div id="stock-chart"></div>
-        </div>
-      </div>
-      <footer className="p-4 text-center mt-8 bg-gray-100 rounded-lg shadow">
-        Built for investors with Love by
+      </main>
+
+      {/* Footer */}
+      <footer className="w-full p-4 bg-white rounded-xl shadow-lg text-center">
+        Built for investors with ❤️ by
         <a href="https://github.com/nishant-ranjan28" target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 font-bold">
           Nishant
         </a>
-        <img src="image.png" alt="Trendlyne Logo" className="ml-2 w-6 h-auto inline-block" />
+        <img src="image.png" alt="Trendlyne Logo" className="ml-2 w-8 h-auto inline-block" />
       </footer>
     </div>
   );
