@@ -69,52 +69,46 @@ function App() {
   };
 
   return (
-    <div className="container">
-      <div className="left-section">
-        <div id="swot-header">
-          <h2 id="swot-stock-name">Infosys</h2>
-          <span id="swot-stock-price"></span>
+    <div className="max-w-7xl mx-auto p-4 flex flex-col md:flex-row gap-4">
+      <div className="flex-1">
+        <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow">
+          <h2 id="swot-stock-name" className="text-2xl font-bold text-gray-800">Infosys</h2>
+          <span id="swot-stock-price" className="text-xl text-green-600"></span>
         </div>
         <iframe
-          className="trendlyne-widgets"
+          className="w-full h-96 border-none rounded-lg mt-4 shadow"
           id="swot-widget"
           src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
           data-theme="light"
-          width="100%"
-          height="400px"
           frameBorder="0"
         ></iframe>
-        <div className="widget-container">
+        <div className="mt-4 w-full">
           <iframe
-            className="trendlyne-widgets"
+            className="w-full h-96 border-none rounded-lg shadow"
             id="qvt-widget"
             src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
             data-theme="light"
-            width="100%"
-            height="400px"
             frameBorder="0"
           ></iframe>
         </div>
       </div>
-      <div className="right-section">
+      <div className="flex-1 flex flex-col">
         <StockSearch
           updateSwotWidget={updateSwotWidget}
           fetchStockPrice={fetchStockPrice}
           updateStockChart={updateStockChart}
         />
-        <div id="stock-chart-container">
+        <div id="stock-chart-container" className="mt-8 bg-white rounded-lg shadow overflow-hidden">
           <div id="stock-chart"></div>
         </div>
       </div>
-      ...
-      <footer style={{ padding: '1em', textAlign: 'center', marginTop: '2em', backgroundColor: '#f8f9fa' }}>
+      <footer className="p-4 text-center mt-8 bg-gray-100 rounded-lg shadow">
         Built for investors with Love by
-        <a href="https://github.com/nishant-ranjan28" target="_blank" rel="noopener noreferrer" style={{ marginLeft: '0.5em' }}>
+        <a href="https://github.com/nishant-ranjan28" target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 font-bold">
           Nishant
         </a>
-        <img src="image.png" alt="Trendlyne Logo" style={{ width: '1.5em', height: 'auto', verticalAlign: 'middle', marginLeft: '0.5em' }} />
+        <img src="image.png" alt="Trendlyne Logo" className="ml-2 w-6 h-auto inline-block" />
       </footer>
-      ...
     </div>
   );
 }

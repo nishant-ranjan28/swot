@@ -47,17 +47,17 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
     };
 
     return (
-        <div>
+        <div className="relative">
             <input
                 type="text"
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Search for stocks..."
-                style={{ width: '100%', padding: '0.5em', marginBottom: '0.5em' }}
+                className="w-full p-3 mb-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 outline-none"
             />
-            <ul style={{ listStyleType: 'none', padding: 0, margin: 0, maxHeight: '200px', overflowY: 'auto', border: '1px solid #ccc' }}>
+            <ul className="absolute w-full bg-white border border-gray-300 rounded-lg max-h-48 overflow-y-auto z-10">
                 {suggestions.map((suggestion, index) => (
-                    <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ padding: '0.5em', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+                    <li key={index} onClick={() => handleSuggestionClick(suggestion)} className="p-2 cursor-pointer hover:bg-gray-100">
                         <strong>{suggestion.name}</strong> ({suggestion.symbol}) - ${suggestion.price}
                     </li>
                 ))}
