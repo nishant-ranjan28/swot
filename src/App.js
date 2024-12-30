@@ -110,7 +110,7 @@ function App() {
 
         {/* Right Side: Trading View Chart */}
         <div className="w-full md:w-2/3 bg-white p-6 rounded-xl shadow-lg">
-          <div id="stock-chart-container" className="h-full">
+          <div id="stock-chart-container" className="h-full p-4 bg-gray-100 rounded-lg shadow-inner">
             <div id="stock-chart"></div>
           </div>
         </div>
