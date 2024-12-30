@@ -88,7 +88,7 @@ function App() {
               <span id="swot-stock-price" className="text-xl text-green-600"></span>
             </div>
             <iframe
-              className="w-full h-60 rounded-lg shadow-md"
+              className="w-full h-96 rounded-lg shadow-md"
               id="swot-widget"
               src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
               data-theme="light"
@@ -99,7 +99,7 @@ function App() {
           {/* QVT Widget */}
           <div className="bg-white p-6 rounded-xl shadow-lg">
             <iframe
-              className="w-full h-60 rounded-lg shadow-md"
+              className="w-full h-96 rounded-lg shadow-md"
               id="qvt-widget"
               src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
               data-theme="light"
@@ -115,15 +115,6 @@ function App() {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="w-full p-4 bg-white rounded-xl shadow-lg text-center">
-        Built for investors with ❤️ by
-        <a href="https://github.com/nishant-ranjan28" target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-500 font-bold">
-          Nishant
-        </a>
-        <img src="image.png" alt="Trendlyne Logo" className="ml-2 w-8 h-auto inline-block" />
-      </footer>
     </div>
   );
 }
