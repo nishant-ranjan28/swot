@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, updateSelectedStock }) => {
     const [input, setInput] = useState('');
     const [suggestions, setSuggestions] = useState([]);
+    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const dropdownRef = useRef(null);
 
     useEffect(() => {
         if (input.trim().length === 0) {
@@ -42,8 +44,21 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
         fetchStocks();
     }, [input]);
 
+    // Add click outside handler
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownVisible(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const handleInputChange = (event) => {
         setInput(event.target.value);
+        setIsDropdownVisible(true);
     };
 
     const handleSuggestionClick = (suggestion) => {
@@ -53,6 +68,7 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
         fetchStockPrice(suggestion.symbol, null, suggestion.name);
         updateStockChart(suggestion.symbol);
         setSuggestions([]);
+        setIsDropdownVisible(false);  // Close dropdown after selection
     };
 
     // Function to format the price with commas and two decimal places
@@ -62,7 +78,7 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
     };
 
     return (
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
             <input
                 type="text"
                 value={input}
@@ -70,7 +86,7 @@ const StockSearch = ({ updateSwotWidget, fetchStockPrice, updateStockChart, upda
                 placeholder="Search for stocks..."
                 className="w-full p-3 border-2 border-gray-300 rounded-lg shadow focus:border-blue-500 outline-none transition duration-200"
             />
-            {suggestions.length > 0 && (
+            {suggestions.length > 0 && isDropdownVisible && (
                 <ul className="absolute w-full bg-white border border-gray-300 rounded-lg max-h-60 overflow-y-auto mt-2 z-20">
                     {suggestions.map((suggestion, index) => (
                         <li
