@@ -100,9 +100,9 @@ function App() {
           />
 
           {/* Widgets in one line */}
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-6">
             {/* SWOT Analysis */}
-            <div className="bg-white p-6 rounded-xl shadow-lg flex-1">
+            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
               <div className="flex justify-between items-center mb-4">
                 <h2 id="swot-stock-name" className="text-2xl font-semibold text-gray-800">Infosys</h2>
                 <span id="swot-stock-price" className="text-xl text-green-600"></span>
@@ -117,7 +117,7 @@ function App() {
             </div>
 
             {/* QVT Widget */}
-            <div className="bg-white p-6 rounded-xl shadow-lg flex-1">
+            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
               <iframe
                 className="w-full h-96 rounded-lg shadow-md"
                 id="qvt-widget"
@@ -128,7 +128,7 @@ function App() {
             </div>
 
             {/* Technical Analysis Widget */}
-            <div className="bg-white p-6 rounded-xl shadow-lg flex-1">
+            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
               <blockquote
                 className="trendlyne-widgets"
                 data-get-url="https://trendlyne.com/web-widget/technical-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
