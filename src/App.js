@@ -24,8 +24,8 @@ function App() {
         if (div && stockName) {
           div.textContent = `${stockName} - ₹${price}`;
         } else {
-          document.getElementById('swot-stock-name').textContent = stockName;
-          document.getElementById('swot-stock-price').textContent = `₹${price}`;
+          document.getElementById('stock-name-display').textContent = stockName;
+          document.getElementById('stock-price-display').textContent = `₹${price}`;
         }
       })
       .catch(error => {
@@ -33,7 +33,7 @@ function App() {
         if (div && stockName) {
           div.textContent = `${stockName} - Price not available`;
         } else {
-          document.getElementById('swot-stock-price').textContent = 'Price not available';
+          document.getElementById('stock-price-display').textContent = 'Price not available';
         }
       });
   };
@@ -93,20 +93,22 @@ function App() {
         {/* Top Part: Stock Search and Widgets */}
         <div className="flex flex-col gap-6">
           {/* Stock Search */}
-          <StockSearch
-            updateSwotWidget={updateSwotWidget}
-            fetchStockPrice={fetchStockPrice}
-            updateStockChart={updateStockChart}
-          />
+          <div className="flex gap-6 items-center">
+            <StockSearch
+              updateSwotWidget={updateSwotWidget}
+              fetchStockPrice={fetchStockPrice}
+              updateStockChart={updateStockChart}
+              className="flex-1"
+            />
+            <div className="flex-1 text-2xl font-semibold text-gray-800">
+              <span id="stock-name-display"></span> - <span id="stock-price-display"></span>
+            </div>
+          </div>
 
           {/* Widgets in one line */}
           <div className="flex flex-wrap gap-6">
             {/* SWOT Analysis */}
             <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
-              <div className="flex justify-between items-center mb-4">
-                <h2 id="swot-stock-name" className="text-2xl font-semibold text-gray-800">Infosys</h2>
-                <span id="swot-stock-price" className="text-xl text-green-600"></span>
-              </div>
               <iframe
                 className="w-full h-96 rounded-lg shadow-md"
                 id="swot-widget"
