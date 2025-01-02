@@ -67,13 +67,13 @@ function App() {
       qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
     }
 
-    // Update Technical Analysis widget (now an iframe)
+    // Update Technical Analysis widget (iframe)
     const technicalWidget = document.getElementById('technical-widget');
     if (technicalWidget) {
       technicalWidget.src = `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
     }
 
-    // Update Checklist widget
+    // Update Checklist widget (iframe)
     const checklistWidget = document.getElementById('checklist-widget');
     if (checklistWidget) {
       checklistWidget.src = `https://trendlyne.com/web-widget/checklist-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
