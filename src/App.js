@@ -7,18 +7,41 @@ function App() {
   useEffect(() => {
     fetchStockPrice('INFY.NS', null, 'Infosys');
     updateStockChart('INFY.NS');
+    loadTrendlyneScript();
   }, []);
+
+  const loadTrendlyneScript = () => {
+    const existingScript = document.getElementById('trendlyne-widgets-script');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.id = 'trendlyne-widgets-script';
+      script.src = 'https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js';
+      script.async = true;
+      script.charset = 'utf-8';
+      document.body.appendChild(script);
+    }
+  };
 
   const updateSwotWidget = (stock) => {
     const encodedStock = encodeURIComponent(stock).split('.')[0];
-    document.getElementById('swot-widget').src = `https://trendlyne.com/web-widget/swot-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
-    document.getElementById('qvt-widget').src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+    const swotWidget = document.getElementById('swot-widget');
+    const qvtWidget = document.getElementById('qvt-widget');
+    if (swotWidget) {
+      swotWidget.src = `https://trendlyne.com/web-widget/swot-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+    }
+    if (qvtWidget) {
+      qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+    }
   };
 
   const fetchStockPrice = (stockSymbol, div = null, stockName = null) => {
-    fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${stockSymbol}?region=IN&lang=en-IN&interval=1d&range=1d`)}`)
-      .then(response => response.json())
-      .then(data => {
+    fetch(
+      `https://api.allorigins.win/get?url=${encodeURIComponent(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${stockSymbol}?region=IN&lang=en-IN&interval=1d&range=1d`
+      )}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
         const stockData = JSON.parse(data.contents);
         const price = stockData.chart.result[0].meta.regularMarketPrice;
         if (div && stockName) {
@@ -28,7 +51,7 @@ function App() {
           document.getElementById('stock-price-display').textContent = `₹${price}`;
         }
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error fetching stock price:', error);
         if (div && stockName) {
           div.textContent = `${stockName} - Price not available`;
@@ -49,31 +72,24 @@ function App() {
       qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
     }
 
-    // Update Technical widget
-    const technicalWidget = document.querySelector('.trendlyne-widgets[data-get-url*="technical-widget"]');
+    // Update Technical Analysis widget (now an iframe)
+    const technicalWidget = document.getElementById('technical-widget');
     if (technicalWidget) {
-      technicalWidget.setAttribute(
-        'data-get-url',
-        `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`
-      );
-      if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
-        window.tl_widgets.render();
-      }
+      technicalWidget.src = `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
     }
 
     // Update Checklist widget
-    const checklistWidget = document.querySelector('.trendlyne-widgets[data-get-url*="checklist-widget"]');
+    const checklistWidget = document.getElementById('checklist-widget');
     if (checklistWidget) {
-      checklistWidget.setAttribute(
-        'data-get-url',
-        `https://trendlyne.com/web-widget/checklist-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`
-      );
-      if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
-        window.tl_widgets.render();
-      }
+      checklistWidget.src = `https://trendlyne.com/web-widget/checklist-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
     }
 
-    // Create new TradingView widget
+    // Re-render Trendlyne widgets if needed
+    if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
+      window.tl_widgets.render();
+    }
+
+    // Create a new TradingView widget
     const widgetContainer = document.createElement('div');
     widgetContainer.id = `tradingview_${cleanSymbol}`;
     widgetContainer.className = 'tradingview-widget-container';
@@ -100,11 +116,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Main Content */}
       <main className="flex-1 flex flex-col p-6 gap-6">
-        {/* Top Part: Stock Search and Widgets */}
+        {/* Top: Stock Search */}
         <div className="flex flex-col gap-6">
-          {/* Stock Search */}
           <div className="flex gap-6 items-center">
             <StockSearch
               updateSwotWidget={updateSwotWidget}
@@ -117,7 +131,7 @@ function App() {
             </div>
           </div>
 
-          {/* Widgets in one line */}
+          {/* Widgets */}
           <div className="flex flex-wrap gap-6">
             {/* SWOT Analysis */}
             <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
@@ -141,37 +155,31 @@ function App() {
               ></iframe>
             </div>
 
-            {/* Technical Analysis Widget */}
+            {/* Technical Analysis Widget (iframe) */}
             <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
-              <blockquote
-                className="trendlyne-widgets"
-                data-get-url="https://trendlyne.com/web-widget/technical-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              <iframe
+                className="w-full h-96 rounded-lg shadow-md"
+                id="technical-widget"
+                src="https://trendlyne.com/web-widget/technical-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
                 data-theme="light"
-              ></blockquote>
-              <script
-                async
-                src="https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js"
-                charset="utf-8"
-              ></script>
+                frameBorder="0"
+              ></iframe>
             </div>
 
-            {/* Checklist Widget */}
+            {/* Checklist Widget (iframe) */}
             <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
-              <blockquote
-                className="trendlyne-widgets"
-                data-get-url="https://trendlyne.com/web-widget/checklist-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              <iframe
+                className="w-full h-96 rounded-lg shadow-md"
+                id="checklist-widget"
+                src="https://trendlyne.com/web-widget/checklist-widget/Poppins/TATAMOTORS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
                 data-theme="light"
-              ></blockquote>
-              <script
-                async
-                src="https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js"
-                charset="utf-8"
-              ></script>
+                frameBorder="0"
+              ></iframe>
             </div>
           </div>
         </div>
 
-        {/* Bottom Part: Trading View Chart */}
+        {/* Bottom: TradingView Chart */}
         <div className="bg-white p-6 rounded-xl shadow-lg">
           <div id="stock-chart-container" className="h-full p-4 bg-gray-100 rounded-lg shadow-inner">
             <div id="stock-chart"></div>
