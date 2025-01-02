@@ -43,9 +43,27 @@ function App() {
     const stockChartContainer = document.getElementById('stock-chart-container');
     stockChartContainer.innerHTML = '';
 
+    // Update QVT widget
+    const qvtWidget = document.getElementById('qvt-widget');
+    if (qvtWidget) {
+      qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+    }
+
+    // Update Technical widget
+    const technicalWidget = document.querySelector('.trendlyne-widgets');
+    if (technicalWidget) {
+      technicalWidget.setAttribute(
+        'data-get-url',
+        `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`
+      );
+      if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
+        window.tl_widgets.render();
+      }
+    }
+
+    // Create new TradingView widget
     const widgetContainer = document.createElement('div');
-    const widgetId = `tradingview_${cleanSymbol}`;
-    widgetContainer.id = widgetId;
+    widgetContainer.id = `tradingview_${cleanSymbol}`;
     widgetContainer.className = 'tradingview-widget-container';
     widgetContainer.style.height = '600px';
     stockChartContainer.appendChild(widgetContainer);
@@ -62,7 +80,7 @@ function App() {
       enable_publishing: false,
       allow_symbol_change: true,
       save_image: false,
-      container_id: widgetId,
+      container_id: widgetContainer.id,
       width: '100%',
       height: '600',
     });
@@ -71,9 +89,9 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Main Content */}
-      <main className="flex-1 flex flex-col md:flex-row p-6 gap-6">
-        {/* Left Side: Stock Search, SWOT Analysis, and QVT Widgets */}
-        <div className="w-full md:w-1/3 flex flex-col gap-6">
+      <main className="flex-1 flex flex-col p-6 gap-6">
+        {/* Top Part: Stock Search and Widgets */}
+        <div className="flex flex-col gap-6">
           {/* Stock Search */}
           <StockSearch
             updateSwotWidget={updateSwotWidget}
@@ -81,35 +99,52 @@ function App() {
             updateStockChart={updateStockChart}
           />
 
-          {/* SWOT Analysis */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h2 id="swot-stock-name" className="text-2xl font-semibold text-gray-800">Infosys</h2>
-              <span id="swot-stock-price" className="text-xl text-green-600"></span>
+          {/* Widgets in one line */}
+          <div className="flex gap-6">
+            {/* SWOT Analysis */}
+            <div className="bg-white p-6 rounded-xl shadow-lg flex-1">
+              <div className="flex justify-between items-center mb-4">
+                <h2 id="swot-stock-name" className="text-2xl font-semibold text-gray-800">Infosys</h2>
+                <span id="swot-stock-price" className="text-xl text-green-600"></span>
+              </div>
+              <iframe
+                className="w-full h-96 rounded-lg shadow-md"
+                id="swot-widget"
+                src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+                data-theme="light"
+                frameBorder="0"
+              ></iframe>
             </div>
-            <iframe
-              className="w-full h-96 rounded-lg shadow-md"
-              id="swot-widget"
-              src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-              data-theme="light"
-              frameBorder="0"
-            ></iframe>
-          </div>
 
-          {/* QVT Widget */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <iframe
-              className="w-full h-96 rounded-lg shadow-md"
-              id="qvt-widget"
-              src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-              data-theme="light"
-              frameBorder="0"
-            ></iframe>
+            {/* QVT Widget */}
+            <div className="bg-white p-6 rounded-xl shadow-lg flex-1">
+              <iframe
+                className="w-full h-96 rounded-lg shadow-md"
+                id="qvt-widget"
+                src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+                data-theme="light"
+                frameBorder="0"
+              ></iframe>
+            </div>
+
+            {/* Technical Analysis Widget */}
+            <div className="bg-white p-6 rounded-xl shadow-lg flex-1">
+              <blockquote
+                className="trendlyne-widgets"
+                data-get-url="https://trendlyne.com/web-widget/technical-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+                data-theme="light"
+              ></blockquote>
+              <script
+                async
+                src="https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js"
+                charset="utf-8"
+              ></script>
+            </div>
           </div>
         </div>
 
-        {/* Right Side: Trading View Chart */}
-        <div className="w-full md:w-2/3 bg-white p-6 rounded-xl shadow-lg">
+        {/* Bottom Part: Trading View Chart */}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
           <div id="stock-chart-container" className="h-full p-4 bg-gray-100 rounded-lg shadow-inner">
             <div id="stock-chart"></div>
           </div>
