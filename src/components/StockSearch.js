@@ -37,25 +37,48 @@ const StockSearch = ({
                 const stocks = JSON.parse(data.contents).quotes || [];
                 const uniqueStocks = new Set();
 
-                const newSuggestions = stocks
-                    .filter((stock) => {
-                        const stockName = stock.shortname;
-                        const stockSymbol = stock.symbol;
-                        return (
-                            stockName &&
-                            !uniqueStocks.has(stockName) &&
-                            (stockSymbol.endsWith('.NS') || stockSymbol.endsWith('.BO'))
-                        );
-                    })
-                    .map((stock) => {
-                        uniqueStocks.add(stock.shortname);
-                        return {
-                            name: stock.shortname,
-                            symbol: stock.symbol,
-                        };
-                    });
+                // Limit the number of suggestions to 5 to optimize API calls
+                const limitedStocks = stocks.slice(0, 5);
 
-                setSuggestions(newSuggestions);
+                // Fetch prices for each limited stock
+                const stocksWithPrices = await Promise.all(
+                    limitedStocks.map(async (stock) => {
+                        // Ensure the stock has a valid symbol
+                        if (stock.symbol && (stock.symbol.endsWith('.NS') || stock.symbol.endsWith('.BO'))) {
+                            try {
+                                const priceResponse = await fetch(
+                                    `https://api.allorigins.win/get?url=${encodeURIComponent(
+                                        `https://query1.finance.yahoo.com/v8/finance/chart/${stock.symbol}?region=IN&lang=en-IN&interval=1d&range=1d`
+                                    )}`
+                                );
+                                const priceData = await priceResponse.json();
+                                const parsedPriceData = JSON.parse(priceData.contents);
+                                const price =
+                                    parsedPriceData.chart.result[0].meta.regularMarketPrice || 'N/A';
+
+                                return {
+                                    name: stock.shortname,
+                                    symbol: stock.symbol,
+                                    price: price,
+                                };
+                            } catch (priceError) {
+                                console.error(`Error fetching price for ${stock.symbol}:`, priceError);
+                                return {
+                                    name: stock.shortname,
+                                    symbol: stock.symbol,
+                                    price: 'N/A',
+                                };
+                            }
+                        } else {
+                            return null;
+                        }
+                    })
+                );
+
+                // Filter out any null results
+                const validStocks = stocksWithPrices.filter((stock) => stock !== null);
+
+                setSuggestions(validStocks);
                 setIsDropdownVisible(true);
             } catch (error) {
                 console.error('Error fetching suggestions:', error);
@@ -121,6 +144,7 @@ const StockSearch = ({
                         type="button"
                         onClick={clearSearch}
                         className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500"
+                        aria-label="Clear search"
                     >
                         ×
                     </button>
@@ -131,10 +155,15 @@ const StockSearch = ({
                         {suggestions.map((stock, idx) => (
                             <li
                                 key={idx}
-                                className="p-2 cursor-pointer hover:bg-gray-100"
+                                className="p-2 cursor-pointer hover:bg-gray-100 flex justify-between items-center"
                                 onClick={() => handleSuggestionClick(stock)}
                             >
-                                {stock.name} ({stock.symbol})
+                                <span>
+                                    {stock.name} ({stock.symbol})
+                                </span>
+                                <span className="text-green-600 font-semibold">
+                                    ₹{stock.price}
+                                </span>
                             </li>
                         ))}
                     </ul>
