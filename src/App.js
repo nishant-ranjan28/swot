@@ -114,12 +114,14 @@ function App() {
       <main className="flex-1 flex flex-col p-6 gap-6">
         {/* Top Part: Only the text box now (StockSearch), no stock price */}
         <div className="flex gap-6 items-center">
-          <StockSearch
-            updateSwotWidget={updateSwotWidget}
-            fetchStockPrice={fetchStockPrice}
-            updateStockChart={updateStockChart}
-            className="flex-1"
-          />
+          <div className="w-full">
+            <StockSearch
+              updateSwotWidget={updateSwotWidget}
+              fetchStockPrice={fetchStockPrice}
+              updateStockChart={updateStockChart}
+              className="w-full"
+            />
+          </div>
         </div>
 
         {/* Continue with other widgets below ... */}
