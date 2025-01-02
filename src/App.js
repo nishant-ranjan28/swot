@@ -50,11 +50,23 @@ function App() {
     }
 
     // Update Technical widget
-    const technicalWidget = document.querySelector('.trendlyne-widgets');
+    const technicalWidget = document.querySelector('.trendlyne-widgets[data-get-url*="technical-widget"]');
     if (technicalWidget) {
       technicalWidget.setAttribute(
         'data-get-url',
         `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`
+      );
+      if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
+        window.tl_widgets.render();
+      }
+    }
+
+    // Update Checklist widget
+    const checklistWidget = document.querySelector('.trendlyne-widgets[data-get-url*="checklist-widget"]');
+    if (checklistWidget) {
+      checklistWidget.setAttribute(
+        'data-get-url',
+        `https://trendlyne.com/web-widget/checklist-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`
       );
       if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
         window.tl_widgets.render();
@@ -147,7 +159,7 @@ function App() {
             <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
               <blockquote
                 className="trendlyne-widgets"
-                data-get-url="https://trendlyne.com/web-widget/checklist-widget/Poppins/TATAMOTORS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+                data-get-url="https://trendlyne.com/web-widget/checklist-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
                 data-theme="light"
               ></blockquote>
               <script
