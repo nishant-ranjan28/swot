@@ -142,6 +142,20 @@ function App() {
                 charset="utf-8"
               ></script>
             </div>
+
+            {/* Checklist Widget */}
+            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+              <blockquote
+                className="trendlyne-widgets"
+                data-get-url="https://trendlyne.com/web-widget/checklist-widget/Poppins/TATAMOTORS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+                data-theme="light"
+              ></blockquote>
+              <script
+                async
+                src="https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js"
+                charset="utf-8"
+              ></script>
+            </div>
           </div>
         </div>
 
