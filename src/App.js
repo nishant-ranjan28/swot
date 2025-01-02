@@ -25,12 +25,8 @@ function App() {
   const updateSwotWidget = (stock) => {
     const encodedStock = encodeURIComponent(stock).split('.')[0];
     const swotWidget = document.getElementById('swot-widget');
-    const qvtWidget = document.getElementById('qvt-widget');
     if (swotWidget) {
       swotWidget.src = `https://trendlyne.com/web-widget/swot-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
-    }
-    if (qvtWidget) {
-      qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
     }
   };
 
@@ -47,8 +43,7 @@ function App() {
         if (div && stockName) {
           div.textContent = `${stockName} - ₹${price}`;
         } else {
-          document.getElementById('stock-name-display').textContent = stockName;
-          document.getElementById('stock-price-display').textContent = `₹${price}`;
+          // Removed references to 'stock-name-display' and 'stock-price-display'
         }
       })
       .catch((error) => {
@@ -56,7 +51,7 @@ function App() {
         if (div && stockName) {
           div.textContent = `${stockName} - Price not available`;
         } else {
-          document.getElementById('stock-price-display').textContent = 'Price not available';
+          // Removed references to 'stock-name-display' and 'stock-price-display'
         }
       });
   };
@@ -117,65 +112,60 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-1 flex flex-col p-6 gap-6">
-        {/* Top: Stock Search */}
-        <div className="flex flex-col gap-6">
-          <div className="flex gap-6 items-center">
-            <StockSearch
-              updateSwotWidget={updateSwotWidget}
-              fetchStockPrice={fetchStockPrice}
-              updateStockChart={updateStockChart}
-              className="flex-1"
-            />
-            <div className="flex-1 text-2xl font-semibold text-gray-800">
-              <span id="stock-name-display"></span> - <span id="stock-price-display"></span>
-            </div>
+        {/* Top Part: Only the text box now (StockSearch), no stock price */}
+        <div className="flex gap-6 items-center">
+          <StockSearch
+            updateSwotWidget={updateSwotWidget}
+            fetchStockPrice={fetchStockPrice}
+            updateStockChart={updateStockChart}
+            className="flex-1"
+          />
+        </div>
+
+        {/* Continue with other widgets below ... */}
+        <div className="flex flex-wrap gap-6">
+          {/* SWOT Analysis */}
+          <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+            <iframe
+              className="w-full h-96 rounded-lg shadow-md"
+              id="swot-widget"
+              src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
           </div>
 
-          {/* Widgets */}
-          <div className="flex flex-wrap gap-6">
-            {/* SWOT Analysis */}
-            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
-              <iframe
-                className="w-full h-96 rounded-lg shadow-md"
-                id="swot-widget"
-                src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-                data-theme="light"
-                frameBorder="0"
-              ></iframe>
-            </div>
+          {/* QVT Widget */}
+          <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+            <iframe
+              className="w-full h-96 rounded-lg shadow-md"
+              id="qvt-widget"
+              src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
+          </div>
 
-            {/* QVT Widget */}
-            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
-              <iframe
-                className="w-full h-96 rounded-lg shadow-md"
-                id="qvt-widget"
-                src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-                data-theme="light"
-                frameBorder="0"
-              ></iframe>
-            </div>
+          {/* Technical Analysis Widget (iframe) */}
+          <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+            <iframe
+              className="w-full h-96 rounded-lg shadow-md"
+              id="technical-widget"
+              src="https://trendlyne.com/web-widget/technical-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
+          </div>
 
-            {/* Technical Analysis Widget (iframe) */}
-            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
-              <iframe
-                className="w-full h-96 rounded-lg shadow-md"
-                id="technical-widget"
-                src="https://trendlyne.com/web-widget/technical-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-                data-theme="light"
-                frameBorder="0"
-              ></iframe>
-            </div>
-
-            {/* Checklist Widget (iframe) */}
-            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
-              <iframe
-                className="w-full h-96 rounded-lg shadow-md"
-                id="checklist-widget"
-                src="https://trendlyne.com/web-widget/checklist-widget/Poppins/TATAMOTORS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-                data-theme="light"
-                frameBorder="0"
-              ></iframe>
-            </div>
+          {/* Checklist Widget (iframe) */}
+          <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+            <iframe
+              className="w-full h-96 rounded-lg shadow-md"
+              id="checklist-widget"
+              src="https://trendlyne.com/web-widget/checklist-widget/Poppins/TATAMOTORS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
           </div>
         </div>
 
