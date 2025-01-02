@@ -5,8 +5,8 @@ import StockSearch from './components/StockSearch';
 
 function App() {
   useEffect(() => {
-    fetchStockPrice('INFY.NS', null, 'Infosys');
-    updateStockChart('INFY.NS');
+    fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
+    updateStockChart('LTFOODS.NS');
     loadTrendlyneScript();
   }, []);
 
@@ -131,7 +131,7 @@ function App() {
             <iframe
               className="w-full h-96 rounded-lg shadow-md"
               id="swot-widget"
-              src="https://trendlyne.com/web-widget/swot-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              src="https://trendlyne.com/web-widget/swot-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
               data-theme="light"
               frameBorder="0"
             ></iframe>
