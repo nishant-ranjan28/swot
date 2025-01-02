@@ -132,6 +132,7 @@ function App() {
               className="w-full h-96 rounded-lg shadow-md"
               id="swot-widget"
               src="https://trendlyne.com/web-widget/swot-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              title="SWOT Analysis for LT Foods"
               data-theme="light"
               frameBorder="0"
             ></iframe>
@@ -142,29 +143,32 @@ function App() {
             <iframe
               className="w-full h-96 rounded-lg shadow-md"
               id="qvt-widget"
-              src="https://trendlyne.com/web-widget/qvt-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              src="https://trendlyne.com/web-widget/qvt-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              title="QVT Widget for LT Foods"
               data-theme="light"
               frameBorder="0"
             ></iframe>
           </div>
 
-          {/* Technical Analysis Widget (iframe) */}
+          {/* Technical Analysis Widget */}
           <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
             <iframe
               className="w-full h-96 rounded-lg shadow-md"
               id="technical-widget"
-              src="https://trendlyne.com/web-widget/technical-widget/Poppins/INFY/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              src="https://trendlyne.com/web-widget/technical-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              title="Technical Analysis for LT Foods"
               data-theme="light"
               frameBorder="0"
             ></iframe>
           </div>
 
-          {/* Checklist Widget (iframe) */}
+          {/* Checklist Widget */}
           <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
             <iframe
               className="w-full h-96 rounded-lg shadow-md"
               id="checklist-widget"
               src="https://trendlyne.com/web-widget/checklist-widget/Poppins/TATAMOTORS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              title="Checklist Widget for TATA Motors"
               data-theme="light"
               frameBorder="0"
             ></iframe>
