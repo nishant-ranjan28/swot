@@ -35,7 +35,6 @@ const StockSearch = ({
                 );
                 const data = await response.json();
                 const stocks = JSON.parse(data.contents).quotes || [];
-                const uniqueStocks = new Set();
 
                 // Limit the number of suggestions to 5 to optimize API calls
                 const limitedStocks = stocks.slice(0, 5);
@@ -43,7 +42,6 @@ const StockSearch = ({
                 // Fetch prices for each limited stock
                 const stocksWithPrices = await Promise.all(
                     limitedStocks.map(async (stock) => {
-                        // Ensure the stock has a valid symbol
                         if (stock.symbol && (stock.symbol.endsWith('.NS') || stock.symbol.endsWith('.BO'))) {
                             try {
                                 const priceResponse = await fetch(
