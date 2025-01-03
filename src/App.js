@@ -1,18 +1,10 @@
 /* global TradingView */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import './App.css';
 import StockSearch from './components/StockSearch';
 
 function App() {
-  const [visitCount, setVisitCount] = useState(0);
-
   useEffect(() => {
-    // Retrieve the current count from localStorage
-    const currentCount = parseInt(localStorage.getItem('visitCount') || '0', 10);
-    const newCount = currentCount + 1;
-    setVisitCount(newCount);
-    localStorage.setItem('visitCount', newCount);
-
     fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
     updateStockChart('LTFOODS.NS');
     loadTrendlyneScript();
@@ -119,12 +111,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="p-4 bg-white shadow">
-        <div className="container mx-auto">
-          <h1 className="text-2xl font-bold">SWOT Analysis</h1>
-          <p>Page Visits: {visitCount}</p>
-        </div>
-      </header>
       <main className="flex-1 flex flex-col p-6 gap-6">
         {/* Top Part: Only the text box now (StockSearch), no stock price */}
         <div className="flex gap-6 items-center">
