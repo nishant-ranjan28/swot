@@ -8,16 +8,17 @@ const Forecast = ({ stockSymbol }) => {
     useEffect(() => {
         const fetchForecast = async () => {
             try {
-                const API_KEY = 'csh379pr01qu99bfpuq0csh379pr01qu99bfpuqg'; // Replace with your actual API key
+                const API_KEY = process.env.REACT_APP_MARKETSTACK_API_KEY;
+                const formattedSymbol = `${stockSymbol}.XNSE`; // Adjust the symbol format for Indian stocks
                 const response = await fetch(
-                    `https://finnhub.io/api/v1/quote?symbol=${stockSymbol}&token=${API_KEY}`
+                    `https://api.marketstack.com/v1/eod?access_key=${API_KEY}&symbols=${formattedSymbol}`
                 );
                 const data = await response.json();
 
-                if (data) {
-                    setForecastData(data);
+                if (data.error) {
+                    setError(data.error.message);
                 } else {
-                    setError('No forecast data available.');
+                    setForecastData(data);
                 }
             } catch (err) {
                 console.error('Error fetching forecast data:', err);
@@ -27,25 +28,16 @@ const Forecast = ({ stockSymbol }) => {
             }
         };
 
-        if (stockSymbol) {
-            fetchForecast();
-        }
+        fetchForecast();
     }, [stockSymbol]);
 
-    if (loading) return <div>Loading forecast data...</div>;
+    if (loading) return <div>Loading...</div>;
     if (error) return <div>{error}</div>;
 
     return (
-        <div className="forecast">
-            <h2>Forecast for {stockSymbol}</h2>
-            {forecastData && (
-                <div>
-                    <p>Current Price: ₹{forecastData.c}</p>
-                    <p>High Price of the Day: ₹{forecastData.h}</p>
-                    <p>Low Price of the Day: ₹{forecastData.l}</p>
-                    <p>Previous Close: ₹{forecastData.pc}</p>
-                </div>
-            )}
+        <div>
+            <h1>Forecast Data for {stockSymbol}</h1>
+            <pre>{JSON.stringify(forecastData, null, 2)}</pre>
         </div>
     );
 };
