@@ -7,11 +7,28 @@ const StockSearch = ({
     updateSelectedStock,
     className,
 }) => {
-    const [input, setInput] = useState('');
+    const params = new URLSearchParams(window.location.search);
+    const [input, setInput] = useState(params.get('search') || '');
     const [suggestions, setSuggestions] = useState([]);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
     const dropdownRef = useRef(null);
     const isSelecting = useRef(false); // Ref to track selection
+
+    const handleInputChange = (e) => {
+        const newQuery = e.target.value;
+        setInput(newQuery)
+        pushToURL(newQuery);
+    };
+
+    const pushToURL = (val) => {
+        const params = new URLSearchParams(window.location.search);
+        if (val) {
+          params.set("search", val); // Set the search query
+        } else {
+          params.delete("search"); // Remove the search query if it's empty
+        }
+        window.history.pushState(null, "", `?${params.toString()}`);
+    }
 
     useEffect(() => {
         if (input.trim().length === 0) {
@@ -112,10 +129,6 @@ const StockSearch = ({
         }
     };
 
-    const handleInputChange = (e) => {
-        setInput(e.target.value);
-    };
-
     // Close dropdown if user clicks outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -136,6 +149,8 @@ const StockSearch = ({
                     placeholder="Enter stock symbol..."
                     value={input}
                     onChange={handleInputChange}
+                    autoFocus={false}
+                    autoComplete='off'
                 />
                 {input && (
                     <button
@@ -154,7 +169,10 @@ const StockSearch = ({
                             <li
                                 key={idx}
                                 className="p-2 cursor-pointer hover:bg-gray-100 flex justify-between items-center"
-                                onClick={() => handleSuggestionClick(stock)}
+                                onClick={() => {
+                                    handleSuggestionClick(stock);
+                                    pushToURL(stock.symbol);
+                                }}
                             >
                                 <span>
                                     {stock.name} ({stock.symbol})
