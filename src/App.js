@@ -35,7 +35,7 @@ function App() {
         largeChartUrl: '',
         displayMode: 'compact',
         width: '100%',
-        height: '600', // Increased height
+        height: '500', // Increased height
         colorTheme: 'dark',
         symbol: 'NSE:CARTRADE',
         locale: 'en',
