@@ -35,7 +35,7 @@ function App() {
         displayMode: 'compact',
         width: '100%', // Ensures widget fills the container's width
         height: '500',
-        colorTheme: 'dark',
+        colorTheme: 'light',
         symbol: 'NSE:CARTRADE',
         locale: 'en',
       }
