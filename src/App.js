@@ -8,6 +8,7 @@ function App() {
     fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
     updateStockChart('LTFOODS.NS');
     loadTrendlyneScript();
+    loadTradingViewWidget();
   }, []);
 
   const loadTrendlyneScript = () => {
@@ -19,6 +20,27 @@ function App() {
       script.async = true;
       script.charset = 'utf-8';
       document.body.appendChild(script);
+    }
+  };
+
+  const loadTradingViewWidget = () => {
+    const existingScript = document.getElementById('tradingview-widget-script');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.id = 'tradingview-widget-script';
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-financials.js';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        isTransparent: false,
+        largeChartUrl: '',
+        displayMode: 'compact',
+        width: '100%',
+        height: '600', // Increased height
+        colorTheme: 'dark',
+        symbol: 'NSE:CARTRADE',
+        locale: 'en',
+      });
+      document.getElementById('tradingview-widget-container').appendChild(script);
     }
   };
 
@@ -179,6 +201,18 @@ function App() {
         <div className="bg-white p-6 rounded-xl shadow-lg">
           <div id="stock-chart-container" className="h-full p-4 bg-gray-100 rounded-lg shadow-inner">
             <div id="stock-chart"></div>
+          </div>
+        </div>
+
+        {/* New TradingView Widget Section */}
+        <div className="bg-white p-6 rounded-xl shadow-lg mt-6">
+          <div id="tradingview-widget-container" className="tradingview-widget-container" style={{ height: '600px' }}>
+            <div className="tradingview-widget-container__widget"></div>
+            <div className="tradingview-widget-copyright">
+              <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
+                <span className="blue-text">Track all markets on TradingView</span>
+              </a>
+            </div>
           </div>
         </div>
       </main>
