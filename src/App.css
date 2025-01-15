@@ -43,6 +43,30 @@ body {
   min-width: 300px;
 }
 
+.forecast {
+  font-family: Arial, sans-serif;
+}
+
+.forecast h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.forecast ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.forecast li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.forecast li:last-child {
+  border-bottom: none;
+}
+
 @media (max-width: 768px) {
   .flex-wrap {
     flex-direction: column;

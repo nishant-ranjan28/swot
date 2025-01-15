@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import './App.css';
 import StockSearch from './components/StockSearch';
+import Forecast from './components/Forecast'; // Import Forecast component
 
 function App() {
   useEffect(() => {
@@ -112,7 +113,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-1 flex flex-col p-6 gap-6">
-        {/* Top Part: Only the text box now (StockSearch), no stock price */}
+        {/* Stock Search */}
         <div className="flex gap-6 items-center">
           <div className="w-full">
             <StockSearch
@@ -122,6 +123,11 @@ function App() {
               className="w-full"
             />
           </div>
+        </div>
+
+        {/* Forecast Section */}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <Forecast stockSymbol="LTFOODS.NS" />
         </div>
 
         {/* Continue with other widgets below ... */}
