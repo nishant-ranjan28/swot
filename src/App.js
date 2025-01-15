@@ -17,7 +17,6 @@ function App() {
       script.id = 'trendlyne-widgets-script';
       script.src = 'https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js';
       script.async = true;
-      script.charset = 'utf-8';
       document.body.appendChild(script);
     }
   };
@@ -91,7 +90,7 @@ function App() {
     widgetContainer.style.height = '600px';
     stockChartContainer.appendChild(widgetContainer);
 
-    new TradingView.widget({
+    TradingView.widget({
       autosize: true,
       symbol: cleanSymbol,
       interval: 'D',

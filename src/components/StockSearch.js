@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 
 const StockSearch = ({
     updateSwotWidget,
@@ -23,9 +24,9 @@ const StockSearch = ({
     const pushToURL = (val) => {
         const params = new URLSearchParams(window.location.search);
         if (val) {
-          params.set("search", val); // Set the search query
+            params.set("search", val); // Set the search query
         } else {
-          params.delete("search"); // Remove the search query if it's empty
+            params.delete("search"); // Remove the search query if it's empty
         }
         window.history.pushState(null, "", `?${params.toString()}`);
     }
@@ -173,6 +174,14 @@ const StockSearch = ({
                                     handleSuggestionClick(stock);
                                     pushToURL(stock.symbol);
                                 }}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        handleSuggestionClick(stock);
+                                        pushToURL(stock.symbol);
+                                    }
+                                }}
+                                tabIndex="0"
+                                role="button"
                             >
                                 <span>
                                     {stock.name} ({stock.symbol})
@@ -187,6 +196,13 @@ const StockSearch = ({
             </div>
         </div>
     );
+};
+StockSearch.propTypes = {
+    updateSwotWidget: PropTypes.func,
+    fetchStockPrice: PropTypes.func,
+    updateStockChart: PropTypes.func,
+    updateSelectedStock: PropTypes.func,
+    className: PropTypes.string,
 };
 
 export default StockSearch;
