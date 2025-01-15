@@ -90,7 +90,8 @@ function App() {
     widgetContainer.style.height = '600px';
     stockChartContainer.appendChild(widgetContainer);
 
-    new TradingView.widget({
+    if (window.TradingView) {
+      new TradingView.widget({
       autosize: true,
       symbol: cleanSymbol,
       interval: 'D',
@@ -105,7 +106,10 @@ function App() {
       container_id: widgetContainer.id,
       width: '100%',
       height: '600',
-    });
+      });
+    } else {
+      console.error('TradingView is not available.');
+    }
   };
 
   return (
