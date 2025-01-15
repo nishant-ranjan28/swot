@@ -17,7 +17,6 @@ function App() {
       script.id = 'trendlyne-widgets-script';
       script.src = 'https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js';
       script.async = true;
-      script.charset = 'utf-8';
       document.body.appendChild(script);
     }
   };
