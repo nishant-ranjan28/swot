@@ -174,14 +174,7 @@ const StockSearch = ({
                                     handleSuggestionClick(stock);
                                     pushToURL(stock.symbol);
                                 }}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        handleSuggestionClick(stock);
-                                        pushToURL(stock.symbol);
-                                    }
-                                }}
                                 tabIndex="0"
-                                role="button"
                             >
                                 <span>
                                     {stock.name} ({stock.symbol})
