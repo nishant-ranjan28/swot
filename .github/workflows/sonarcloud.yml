@@ -49,3 +49,5 @@ jobs:
           args: >
             -Dsonar.projectKey=nishant-ranjan28_swot
             -Dsonar.organization=nishant-ranjan28
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
