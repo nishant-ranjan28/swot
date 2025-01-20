@@ -23,9 +23,9 @@ const StockSearch = ({
     const pushToURL = (val) => {
         const params = new URLSearchParams(window.location.search);
         if (val) {
-          params.set("search", val); // Set the search query
+            params.set("search", val); // Set the search query
         } else {
-          params.delete("search"); // Remove the search query if it's empty
+            params.delete("search"); // Remove the search query if it's empty
         }
         window.history.pushState(null, "", `?${params.toString()}`);
     }
