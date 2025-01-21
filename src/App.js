@@ -90,7 +90,7 @@ function App() {
     widgetContainer.style.height = '600px';
     stockChartContainer.appendChild(widgetContainer);
 
-    new TradingView.widget({
+    TradingView.widget({
       autosize: true,
       symbol: cleanSymbol,
       interval: 'D',
