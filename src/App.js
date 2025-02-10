@@ -1,7 +1,10 @@
 /* global TradingView */
 import React, { useEffect } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import './App.css';
 import StockSearch from './components/StockSearch';
+import NewsPage from './components/NewsPage';
+import Header from './components/Header';
 
 function App() {
   useEffect(() => {
@@ -15,7 +18,8 @@ function App() {
     if (!existingScript) {
       const script = document.createElement('script');
       script.id = 'trendlyne-widgets-script';
-      script.src = 'https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js';
+      script.src =
+        'https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js';
       script.async = true;
       document.body.appendChild(script);
     }
@@ -32,8 +36,8 @@ function App() {
   const fetchStockPrice = (stockSymbol, div = null, stockName = null) => {
     fetch(
       `https://api.allorigins.win/get?url=${encodeURIComponent(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${stockSymbol}?region=IN&lang=en-IN&interval=1d&range=1d`
-      )}`
+        `https://query1.finance.yahoo.com/v8/finance/chart/${stockSymbol}?region=IN&lang=en-IN&interval=1d&range=1d`,
+      )}`,
     )
       .then((response) => response.json())
       .then((data) => {
@@ -57,7 +61,9 @@ function App() {
 
   const updateStockChart = (stockSymbol) => {
     const cleanSymbol = stockSymbol.split('.')[0];
-    const stockChartContainer = document.getElementById('stock-chart-container');
+    const stockChartContainer = document.getElementById(
+      'stock-chart-container',
+    );
     stockChartContainer.innerHTML = '';
 
     // Update QVT widget
@@ -108,7 +114,7 @@ function App() {
     });
   };
 
-  return (
+  const HomePage = () => (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-1 flex flex-col p-6 gap-6">
         {/* Top Part: Only the text box now (StockSearch), no stock price */}
@@ -176,11 +182,24 @@ function App() {
 
         {/* Bottom: TradingView Chart */}
         <div className="bg-white p-6 rounded-xl shadow-lg">
-          <div id="stock-chart-container" className="h-full p-4 bg-gray-100 rounded-lg shadow-inner">
+          <div
+            id="stock-chart-container"
+            className="h-full p-4 bg-gray-100 rounded-lg shadow-inner"
+          >
             <div id="stock-chart"></div>
           </div>
         </div>
       </main>
+    </div>
+  );
+
+  return (
+    <div>
+      <Header />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/news" element={<NewsPage />} />
+      </Routes>
     </div>
   );
 }
