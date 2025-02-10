@@ -1,6 +1,6 @@
 /* global TradingView */
 import React, { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import StockSearch from './components/StockSearch';
 import Header from './components/Header';
@@ -8,11 +8,15 @@ import NewsPage from './components/NewsPage';
 import HomePage from './components/HomePage';
 
 function App() {
+  const location = useLocation();
+
   useEffect(() => {
-    fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
-    updateStockChart('LTFOODS.NS');
-    loadTrendlyneScript();
-  }, []);
+    if (location.pathname !== '/news') {
+      fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
+      updateStockChart('LTFOODS.NS');
+      loadTrendlyneScript();
+    }
+  }, [location.pathname]);
 
   const loadTrendlyneScript = () => {
     const existingScript = document.getElementById('trendlyne-widgets-script');
@@ -122,12 +126,12 @@ function App() {
   return (
     <div>
       <Header />
-      <StockSearch />
-      <div id="swot-widget"></div>
-      <div id="qvt-widget"></div>
-      <div id="technical-widget"></div>
-      <div id="checklist-widget"></div>
-      <div id="stock-chart-container"></div>
+      {location.pathname !== '/news' && <StockSearch />}
+      {location.pathname !== '/news' && <div id="swot-widget"></div>}
+      {location.pathname !== '/news' && <div id="qvt-widget"></div>}
+      {location.pathname !== '/news' && <div id="technical-widget"></div>}
+      {location.pathname !== '/news' && <div id="checklist-widget"></div>}
+      {location.pathname !== '/news' && <div id="stock-chart-container"></div>}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/news" element={<NewsPage />} />
