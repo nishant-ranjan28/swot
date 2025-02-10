@@ -4,10 +4,12 @@ const NewsPage = () => {
   const [news, setNews] = useState([]);
 
   useEffect(() => {
-    fetch('https://newsapi.org/v2/everything?q=stock&apiKey=2b9ca35dd4924c50abce5521aa9f3378')
-      .then(response => response.json())
-      .then(data => setNews(data.articles))
-      .catch(error => console.error('Error fetching news:', error));
+    fetch(
+      'https://newsapi.org/v2/everything?q=stock&apiKey=2b9ca35dd4924c50abce5521aa9f3378',
+    )
+      .then((response) => response.json())
+      .then((data) => setNews(data.articles))
+      .catch((error) => console.error('Error fetching news:', error));
   }, []);
 
   return (

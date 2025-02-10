@@ -19,7 +19,8 @@ function App() {
     if (!existingScript) {
       const script = document.createElement('script');
       script.id = 'trendlyne-widgets-script';
-      script.src = 'https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js';
+      script.src =
+        'https://cdn-static.trendlyne.com/static/js/webwidgets/tl-widgets.js';
       script.async = true;
       document.body.appendChild(script);
     }
@@ -36,8 +37,8 @@ function App() {
   const fetchStockPrice = (stockSymbol, div = null, stockName = null) => {
     fetch(
       `https://api.allorigins.win/get?url=${encodeURIComponent(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${stockSymbol}?region=IN&lang=en-IN&interval=1d&range=1d`
-      )}`
+        `https://query1.finance.yahoo.com/v8/finance/chart/${stockSymbol}?region=IN&lang=en-IN&interval=1d&range=1d`,
+      )}`,
     )
       .then((response) => response.json())
       .then((data) => {
@@ -61,7 +62,9 @@ function App() {
 
   const updateStockChart = (stockSymbol) => {
     const cleanSymbol = stockSymbol.split('.')[0];
-    const stockChartContainer = document.getElementById('stock-chart-container');
+    const stockChartContainer = document.getElementById(
+      'stock-chart-container',
+    );
     if (!stockChartContainer) {
       console.error('stock-chart-container element not found');
       return;

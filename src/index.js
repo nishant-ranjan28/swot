@@ -10,5 +10,5 @@ const root = createRoot(container);
 root.render(
   <Router>
     <App />
-  </Router>
+  </Router>,
 );
