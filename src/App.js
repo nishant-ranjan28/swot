@@ -1,22 +1,17 @@
 /* global TradingView */
 import React, { useEffect } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import './App.css';
 import StockSearch from './components/StockSearch';
-import Header from './components/Header';
 import NewsPage from './components/NewsPage';
-import HomePage from './components/HomePage';
+import Header from './components/Header';
 
 function App() {
-  const location = useLocation();
-
   useEffect(() => {
-    if (location.pathname !== '/news') {
-      fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
-      updateStockChart('LTFOODS.NS');
-      loadTrendlyneScript();
-    }
-  }, [location.pathname]);
+    fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
+    updateStockChart('LTFOODS.NS');
+    loadTrendlyneScript();
+  }, []);
 
   const loadTrendlyneScript = () => {
     const existingScript = document.getElementById('trendlyne-widgets-script');
@@ -69,10 +64,6 @@ function App() {
     const stockChartContainer = document.getElementById(
       'stock-chart-container',
     );
-    if (!stockChartContainer) {
-      console.error('stock-chart-container element not found');
-      return;
-    }
     stockChartContainer.innerHTML = '';
 
     // Update QVT widget
@@ -123,20 +114,91 @@ function App() {
     });
   };
 
-  return (
-    <div>
+  const HomePage = () => (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      {location.pathname !== '/news' && <StockSearch />}
-      {location.pathname !== '/news' && <div id="swot-widget"></div>}
-      {location.pathname !== '/news' && <div id="qvt-widget"></div>}
-      {location.pathname !== '/news' && <div id="technical-widget"></div>}
-      {location.pathname !== '/news' && <div id="checklist-widget"></div>}
-      {location.pathname !== '/news' && <div id="stock-chart-container"></div>}
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/news" element={<NewsPage />} />
-      </Routes>
+      <main className="flex-1 flex flex-col p-6 gap-6">
+        {/* Top Part: Only the text box now (StockSearch), no stock price */}
+        <div className="flex gap-6 items-center">
+          <div className="w-full">
+            <StockSearch
+              updateSwotWidget={updateSwotWidget}
+              fetchStockPrice={fetchStockPrice}
+              updateStockChart={updateStockChart}
+              className="w-full"
+            />
+          </div>
+        </div>
+
+        {/* Continue with other widgets below ... */}
+        <div className="flex flex-wrap gap-6">
+          {/* SWOT Analysis */}
+          <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+            <iframe
+              className="w-full h-96 rounded-lg shadow-md"
+              id="swot-widget"
+              src="https://trendlyne.com/web-widget/swot-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              title="SWOT Analysis for LT Foods"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
+          </div>
+
+          {/* QVT Widget */}
+          <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+            <iframe
+              className="w-full h-96 rounded-lg shadow-md"
+              id="qvt-widget"
+              src="https://trendlyne.com/web-widget/qvt-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              title="QVT Widget for LT Foods"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
+          </div>
+
+          {/* Technical Analysis Widget */}
+          <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+            <iframe
+              className="w-full h-96 rounded-lg shadow-md"
+              id="technical-widget"
+              src="https://trendlyne.com/web-widget/technical-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              title="Technical Analysis for LT Foods"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
+          </div>
+
+          {/* Checklist Widget */}
+          <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
+            <iframe
+              className="w-full h-96 rounded-lg shadow-md"
+              id="checklist-widget"
+              src="https://trendlyne.com/web-widget/checklist-widget/Poppins/TATAMOTORS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
+              title="Checklist Widget for TATA Motors"
+              data-theme="light"
+              frameBorder="0"
+            ></iframe>
+          </div>
+        </div>
+
+        {/* Bottom: TradingView Chart */}
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <div
+            id="stock-chart-container"
+            className="h-full p-4 bg-gray-100 rounded-lg shadow-inner"
+          >
+            <div id="stock-chart"></div>
+          </div>
+        </div>
+      </main>
     </div>
+  );
+
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/news" element={<NewsPage />} />
+    </Routes>
   );
 }
 
