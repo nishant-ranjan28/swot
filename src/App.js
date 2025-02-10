@@ -116,7 +116,6 @@ function App() {
 
   const HomePage = () => (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
       <main className="flex-1 flex flex-col p-6 gap-6">
         {/* Top Part: Only the text box now (StockSearch), no stock price */}
         <div className="flex gap-6 items-center">
@@ -195,10 +194,13 @@ function App() {
   );
 
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/news" element={<NewsPage />} />
-    </Routes>
+    <div>
+      <Header />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/news" element={<NewsPage />} />
+      </Routes>
+    </div>
   );
 }
 

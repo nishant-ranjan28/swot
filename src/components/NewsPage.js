@@ -4,9 +4,8 @@ const NewsPage = () => {
   const [news, setNews] = useState([]);
 
   useEffect(() => {
-    fetch(
-      'https://newsapi.org/v2/everything?q=stock&apiKey=2b9ca35dd4924c50abce5521aa9f3378',
-    )
+    const apiKey = process.env.REACT_APP_NEWS_API_KEY;
+    fetch(`https://newsapi.org/v2/everything?q=stock&apiKey=${apiKey}`)
       .then((response) => response.json())
       .then((data) => setNews(data.articles))
       .catch((error) => console.error('Error fetching news:', error));
