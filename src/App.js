@@ -1,17 +1,21 @@
 /* global TradingView */
 import React, { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import StockSearch from './components/StockSearch';
 import NewsPage from './components/NewsPage';
 import Header from './components/Header';
 
 function App() {
+  const location = useLocation();
+
   useEffect(() => {
-    fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
-    updateStockChart('LTFOODS.NS');
-    loadTrendlyneScript();
-  }, []);
+    if (location.pathname === '/') {
+      fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
+      updateStockChart('LTFOODS.NS');
+      loadTrendlyneScript();
+    }
+  }, [location]);
 
   const loadTrendlyneScript = () => {
     const existingScript = document.getElementById('trendlyne-widgets-script');
