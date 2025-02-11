@@ -6,7 +6,13 @@ const NewsPage = () => {
 
   useEffect(() => {
     const apiKey = process.env.REACT_APP_GNEWS_API_KEY;
-    const query = 'Indian stock market';
+    if (!apiKey) {
+      setError('API key is missing');
+      return;
+    }
+
+    const categories = ['finance', 'economy', 'stock market', 'business', 'breaking news'];
+    const query = categories.join(' OR ');
     const url = `https://gnews.io/api/v4/search?q=${query}&token=${apiKey}&lang=en&country=in&sortby=publishedAt`;
 
     fetch(url)
