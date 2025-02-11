@@ -5,9 +5,9 @@ const NewsPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const apiKey = process.env.REACT_APP_NEWSDATA_API_KEY;
+    const apiKey = process.env.REACT_APP_GNEWS_API_KEY;
     const query = 'Indian stock market';
-    const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${query}&language=en&country=in`;
+    const url = `https://gnews.io/api/v4/search?q=${query}&token=${apiKey}&lang=en&country=in&sortby=publishedAt`;
 
     fetch(url)
       .then((response) => {
@@ -17,8 +17,8 @@ const NewsPage = () => {
         return response.json();
       })
       .then((data) => {
-        if (data.results) {
-          setNews(data.results);
+        if (data.articles) {
+          setNews(data.articles);
         } else {
           throw new Error('No articles found');
         }
@@ -47,7 +47,7 @@ const NewsPage = () => {
                     className="bg-gray-100 p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300"
                   >
                     <a
-                      href={article.link}
+                      href={article.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xl font-semibold text-blue-600 hover:underline"
@@ -56,7 +56,7 @@ const NewsPage = () => {
                     </a>
                     <p className="text-gray-700 mt-2">{article.description}</p>
                     <p className="text-gray-500 mt-1 text-sm">
-                      {new Date(article.pubDate).toLocaleString()}
+                      {new Date(article.publishedAt).toLocaleString()}
                     </p>
                   </li>
                 ))
