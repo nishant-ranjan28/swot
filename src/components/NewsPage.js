@@ -20,25 +20,15 @@ const NewsPage = () => {
   };
 
   useEffect(() => {
-    const fetchNews = async (url, setState, storageKey) => {
-      const cachedData = localStorage.getItem(storageKey);
-      if (cachedData) {
-        const { data, timestamp } = JSON.parse(cachedData);
-        const oneHour = 60 * 60 * 1000;
-        if (Date.now() - timestamp < oneHour) {
-          setState(data);
-          return;
-        }
-      }
-
+    const fetchNews = async (url, setState) => {
       try {
         const response = await fetch(url);
         if (!response.ok) {
-          if (response.status === 429) {
-            // API limit reached, switch to the next API key
+          if (response.status === 429 || response.status === 401) {
+            // API limit reached or unauthorized, switch to the next API key
             const newApiKey = getNextApiKey();
             const newUrl = url.replace(apiKeys[currentApiKeyIndex], newApiKey);
-            await fetchNews(newUrl, setState, storageKey);
+            await fetchNews(newUrl, setState);
             return;
           }
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -46,25 +36,21 @@ const NewsPage = () => {
         const data = await response.json();
         if (data.articles) {
           setState(data.articles);
-          localStorage.setItem(
-            storageKey,
-            JSON.stringify({ data: data.articles, timestamp: Date.now() }),
-          );
         } else {
           throw new Error('No articles found');
         }
       } catch (error) {
-        console.error(`Error fetching ${storageKey}:`, error);
+        console.error(`Error fetching news:`, error);
         setError(error.message);
       }
     };
 
     const apiKey = apiKeys[currentApiKeyIndex];
     const trendingUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=business`;
-    fetchNews(trendingUrl, setTrendingNews, 'trendingNews');
+    fetchNews(trendingUrl, setTrendingNews);
 
     const marketUpdatesUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=finance`;
-    fetchNews(marketUpdatesUrl, setMarketUpdates, 'marketUpdates');
+    fetchNews(marketUpdatesUrl, setMarketUpdates);
   }, [currentApiKeyIndex]);
 
   return (
