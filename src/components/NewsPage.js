@@ -12,47 +12,43 @@ const NewsPage = () => {
       return;
     }
 
-    // Fetch trending news
-    const trendingUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=business`;
-    fetch(trendingUrl)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+    const fetchNews = async (url, setState, storageKey) => {
+      const cachedData = localStorage.getItem(storageKey);
+      if (cachedData) {
+        const { data, timestamp } = JSON.parse(cachedData);
+        const oneHour = 60 * 60 * 1000;
+        if (Date.now() - timestamp < oneHour) {
+          setState(data);
+          return;
         }
-        return response.json();
-      })
-      .then((data) => {
-        if (data.articles) {
-          setTrendingNews(data.articles);
-        } else {
-          throw new Error('No trending news found');
-        }
-      })
-      .catch((error) => {
-        console.error('Error fetching trending news:', error);
-        setError(error.message);
-      });
+      }
 
-    // Fetch market updates
-    const marketUpdatesUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=finance`;
-    fetch(marketUpdatesUrl)
-      .then((response) => {
+      try {
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return response.json();
-      })
-      .then((data) => {
+        const data = await response.json();
         if (data.articles) {
-          setMarketUpdates(data.articles);
+          setState(data.articles);
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({ data: data.articles, timestamp: Date.now() }),
+          );
         } else {
-          throw new Error('No market updates found');
+          throw new Error('No articles found');
         }
-      })
-      .catch((error) => {
-        console.error('Error fetching market updates:', error);
+      } catch (error) {
+        console.error(`Error fetching ${storageKey}:`, error);
         setError(error.message);
-      });
+      }
+    };
+
+    const trendingUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=business`;
+    fetchNews(trendingUrl, setTrendingNews, 'trendingNews');
+
+    const marketUpdatesUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=finance`;
+    fetchNews(marketUpdatesUrl, setMarketUpdates, 'marketUpdates');
   }, []);
 
   return (
