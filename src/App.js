@@ -64,54 +64,58 @@ function App() {
     const stockChartContainer = document.getElementById(
       'stock-chart-container',
     );
-    stockChartContainer.innerHTML = '';
+    if (stockChartContainer) {
+      stockChartContainer.innerHTML = '';
 
-    // Update QVT widget
-    const qvtWidget = document.getElementById('qvt-widget');
-    if (qvtWidget) {
-      qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+      // Update QVT widget
+      const qvtWidget = document.getElementById('qvt-widget');
+      if (qvtWidget) {
+        qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+      }
+
+      // Update Technical Analysis widget (iframe)
+      const technicalWidget = document.getElementById('technical-widget');
+      if (technicalWidget) {
+        technicalWidget.src = `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+      }
+
+      // Update Checklist widget (iframe)
+      const checklistWidget = document.getElementById('checklist-widget');
+      if (checklistWidget) {
+        checklistWidget.src = `https://trendlyne.com/web-widget/checklist-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
+      }
+
+      // Re-render Trendlyne widgets if needed
+      if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
+        window.tl_widgets.render();
+      }
+
+      // Create a new TradingView widget
+      const widgetContainer = document.createElement('div');
+      widgetContainer.id = `tradingview_${cleanSymbol}`;
+      widgetContainer.className = 'tradingview-widget-container';
+      widgetContainer.style.height = '600px';
+      stockChartContainer.appendChild(widgetContainer);
+
+      new TradingView.widget({
+        autosize: true,
+        symbol: cleanSymbol,
+        interval: 'D',
+        timezone: 'Asia/Kolkata',
+        theme: 'light',
+        style: '1',
+        locale: 'in',
+        toolbar_bg: '#f1f3f6',
+        enable_publishing: false,
+        allow_symbol_change: true,
+        save_image: false,
+        container_id: widgetContainer.id,
+        width: '100%',
+        height: '600',
+      });
+    } else {
+      console.error('Stock chart container not found');
     }
-
-    // Update Technical Analysis widget (iframe)
-    const technicalWidget = document.getElementById('technical-widget');
-    if (technicalWidget) {
-      technicalWidget.src = `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
-    }
-
-    // Update Checklist widget (iframe)
-    const checklistWidget = document.getElementById('checklist-widget');
-    if (checklistWidget) {
-      checklistWidget.src = `https://trendlyne.com/web-widget/checklist-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
-    }
-
-    // Re-render Trendlyne widgets if needed
-    if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
-      window.tl_widgets.render();
-    }
-
-    // Create a new TradingView widget
-    const widgetContainer = document.createElement('div');
-    widgetContainer.id = `tradingview_${cleanSymbol}`;
-    widgetContainer.className = 'tradingview-widget-container';
-    widgetContainer.style.height = '600px';
-    stockChartContainer.appendChild(widgetContainer);
-
-    new TradingView.widget({
-      autosize: true,
-      symbol: cleanSymbol,
-      interval: 'D',
-      timezone: 'Asia/Kolkata',
-      theme: 'light',
-      style: '1',
-      locale: 'in',
-      toolbar_bg: '#f1f3f6',
-      enable_publishing: false,
-      allow_symbol_change: true,
-      save_image: false,
-      container_id: widgetContainer.id,
-      width: '100%',
-      height: '600',
-    });
   };
 
   const HomePage = () => (
