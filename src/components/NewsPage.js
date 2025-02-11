@@ -5,13 +5,21 @@ const NewsPage = () => {
   const [marketUpdates, setMarketUpdates] = useState([]);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const apiKey = process.env.REACT_APP_GNEWS_API_KEY;
-    if (!apiKey) {
-      setError('API key is missing');
-      return;
-    }
+  const apiKeys = [
+    process.env.REACT_APP_GNEWS_API_KEY_1,
+    process.env.REACT_APP_GNEWS_API_KEY_2,
+    process.env.REACT_APP_GNEWS_API_KEY_3,
+  ];
 
+  const [currentApiKeyIndex, setCurrentApiKeyIndex] = useState(0);
+
+  const getNextApiKey = () => {
+    const nextIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+    setCurrentApiKeyIndex(nextIndex);
+    return apiKeys[nextIndex];
+  };
+
+  useEffect(() => {
     const fetchNews = async (url, setState, storageKey) => {
       const cachedData = localStorage.getItem(storageKey);
       if (cachedData) {
@@ -26,6 +34,13 @@ const NewsPage = () => {
       try {
         const response = await fetch(url);
         if (!response.ok) {
+          if (response.status === 429) {
+            // API limit reached, switch to the next API key
+            const newApiKey = getNextApiKey();
+            const newUrl = url.replace(apiKeys[currentApiKeyIndex], newApiKey);
+            await fetchNews(newUrl, setState, storageKey);
+            return;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
@@ -44,12 +59,13 @@ const NewsPage = () => {
       }
     };
 
+    const apiKey = apiKeys[currentApiKeyIndex];
     const trendingUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=business`;
     fetchNews(trendingUrl, setTrendingNews, 'trendingNews');
 
     const marketUpdatesUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=finance`;
     fetchNews(marketUpdatesUrl, setMarketUpdates, 'marketUpdates');
-  }, []);
+  }, [currentApiKeyIndex]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center">
