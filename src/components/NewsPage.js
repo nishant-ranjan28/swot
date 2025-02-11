@@ -5,57 +5,55 @@ const NewsPage = () => {
   const [marketUpdates, setMarketUpdates] = useState([]);
   const [error, setError] = useState(null);
 
-  const apiKeys = [
-    process.env.REACT_APP_GNEWS_API_KEY_1,
-    process.env.REACT_APP_GNEWS_API_KEY_2,
-    process.env.REACT_APP_GNEWS_API_KEY_3,
-  ];
-
-  const [currentApiKeyIndex, setCurrentApiKeyIndex] = useState(0);
-
-  const getNextApiKey = () => {
-    const nextIndex = (currentApiKeyIndex + 1) % apiKeys.length;
-    setCurrentApiKeyIndex(nextIndex);
-    return apiKeys[nextIndex];
-  };
-
   useEffect(() => {
-    const fetchNews = async (url, setState) => {
-      try {
-        const response = await fetch(url);
+    const apiKey = process.env.REACT_APP_GNEWS_API_KEY_6;
+    if (!apiKey) {
+      setError('API key is missing');
+      return;
+    }
+
+    // Fetch trending news
+    const trendingUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=business`;
+    fetch(trendingUrl)
+      .then((response) => {
         if (!response.ok) {
-          if (
-            response.status === 429 ||
-            response.status === 401 ||
-            response.status === 403
-          ) {
-            // API limit reached or unauthorized, switch to the next API key
-            const newApiKey = getNextApiKey();
-            const newUrl = url.replace(apiKeys[currentApiKeyIndex], newApiKey);
-            await fetchNews(newUrl, setState);
-            return;
-          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
+        return response.json();
+      })
+      .then((data) => {
         if (data.articles) {
-          setState(data.articles);
+          setTrendingNews(data.articles);
         } else {
-          throw new Error('No articles found');
+          throw new Error('No trending news found');
         }
-      } catch (error) {
-        console.error(`Error fetching news:`, error);
+      })
+      .catch((error) => {
+        console.error('Error fetching trending news:', error);
         setError(error.message);
-      }
-    };
+      });
 
-    const apiKey = apiKeys[currentApiKeyIndex];
-    const trendingUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=business`;
-    fetchNews(trendingUrl, setTrendingNews);
-
+    // Fetch market updates
     const marketUpdatesUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=finance`;
-    fetchNews(marketUpdatesUrl, setMarketUpdates);
-  }, [currentApiKeyIndex]);
+    fetch(marketUpdatesUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.articles) {
+          setMarketUpdates(data.articles);
+        } else {
+          throw new Error('No market updates found');
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching market updates:', error);
+        setError(error.message);
+      });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center">
