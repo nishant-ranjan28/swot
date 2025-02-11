@@ -5,9 +5,9 @@ const NewsPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const apiKey = process.env.REACT_APP_NEWS_API_KEY;
+    const apiKey = process.env.REACT_APP_NEWSDATA_API_KEY;
     const query = 'Indian stock market';
-    const url = `https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&apiKey=${apiKey}`;
+    const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${query}&language=en&country=in`;
 
     fetch(url)
       .then((response) => {
@@ -16,7 +16,13 @@ const NewsPage = () => {
         }
         return response.json();
       })
-      .then((data) => setNews(data.articles))
+      .then((data) => {
+        if (data.results) {
+          setNews(data.results);
+        } else {
+          throw new Error('No articles found');
+        }
+      })
       .catch((error) => {
         console.error('Error fetching news:', error);
         setError(error.message);
@@ -34,22 +40,31 @@ const NewsPage = () => {
             <div className="text-red-500 text-center">{error}</div>
           ) : (
             <ul className="space-y-4">
-              {news.map((article, index) => (
-                <li
-                  key={index}
-                  className="bg-gray-100 p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300"
-                >
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xl font-semibold text-blue-600 hover:underline"
+              {news.length > 0 ? (
+                news.map((article, index) => (
+                  <li
+                    key={index}
+                    className="bg-gray-100 p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300"
                   >
-                    {article.title}
-                  </a>
-                  <p className="text-gray-700 mt-2">{article.description}</p>
-                </li>
-              ))}
+                    <a
+                      href={article.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xl font-semibold text-blue-600 hover:underline"
+                    >
+                      {article.title}
+                    </a>
+                    <p className="text-gray-700 mt-2">{article.description}</p>
+                    <p className="text-gray-500 mt-1 text-sm">
+                      {new Date(article.pubDate).toLocaleString()}
+                    </p>
+                  </li>
+                ))
+              ) : (
+                <div className="text-gray-500 text-center">
+                  No news articles available.
+                </div>
+              )}
             </ul>
           )}
         </div>
