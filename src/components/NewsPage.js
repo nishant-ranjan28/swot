@@ -24,7 +24,11 @@ const NewsPage = () => {
       try {
         const response = await fetch(url);
         if (!response.ok) {
-          if (response.status === 429 || response.status === 401) {
+          if (
+            response.status === 429 ||
+            response.status === 401 ||
+            response.status === 403
+          ) {
             // API limit reached or unauthorized, switch to the next API key
             const newApiKey = getNextApiKey();
             const newUrl = url.replace(apiKeys[currentApiKeyIndex], newApiKey);
