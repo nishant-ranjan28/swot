@@ -13,6 +13,9 @@ function Header() {
           <Link to="/news" className="hover:underline">
             News
           </Link>
+          <Link to="/market-watchlist" className="hover:underline">
+            Market Watchlist
+          </Link>
         </div>
       </nav>
     </header>
