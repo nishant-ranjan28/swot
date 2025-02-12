@@ -58,7 +58,7 @@ const NewsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center">
       <main className="flex-1 flex flex-col p-6 gap-6 w-full max-w-6xl">
-        <div className="flex gap-6 w-full">
+        <div className="flex flex-col lg:flex-row gap-6 w-full">
           {/* Left Column: Trending News */}
           <div className="flex-1">
             <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
@@ -98,7 +98,7 @@ const NewsPage = () => {
           </div>
 
           {/* Right Column: Market Updates */}
-          <div className="w-80">
+          <div className="w-full lg:w-80">
             <div className="bg-white p-6 rounded-xl shadow-lg">
               <h2 className="text-2xl font-bold mb-4">Market Updates</h2>
               {error ? (
