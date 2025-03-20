@@ -174,9 +174,9 @@ const StockSearch = ({
         {isDropdownVisible && suggestions.length > 0 && (
           <ul className="absolute z-10 bg-white border rounded w-full max-h-64 overflow-auto mt-1">
             {suggestions.map((stock) => (
-              <li
+              <button
                 key={stock.symbol}
-                className="p-2 cursor-pointer hover:bg-gray-100 flex justify-between items-center"
+                className="p-2 cursor-pointer hover:bg-gray-100 flex justify-between items-center w-full text-left"
                 onClick={() => {
                   handleSuggestionClick(stock);
                   pushToURL(stock.symbol);
@@ -188,7 +188,7 @@ const StockSearch = ({
                 <span className="text-green-600 font-semibold">
                   ₹{stock.price}
                 </span>
-              </li>
+              </button>
             ))}
           </ul>
         )}
