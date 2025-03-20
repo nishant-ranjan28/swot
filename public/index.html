@@ -1,17 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SWOT Analysis</title>
+    <link rel="stylesheet" href="%PUBLIC_URL%/index.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SWOT Analysis</title>
-  <link rel="stylesheet" href="%PUBLIC_URL%/index.css">
-</head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script>
+      // Function to load script asynchronously
+      function loadScript(url, callback) {
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.async = true; // Load asynchronously
 
-<body>
-  <noscript>You need to enable JavaScript to run this app.</noscript>
-  <div id="root"></div>
-  <script src="https://s3.tradingview.com/tv.js"></script>
-</body>
+        script.onload = function () {
+          callback();
+        };
 
+        script.onerror = function () {
+          console.error('Failed to load script: ' + url);
+        };
+
+        script.src = url;
+        document.head.appendChild(script);
+      }
+
+      // Usage: Load the TradingView script
+      loadScript('https://s3.tradingview.com/tv.js', function () {
+        // Optional: Add any initialization code that depends on tv.js here
+        console.log('TradingView script loaded successfully.');
+      });
+    </script>
+  </body>
 </html>
