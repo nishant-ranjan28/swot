@@ -49,16 +49,12 @@ function App() {
         const price = stockData.chart.result[0].meta.regularMarketPrice;
         if (div && stockName) {
           div.textContent = `${stockName} - ₹${price}`;
-        } else {
-          // Removed references to 'stock-name-display' and 'stock-price-display'
         }
       })
       .catch((error) => {
         console.error('Error fetching stock price:', error);
         if (div && stockName) {
           div.textContent = `${stockName} - Price not available`;
-        } else {
-          // Removed references to 'stock-name-display' and 'stock-price-display'
         }
       });
   };
@@ -77,13 +73,13 @@ function App() {
         qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
       }
 
-      // Update Technical Analysis widget (iframe)
+      // Update Technical Analysis widget
       const technicalWidget = document.getElementById('technical-widget');
       if (technicalWidget) {
         technicalWidget.src = `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
       }
 
-      // Update Checklist widget (iframe)
+      // Update Checklist widget
       const checklistWidget = document.getElementById('checklist-widget');
       if (checklistWidget) {
         checklistWidget.src = `https://trendlyne.com/web-widget/checklist-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
@@ -122,10 +118,14 @@ function App() {
     }
   };
 
-  const HomePage = () => (
+  const HomePage = ({
+    updateSwotWidget,
+    fetchStockPrice,
+    updateStockChart,
+  }) => (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-1 flex flex-col p-6 gap-6">
-        {/* Top Part: Only the text box now (StockSearch), no stock price */}
+        {/* Top Part: Only the text box (StockSearch) */}
         <div className="flex gap-6 items-center">
           <div className="w-full">
             <StockSearch
@@ -137,7 +137,7 @@ function App() {
           </div>
         </div>
 
-        {/* Continue with other widgets below ... */}
+        {/* Widgets */}
         <div className="flex flex-wrap gap-6">
           {/* SWOT Analysis */}
           <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
@@ -205,7 +205,16 @@ function App() {
     <div>
       <Header />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/"
+          element={
+            <HomePage
+              updateSwotWidget={updateSwotWidget}
+              fetchStockPrice={fetchStockPrice}
+              updateStockChart={updateStockChart}
+            />
+          }
+        />
         <Route path="/news" element={<NewsPage />} />
       </Routes>
     </div>
