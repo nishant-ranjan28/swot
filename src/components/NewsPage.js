@@ -65,7 +65,7 @@ const NewsPage = () => {
       <ul className="space-y-4">
         {trendingNews.map((article) => (
           <li
-            key={article.title}
+            key={article.id}
             className="bg-gray-100 p-4 rounded-lg shadow-md hover:bg-gray-200 transition duration-300"
           >
             <a
