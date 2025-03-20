@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 
 const StockSearch = ({
   updateSwotWidget,
@@ -172,9 +173,9 @@ const StockSearch = ({
 
         {isDropdownVisible && suggestions.length > 0 && (
           <ul className="absolute z-10 bg-white border rounded w-full max-h-64 overflow-auto mt-1">
-            {suggestions.map((stock, idx) => (
+            {suggestions.map((stock) => (
               <li
-                key={idx}
+                key={stock.symbol}
                 className="p-2 cursor-pointer hover:bg-gray-100 flex justify-between items-center"
                 onClick={() => {
                   handleSuggestionClick(stock);
@@ -194,6 +195,13 @@ const StockSearch = ({
       </div>
     </div>
   );
+};
+StockSearch.propTypes = {
+  updateSwotWidget: PropTypes.func,
+  fetchStockPrice: PropTypes.func,
+  updateStockChart: PropTypes.func,
+  updateSelectedStock: PropTypes.func,
+  className: PropTypes.string,
 };
 
 export default StockSearch;
