@@ -1,5 +1,6 @@
 /* global TradingView */
 import React, { useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import StockSearch from './components/StockSearch';
@@ -125,7 +126,7 @@ function App() {
   }) => (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <main className="flex-1 flex flex-col p-6 gap-6">
-        {/* Top Part: Only the text box (StockSearch) */}
+        {/* Top Part: StockSearch */}
         <div className="flex gap-6 items-center">
           <div className="w-full">
             <StockSearch
@@ -200,6 +201,12 @@ function App() {
       </main>
     </div>
   );
+
+  HomePage.propTypes = {
+    updateSwotWidget: PropTypes.func.isRequired,
+    fetchStockPrice: PropTypes.func.isRequired,
+    updateStockChart: PropTypes.func.isRequired,
+  };
 
   return (
     <div>
