@@ -6,6 +6,7 @@ import './App.css';
 import StockSearch from './components/StockSearch';
 import NewsPage from './components/NewsPage';
 import Header from './components/Header';
+import MarketWatchlist from './components/MarketWatchlist'; // Import the MarketWatchlist component
 
 function App() {
   const location = useLocation();
@@ -227,6 +228,7 @@ function App() {
           }
         />
         <Route path="/news" element={<NewsPage />} />
+        <Route path="/market-watchlist" element={<MarketWatchlist />} />
       </Routes>
     </div>
   );
