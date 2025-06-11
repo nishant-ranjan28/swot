@@ -36,14 +36,16 @@ const StockSearch = ({
     window.history.pushState(null, '', `?${params.toString()}`);
   };
 
+  // Only show dropdown if user has typed after initial load
   useEffect(() => {
-    if (isFirstLoad.current) {
+    // Use window.location.search directly to avoid 'params' as a dependency
+    if (!userTyped) {
       setIsDropdownVisible(false);
-      isFirstLoad.current = false;
+      return;
     }
-  }, []);
+    setIsDropdownVisible(suggestions.length > 0);
+  }, [userTyped, suggestions.length]); // removed 'input' from deps, not needed
 
-  // Hide dropdown on initial load if input is pre-filled from URL
   useEffect(() => {
     if (isFirstLoad.current) {
       setIsDropdownVisible(false);
@@ -54,7 +56,8 @@ const StockSearch = ({
 
   // Prevent showing dropdown if input is pre-filled from URL and user hasn't typed
   useEffect(() => {
-    if (!userTyped && params.get('search') && input === params.get('search')) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!userTyped && urlParams.get('search') && input === urlParams.get('search')) {
       setIsDropdownVisible(false);
       setSuggestions([]);
     }
@@ -62,7 +65,8 @@ const StockSearch = ({
 
   useEffect(() => {
     if (isFirstLoad.current) return;
-    if (!userTyped && params.get('search') && input === params.get('search')) {
+    const urlSearch = new URLSearchParams(window.location.search).get('search');
+    if (!userTyped && urlSearch && input === urlSearch) {
       setIsDropdownVisible(false);
       setSuggestions([]);
       return;
@@ -143,7 +147,7 @@ const StockSearch = ({
         const validStocks = stocksWithPrices.filter((stock) => stock !== null);
 
         setSuggestions(validStocks);
-        setIsDropdownVisible(true);
+        // Do not force dropdown visible here; let userTyped logic handle it
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
@@ -153,7 +157,7 @@ const StockSearch = ({
     return () => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
-  }, [input]);
+  }, [input, userTyped]);
 
   // Clears the search field
   const clearSearch = () => {
