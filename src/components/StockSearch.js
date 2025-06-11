@@ -14,8 +14,13 @@ const StockSearch = ({
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const dropdownRef = useRef(null);
   const isSelecting = useRef(false); // Ref to track selection
+  const isFirstLoad = useRef(true); // Track if the component is mounting for the first time
+  const debounceTimeout = useRef();
+  // Track if the user has typed after initial load
+  const [userTyped, setUserTyped] = useState(false);
 
   const handleInputChange = (e) => {
+    setUserTyped(true);
     const newQuery = e.target.value;
     setInput(newQuery);
     pushToURL(newQuery);
@@ -31,7 +36,41 @@ const StockSearch = ({
     window.history.pushState(null, '', `?${params.toString()}`);
   };
 
+  // Only show dropdown if user has typed after initial load
   useEffect(() => {
+    // Use window.location.search directly to avoid 'params' as a dependency
+    if (!userTyped) {
+      setIsDropdownVisible(false);
+      return;
+    }
+    setIsDropdownVisible(suggestions.length > 0);
+  }, [userTyped, suggestions.length]); // removed 'input' from deps, not needed
+
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      setIsDropdownVisible(false);
+      setSuggestions([]);
+      isFirstLoad.current = false;
+    }
+  }, []);
+
+  // Prevent showing dropdown if input is pre-filled from URL and user hasn't typed
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!userTyped && urlParams.get('search') && input === urlParams.get('search')) {
+      setIsDropdownVisible(false);
+      setSuggestions([]);
+    }
+  }, [input, userTyped]);
+
+  useEffect(() => {
+    if (isFirstLoad.current) return;
+    const urlSearch = new URLSearchParams(window.location.search).get('search');
+    if (!userTyped && urlSearch && input === urlSearch) {
+      setIsDropdownVisible(false);
+      setSuggestions([]);
+      return;
+    }
     if (input.trim().length === 0) {
       setSuggestions([]);
       setIsDropdownVisible(false);
@@ -44,7 +83,13 @@ const StockSearch = ({
       return;
     }
 
-    const fetchStocks = async () => {
+    // Debounce logic
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      fetchStocks();
+    }, 500);
+
+    async function fetchStocks() {
       try {
         const response = await fetch(
           `https://api.allorigins.win/get?url=${encodeURIComponent(
@@ -102,14 +147,17 @@ const StockSearch = ({
         const validStocks = stocksWithPrices.filter((stock) => stock !== null);
 
         setSuggestions(validStocks);
-        setIsDropdownVisible(true);
+        // Do not force dropdown visible here; let userTyped logic handle it
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
-    };
+    }
 
-    fetchStocks();
-  }, [input]);
+    // Cleanup
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+  }, [input, userTyped]);
 
   // Clears the search field
   const clearSearch = () => {
