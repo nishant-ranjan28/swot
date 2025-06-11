@@ -14,8 +14,13 @@ const StockSearch = ({
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const dropdownRef = useRef(null);
   const isSelecting = useRef(false); // Ref to track selection
+  const isFirstLoad = useRef(true); // Track if the component is mounting for the first time
+  const debounceTimeout = useRef();
+  // Track if the user has typed after initial load
+  const [userTyped, setUserTyped] = useState(false);
 
   const handleInputChange = (e) => {
+    setUserTyped(true);
     const newQuery = e.target.value;
     setInput(newQuery);
     pushToURL(newQuery);
@@ -32,6 +37,36 @@ const StockSearch = ({
   };
 
   useEffect(() => {
+    if (isFirstLoad.current) {
+      setIsDropdownVisible(false);
+      isFirstLoad.current = false;
+    }
+  }, []);
+
+  // Hide dropdown on initial load if input is pre-filled from URL
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      setIsDropdownVisible(false);
+      setSuggestions([]);
+      isFirstLoad.current = false;
+    }
+  }, []);
+
+  // Prevent showing dropdown if input is pre-filled from URL and user hasn't typed
+  useEffect(() => {
+    if (!userTyped && params.get('search') && input === params.get('search')) {
+      setIsDropdownVisible(false);
+      setSuggestions([]);
+    }
+  }, [input, userTyped]);
+
+  useEffect(() => {
+    if (isFirstLoad.current) return;
+    if (!userTyped && params.get('search') && input === params.get('search')) {
+      setIsDropdownVisible(false);
+      setSuggestions([]);
+      return;
+    }
     if (input.trim().length === 0) {
       setSuggestions([]);
       setIsDropdownVisible(false);
@@ -44,7 +79,13 @@ const StockSearch = ({
       return;
     }
 
-    const fetchStocks = async () => {
+    // Debounce logic
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      fetchStocks();
+    }, 500);
+
+    async function fetchStocks() {
       try {
         const response = await fetch(
           `https://api.allorigins.win/get?url=${encodeURIComponent(
@@ -106,9 +147,12 @@ const StockSearch = ({
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
-    };
+    }
 
-    fetchStocks();
+    // Cleanup
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
   }, [input]);
 
   // Clears the search field

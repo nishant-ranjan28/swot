@@ -1,5 +1,5 @@
 /* global TradingView */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
@@ -126,6 +126,22 @@ function App() {
     fetchStockPrice,
     updateStockChart,
   }) => {
+    // --- Begin: Add logic to auto-load stock from URL param ---
+    const [initialized, setInitialized] = useState(false);
+    const searchSymbol = new URLSearchParams(location.search).get('search');
+    useEffect(() => {
+      if (searchSymbol && !initialized) {
+        updateSwotWidget(searchSymbol);
+        fetchStockPrice(searchSymbol);
+        // Delay updateStockChart to ensure widgets are present in DOM
+        setTimeout(() => {
+          updateStockChart(searchSymbol);
+        }, 100);
+        setInitialized(true);
+      }
+    }, [searchSymbol, initialized, updateSwotWidget, fetchStockPrice, updateStockChart]);
+    // --- End: Add logic to auto-load stock from URL param ---
+
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <main className="flex-1 flex flex-col p-6 gap-6">
