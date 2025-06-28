@@ -81,11 +81,20 @@ function App() {
       });
   };
 
+  // Store reference to current TradingView widget for cleanup
+  let currentTradingViewWidget = null;
+
   const updateStockChart = async (stockSymbol) => {
     const cleanSymbol = stockSymbol.split('.')[0];
     const stockChartContainer = document.getElementById('stock-chart-container');
     if (stockChartContainer) {
       stockChartContainer.innerHTML = '';
+
+      // Clean up previous widget if it exists
+      if (currentTradingViewWidget && typeof currentTradingViewWidget.remove === 'function') {
+        currentTradingViewWidget.remove();
+        currentTradingViewWidget = null;
+      }
 
       // Update QVT widget
       const qvtWidget = document.getElementById('qvt-widget');
@@ -113,7 +122,8 @@ function App() {
       stockChartContainer.appendChild(widgetContainer);
 
       if (window.TradingView) {
-        new window.TradingView.widget({
+        // Store the widget instance for proper management
+        currentTradingViewWidget = new window.TradingView.widget({
           autosize: true,
           symbol: cleanSymbol,
           interval: 'D',
@@ -128,6 +138,9 @@ function App() {
           container_id: widgetContainer.id,
           width: '100%',
           height: '600',
+          onChartReady: () => {
+            console.log(`TradingView chart loaded for ${cleanSymbol}`);
+          }
         });
       }
     } else {
