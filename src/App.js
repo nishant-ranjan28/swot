@@ -30,6 +30,27 @@ function App() {
     }
   };
 
+  // Helper to load TradingView script and return a promise
+  const loadTradingViewScript = () => {
+    return new Promise((resolve) => {
+      if (window.TradingView) {
+        resolve();
+        return;
+      }
+      const existingScript = document.getElementById('tradingview-widget-script');
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.id = 'tradingview-widget-script';
+        script.src = 'https://s3.tradingview.com/tv.js';
+        script.async = true;
+        script.onload = resolve;
+        document.body.appendChild(script);
+      } else {
+        existingScript.onload = resolve;
+      }
+    });
+  };
+
   const updateSwotWidget = (stock) => {
     const encodedStock = encodeURIComponent(stock).split('.')[0];
     const swotWidget = document.getElementById('swot-widget');
@@ -60,11 +81,9 @@ function App() {
       });
   };
 
-  const updateStockChart = (stockSymbol) => {
+  const updateStockChart = async (stockSymbol) => {
     const cleanSymbol = stockSymbol.split('.')[0];
-    const stockChartContainer = document.getElementById(
-      'stock-chart-container',
-    );
+    const stockChartContainer = document.getElementById('stock-chart-container');
     if (stockChartContainer) {
       stockChartContainer.innerHTML = '';
 
@@ -72,12 +91,6 @@ function App() {
       const qvtWidget = document.getElementById('qvt-widget');
       if (qvtWidget) {
         qvtWidget.src = `https://trendlyne.com/web-widget/qvt-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
-      }
-
-      // Update Technical Analysis widget
-      const technicalWidget = document.getElementById('technical-widget');
-      if (technicalWidget) {
-        technicalWidget.src = `https://trendlyne.com/web-widget/technical-widget/Poppins/${cleanSymbol}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
       }
 
       // Update Checklist widget
@@ -91,15 +104,16 @@ function App() {
         window.tl_widgets.render();
       }
 
-      // Create a new TradingView widget
+      // Create a new TradingView widget after script is loaded
+      await loadTradingViewScript();
       const widgetContainer = document.createElement('div');
       widgetContainer.id = `tradingview_${cleanSymbol}`;
       widgetContainer.className = 'tradingview-widget-container';
       widgetContainer.style.height = '600px';
       stockChartContainer.appendChild(widgetContainer);
 
-      if (typeof TradingView !== 'undefined') {
-        new TradingView.widget({
+      if (window.TradingView) {
+        new window.TradingView.widget({
           autosize: true,
           symbol: cleanSymbol,
           interval: 'D',
@@ -178,18 +192,6 @@ function App() {
                 id="qvt-widget"
                 src="https://trendlyne.com/web-widget/qvt-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
                 title="QVT Widget for LT Foods"
-                data-theme="light"
-                frameBorder="0"
-              ></iframe>
-            </div>
-
-            {/* Technical Analysis Widget */}
-            <div className="bg-white p-6 rounded-xl shadow-lg flex-1 min-w-[300px]">
-              <iframe
-                className="w-full h-96 rounded-lg shadow-md"
-                id="technical-widget"
-                src="https://trendlyne.com/web-widget/technical-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-                title="Technical Analysis for LT Foods"
                 data-theme="light"
                 frameBorder="0"
               ></iframe>
