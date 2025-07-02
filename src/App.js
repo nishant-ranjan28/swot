@@ -10,13 +10,8 @@ import Header from './components/Header';
 function App() {
   const location = useLocation();
 
-  useEffect(() => {
-    if (location.pathname === '/') {
-      fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
-      updateStockChart('LTFOODS.NS');
-      loadTrendlyneScript();
-    }
-  }, [location]);
+  // Store reference to current TradingView widget for cleanup
+  let currentTradingViewWidget = null;
 
   const loadTrendlyneScript = () => {
     const existingScript = document.getElementById('trendlyne-widgets-script');
@@ -80,9 +75,6 @@ function App() {
         }
       });
   };
-
-  // Store reference to current TradingView widget for cleanup
-  let currentTradingViewWidget = null;
 
   const updateStockChart = async (stockSymbol) => {
     const cleanSymbol = stockSymbol.split('.')[0];
@@ -242,6 +234,14 @@ function App() {
     fetchStockPrice: PropTypes.func.isRequired,
     updateStockChart: PropTypes.func.isRequired,
   };
+
+  useEffect(() => {
+    if (location.pathname === '/') {
+      fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
+      updateStockChart('LTFOODS.NS');
+      loadTrendlyneScript();
+    }
+  }, [location, updateStockChart]); // Added updateStockChart to dependencies
 
   return (
     <div>
