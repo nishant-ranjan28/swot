@@ -1,5 +1,4 @@
-/* global TradingView */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
@@ -10,13 +9,8 @@ import Header from './components/Header';
 function App() {
   const location = useLocation();
 
-  useEffect(() => {
-    if (location.pathname === '/') {
-      fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
-      updateStockChart('LTFOODS.NS');
-      loadTrendlyneScript();
-    }
-  }, [location]);
+  // Store reference to current TradingView widget for cleanup
+  const currentTradingViewWidget = useRef(null);
 
   const loadTrendlyneScript = () => {
     const existingScript = document.getElementById('trendlyne-widgets-script');
@@ -81,19 +75,16 @@ function App() {
       });
   };
 
-  // Store reference to current TradingView widget for cleanup
-  let currentTradingViewWidget = null;
-
-  const updateStockChart = async (stockSymbol) => {
+  const updateStockChart = useCallback(async (stockSymbol) => {
     const cleanSymbol = stockSymbol.split('.')[0];
     const stockChartContainer = document.getElementById('stock-chart-container');
     if (stockChartContainer) {
       stockChartContainer.innerHTML = '';
 
       // Clean up previous widget if it exists
-      if (currentTradingViewWidget && typeof currentTradingViewWidget.remove === 'function') {
-        currentTradingViewWidget.remove();
-        currentTradingViewWidget = null;
+      if (currentTradingViewWidget.current && typeof currentTradingViewWidget.current.remove === 'function') {
+        currentTradingViewWidget.current.remove();
+        currentTradingViewWidget.current = null;
       }
 
       // Update QVT widget
@@ -123,7 +114,7 @@ function App() {
 
       if (window.TradingView) {
         // Store the widget instance for proper management
-        currentTradingViewWidget = new window.TradingView.widget({
+        currentTradingViewWidget.current = new window.TradingView.widget({
           autosize: true,
           symbol: cleanSymbol,
           interval: 'D',
@@ -146,7 +137,7 @@ function App() {
     } else {
       console.error('Stock chart container not found');
     }
-  };
+  }, []); // Wrapped in useCallback to stabilize reference
 
   const HomePage = ({
     updateSwotWidget,
@@ -242,6 +233,14 @@ function App() {
     fetchStockPrice: PropTypes.func.isRequired,
     updateStockChart: PropTypes.func.isRequired,
   };
+
+  useEffect(() => {
+    if (location.pathname === '/') {
+      fetchStockPrice('LTFOODS.NS', null, 'LT Foods');
+      updateStockChart('LTFOODS.NS');
+      loadTrendlyneScript();
+    }
+  }, [location, updateStockChart]); // Dependencies updated
 
   return (
     <div>
