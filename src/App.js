@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
@@ -10,7 +10,7 @@ function App() {
   const location = useLocation();
 
   // Store reference to current TradingView widget for cleanup
-  let currentTradingViewWidget = null;
+  const currentTradingViewWidget = useRef(null);
 
   const loadTrendlyneScript = () => {
     const existingScript = document.getElementById('trendlyne-widgets-script');
@@ -82,9 +82,9 @@ function App() {
       stockChartContainer.innerHTML = '';
 
       // Clean up previous widget if it exists
-      if (currentTradingViewWidget && typeof currentTradingViewWidget.remove === 'function') {
-        currentTradingViewWidget.remove();
-        currentTradingViewWidget = null;
+      if (currentTradingViewWidget.current && typeof currentTradingViewWidget.current.remove === 'function') {
+        currentTradingViewWidget.current.remove();
+        currentTradingViewWidget.current = null;
       }
 
       // Update QVT widget
@@ -114,7 +114,7 @@ function App() {
 
       if (window.TradingView) {
         // Store the widget instance for proper management
-        currentTradingViewWidget = new window.TradingView.widget({
+        currentTradingViewWidget.current = new window.TradingView.widget({
           autosize: true,
           symbol: cleanSymbol,
           interval: 'D',
