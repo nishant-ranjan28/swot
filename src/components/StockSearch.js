@@ -171,17 +171,26 @@ const StockSearch = ({
     isSelecting.current = true; // Set selecting flag
     setInput(stock.symbol);
     setIsDropdownVisible(false); // Hide dropdown when a stock is selected
-    if (updateSwotWidget) {
-      updateSwotWidget(stock.symbol);
-    }
-    if (fetchStockPrice) {
-      fetchStockPrice(stock.symbol, null, stock.name);
-    }
-    if (updateStockChart) {
-      updateStockChart(stock.symbol);
-    }
-    if (updateSelectedStock) {
-      updateSelectedStock(stock.symbol);
+
+    // Update all widgets with proper error handling and timing
+    try {
+      if (updateSwotWidget) {
+        updateSwotWidget(stock.symbol);
+      }
+      if (fetchStockPrice) {
+        fetchStockPrice(stock.symbol, null, stock.name);
+      }
+      if (updateSelectedStock) {
+        updateSelectedStock(stock.symbol);
+      }
+      // Delay the stock chart update to ensure other widgets load first
+      if (updateStockChart) {
+        setTimeout(() => {
+          updateStockChart(stock.symbol);
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Error updating widgets:', error);
     }
   };
 
@@ -199,41 +208,46 @@ const StockSearch = ({
   return (
     <div className={className}>
       <div className="relative" ref={dropdownRef}>
-        <input
-          type="text"
-          className="w-full border rounded p-2 pr-8"
-          placeholder="Enter stock symbol..."
-          value={input}
-          onChange={handleInputChange}
-          autoFocus={false}
-          autoComplete="off"
-        />
-        {input && (
-          <button
-            type="button"
-            onClick={clearSearch}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500"
-            aria-label="Clear search"
-          >
-            ×
-          </button>
-        )}
+        <div className="relative">
+          <input
+            type="text"
+            className="w-full border border-gray-300 rounded-lg p-3 pr-10 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            placeholder="Search for stocks (e.g., Reliance, TCS, HDFC)..."
+            value={input}
+            onChange={handleInputChange}
+            autoFocus={false}
+            autoComplete="off"
+          />
+          {input && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Clear search"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
+        </div>
 
         {isDropdownVisible && suggestions.length > 0 && (
-          <ul className="absolute z-10 bg-white border rounded w-full max-h-64 overflow-auto mt-1">
+          <ul className="absolute z-50 bg-white border border-gray-200 rounded-lg w-full max-h-64 overflow-auto mt-2 shadow-lg">
             {suggestions.map((stock) => (
               <button
                 key={stock.symbol}
-                className="p-2 cursor-pointer hover:bg-gray-100 flex justify-between items-center w-full text-left"
+                className="p-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center w-full text-left border-b border-gray-100 last:border-b-0 transition-colors"
                 onClick={() => {
                   handleSuggestionClick(stock);
                   pushToURL(stock.symbol);
                 }}
               >
-                <span>
-                  {stock.name} ({stock.symbol})
-                </span>
-                <span className="text-green-600 font-semibold">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                  <span className="font-medium text-gray-900">{stock.name}</span>
+                  <span className="text-sm text-gray-500">({stock.symbol})</span>
+                </div>
+                <span className="text-green-600 font-semibold whitespace-nowrap ml-2">
                   ₹{stock.price}
                 </span>
               </button>

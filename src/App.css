@@ -5,50 +5,154 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.min-h-screen {
-  min-height: 100vh;
+/* Ensure proper scrolling on mobile */
+html {
+  overflow-x: hidden;
 }
 
-.bg-gray-50 {
-  background-color: #f9fafb;
+body {
+  overflow-x: hidden;
 }
 
-.flex {
-  display: flex;
+/* Improve iframe responsiveness */
+iframe {
+  max-width: 100%;
+  height: auto;
+  border: none;
 }
 
-.flex-col {
-  flex-direction: column;
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-.flex-wrap {
-  flex-wrap: wrap;
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
 }
 
-.gap-6 {
-  gap: 1.5rem;
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
 }
 
-.p-6 {
-  padding: 1.5rem;
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
-.rounded-xl {
-  border-radius: 1rem;
+/* Responsive utilities */
+.container-responsive {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-.shadow-lg {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+@media (min-width: 640px) {
+  .container-responsive {
+    padding: 0 2rem;
+  }
 }
 
-.min-w-300px {
-  min-width: 300px;
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding: 0 3rem;
+  }
 }
 
+/* Ensure TradingView widget is responsive */
+.tradingview-widget-container {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+.tradingview-widget-container iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 320px !important;
+  border: none !important;
+}
+
+/* Mobile-specific TradingView optimizations */
 @media (max-width: 768px) {
-  .flex-wrap {
+  .tradingview-widget-container {
+    min-height: 320px !important;
+    max-height: 400px !important;
+  }
+  
+  .tradingview-widget-container iframe {
+    min-height: 320px !important;
+    max-height: 400px !important;
+  }
+  
+  /* Hide TradingView toolbar on very small screens */
+  #stock-chart-container .tradingview-widget-container div[class*="toolbar"] {
+    display: none !important;
+  }
+  
+  /* Ensure proper scaling */
+  #stock-chart-container {
+    transform-origin: top left;
+    overflow: hidden;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .tradingview-widget-container {
+    min-height: 400px !important;
+  }
+  
+  .tradingview-widget-container iframe {
+    min-height: 400px !important;
+  }
+}
+
+/* Loading states */
+.loading-skeleton {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Focus styles for better accessibility */
+button:focus,
+input:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Reduce padding on mobile */
+  .mobile-padding {
+    padding: 0.75rem;
+  }
+  
+  /* Stack widgets vertically on mobile */
+  .mobile-stack {
     flex-direction: column;
+  }
+  
+  /* Adjust font sizes for mobile */
+  .mobile-text {
+    font-size: 0.875rem;
+  }
+  
+  /* Ensure touch targets are large enough */
+  button, .touch-target {
+    min-height: 44px;
   }
 }
