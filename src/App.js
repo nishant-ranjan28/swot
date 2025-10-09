@@ -189,8 +189,7 @@ function App() {
           // Use only the clean symbol without exchange suffix for TradingView
           const tradingViewSymbol = cleanSymbol;
 
-          // Get container dimensions for mobile optimization
-          const containerRect = stockChartContainer.getBoundingClientRect();
+          // Get mobile status for optimization
           const isMobile = window.innerWidth < 768;
 
           // Store the widget instance for proper management
