@@ -196,8 +196,8 @@ const NewsPage = () => {
               <button
                 onClick={() => setActiveTab('trending')}
                 className={`flex-1 flex items-center justify-center px-4 py-3 rounded-md font-medium transition-all duration-200 ${activeTab === 'trending'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
                   }`}
               >
                 <span className="mr-2">🔥</span>
@@ -206,8 +206,8 @@ const NewsPage = () => {
               <button
                 onClick={() => setActiveTab('market')}
                 className={`flex-1 flex items-center justify-center px-4 py-3 rounded-md font-medium transition-all duration-200 ${activeTab === 'market'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
                   }`}
               >
                 <span className="mr-2">📈</span>
