@@ -140,4 +140,5 @@ class NewsService {
     }
 }
 
-export default new NewsService();
+const newsService = new NewsService();
+export default newsService;
