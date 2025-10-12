@@ -1,9 +1,12 @@
 // News service to handle API calls with fallback options
 class NewsService {
     constructor() {
+        const newsApiKey = process.env.REACT_APP_NEWSAPI_KEY;
+        if (!newsApiKey) {
+            console.warn('REACT_APP_NEWSAPI_KEY environment variable is not set. Falling back to "demo" key (limited functionality).');
+        }
         this.apiKeys = {
-            newsapi: 'demo', // Replace with actual NewsAPI key
-            gnews: process.env.REACT_APP_GNEWS_API_KEY_6
+            newsapi: newsApiKey || 'demo' // Use env var or fallback to 'demo'
         };
     }
 
@@ -98,7 +101,25 @@ class NewsService {
         return null;
     }
 
-    // Main method to get news with fallback
+    /**
+     * Fetches news data with automatic fallback to sample data
+     * 
+     * @returns {Promise<{trending: Article[], market: Article[]}>} News data object containing:
+     *   - trending: Array of trending business news articles
+     *   - market: Array of market/financial news articles
+     * 
+     * @typedef {Object} Article
+     * @property {string} title - Article headline
+     * @property {string} description - Article summary/description
+     * @property {string} url - Link to full article
+     * @property {string} publishedAt - ISO date string of publication
+     * @property {Object} source - Source information
+     * @property {string} source.name - Name of the news source
+     * @property {string} [image] - Optional article image URL
+     * 
+     * @note On API failure, high-quality sample data is returned silently.
+     *       Check console logs for provider status information.
+     */
     async getNews() {
         try {
             // Try NewsAPI first
