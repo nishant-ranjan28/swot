@@ -10,90 +10,61 @@ class NewsService {
         };
     }
 
-    // Sample news data as fallback
-    getSampleNews() {
-        const now = new Date();
-        const anHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-        const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-        const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-
-        return {
-            trending: [
-                {
-                    title: "Stock Market Reaches New Heights as Q2 Earnings Season Begins",
-                    description: "Indian equity markets are showing strong momentum as major companies prepare to announce their second-quarter results. Banking and IT sectors are leading the rally with significant gains.",
-                    url: "https://example.com/news/1",
-                    publishedAt: now.toISOString(),
-                    source: { name: "Business Today" },
-                    image: "https://via.placeholder.com/400x200/4F46E5/ffffff?text=Market+Rally"
-                },
-                {
-                    title: "RBI Policy Review: Interest Rates Expected to Remain Stable",
-                    description: "The Reserve Bank of India is likely to maintain the current repo rate in its upcoming monetary policy review, focusing on inflation control and economic growth balance.",
-                    url: "https://example.com/news/2",
-                    publishedAt: anHourAgo.toISOString(),
-                    source: { name: "Economic Times" },
-                    image: "https://via.placeholder.com/400x200/059669/ffffff?text=RBI+Policy"
-                },
-                {
-                    title: "Tech Sector Shows Resilience Amid Global Economic Uncertainty",
-                    description: "Indian technology companies continue to demonstrate strong performance despite global headwinds, with several firms reporting robust order books and revenue growth.",
-                    url: "https://example.com/news/3",
-                    publishedAt: twoHoursAgo.toISOString(),
-                    source: { name: "Tech News" },
-                    image: "https://via.placeholder.com/400x200/DC2626/ffffff?text=Tech+Growth"
-                }
-            ],
-            market: [
-                {
-                    title: "Gold Prices Hit Record High as Investors Seek Safe Haven",
-                    description: "Gold prices have reached unprecedented levels as investors increasingly turn to precious metals amid global economic volatility and geopolitical tensions.",
-                    url: "https://example.com/news/4",
-                    publishedAt: now.toISOString(),
-                    source: { name: "Commodity Watch" },
-                    image: "https://via.placeholder.com/400x200/F59E0B/ffffff?text=Gold+Rally"
-                },
-                {
-                    title: "Rupee Strengthens Against Dollar on FII Inflows",
-                    description: "The Indian rupee has shown significant strength against the US dollar, supported by increased foreign institutional investor inflows and positive economic indicators.",
-                    url: "https://example.com/news/5",
-                    publishedAt: anHourAgo.toISOString(),
-                    source: { name: "Currency News" },
-                    image: "https://via.placeholder.com/400x200/8B5CF6/ffffff?text=Rupee+Strong"
-                },
-                {
-                    title: "Oil Prices Fluctuate on Supply Concerns and Demand Outlook",
-                    description: "Crude oil prices continue to show volatility as markets weigh supply disruption risks against concerns about global demand growth in the coming quarters.",
-                    url: "https://example.com/news/6",
-                    publishedAt: threeHoursAgo.toISOString(),
-                    source: { name: "Energy Markets" },
-                    image: "https://via.placeholder.com/400x200/EC4899/ffffff?text=Oil+Markets"
-                }
-            ]
-        };
-    }
-
     // Try to fetch from NewsAPI (CORS-friendly for development)
     async fetchFromNewsAPI() {
         try {
-            const response = await fetch(
-                `https://newsapi.org/v2/top-headlines?country=in&category=business&pageSize=20&apiKey=${this.apiKeys.newsapi}`
-            );
+            // Fetch both business and technology for trending, and everything with keywords for market
+            const [businessResponse, technologyResponse] = await Promise.all([
+                fetch(`https://newsapi.org/v2/top-headlines?country=in&category=business&pageSize=10&apiKey=${this.apiKeys.newsapi}`),
+                fetch(`https://newsapi.org/v2/everything?q=stock%20market%20OR%20cryptocurrency%20OR%20forex%20OR%20trading&language=en&sortBy=publishedAt&pageSize=10&apiKey=${this.apiKeys.newsapi}`)
+            ]);
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data.articles && data.articles.length > 0) {
-                    const articles = data.articles.filter(article =>
-                        article.title &&
-                        article.description &&
-                        article.title !== '[Removed]'
-                    );
+            const trendingArticles = [];
+            const marketArticles = [];
 
-                    return {
-                        trending: articles.slice(0, 6),
-                        market: articles.slice(6, 12).length > 0 ? articles.slice(6, 12) : articles.slice(0, 6)
-                    };
+            // Process business news for trending
+            if (businessResponse.ok) {
+                const businessData = await businessResponse.json();
+                if (businessData.articles && businessData.articles.length > 0) {
+                    const articles = businessData.articles
+                        .filter(article =>
+                            article.title &&
+                            article.description &&
+                            article.title !== '[Removed]' &&
+                            article.description !== '[Removed]'
+                        )
+                        .map(article => ({
+                            ...article,
+                            source: { name: article.source.name + ' (NewsAPI)' }
+                        }));
+                    trendingArticles.push(...articles);
                 }
+            }
+
+            // Process market/trading news for market updates
+            if (technologyResponse.ok) {
+                const marketData = await technologyResponse.json();
+                if (marketData.articles && marketData.articles.length > 0) {
+                    const articles = marketData.articles
+                        .filter(article =>
+                            article.title &&
+                            article.description &&
+                            article.title !== '[Removed]' &&
+                            article.description !== '[Removed]'
+                        )
+                        .map(article => ({
+                            ...article,
+                            source: { name: article.source.name + ' (NewsAPI Markets)' }
+                        }));
+                    marketArticles.push(...articles);
+                }
+            }
+
+            if (trendingArticles.length > 0 || marketArticles.length > 0) {
+                return {
+                    trending: trendingArticles.slice(0, 6),
+                    market: marketArticles.slice(0, 6)
+                };
             }
         } catch (error) {
             console.log('NewsAPI fetch failed:', error.message);
@@ -101,12 +72,124 @@ class NewsService {
         return null;
     }
 
+    // Alternative API: Try Guardian API (free, no API key needed for basic use)
+    async fetchFromGuardianAPI() {
+        try {
+            // Fetch different categories for trending vs market news
+            const [businessResponse, economicsResponse] = await Promise.all([
+                fetch('https://content.guardianapis.com/search?section=business&page-size=6&show-fields=thumbnail,trailText&api-key=test'),
+                fetch('https://content.guardianapis.com/search?tag=business/economics&page-size=6&show-fields=thumbnail,trailText&api-key=test')
+            ]);
+
+            const trendingArticles = [];
+            const marketArticles = [];
+
+            // Process business news for trending
+            if (businessResponse.ok) {
+                const businessData = await businessResponse.json();
+                if (businessData.response && businessData.response.results) {
+                    const articles = businessData.response.results.map(article => ({
+                        title: article.webTitle,
+                        description: article.fields?.trailText || 'Read more about this business story...',
+                        url: article.webUrl,
+                        publishedAt: article.webPublicationDate,
+                        source: { name: 'The Guardian Business' },
+                        image: article.fields?.thumbnail || `https://via.placeholder.com/400x200/FF6B35/ffffff?text=Guardian+Business`
+                    }));
+                    trendingArticles.push(...articles);
+                }
+            }
+
+            // Process economics news for market
+            if (economicsResponse.ok) {
+                const economicsData = await economicsResponse.json();
+                if (economicsData.response && economicsData.response.results) {
+                    const articles = economicsData.response.results.map(article => ({
+                        title: article.webTitle,
+                        description: article.fields?.trailText || 'Read more about this market story...',
+                        url: article.webUrl,
+                        publishedAt: article.webPublicationDate,
+                        source: { name: 'The Guardian Economics' },
+                        image: article.fields?.thumbnail || `https://via.placeholder.com/400x200/0F766E/ffffff?text=Guardian+Economics`
+                    }));
+                    marketArticles.push(...articles);
+                }
+            }
+
+            if (trendingArticles.length > 0 || marketArticles.length > 0) {
+                return {
+                    trending: trendingArticles.slice(0, 6),
+                    market: marketArticles.slice(0, 6)
+                };
+            }
+        } catch (error) {
+            console.log('Guardian API fetch failed:', error.message);
+        }
+        return null;
+    }
+
+    // Try to fetch from multiple RSS feeds for diversity
+    async fetchFromRSSFeed() {
+        try {
+            // Fetch from different RSS sources for trending vs market news
+            const [bbcResponse, reutersResponse] = await Promise.all([
+                fetch('https://rss2json.com/api.json?rss_url=http://feeds.bbci.co.uk/news/business/rss.xml&count=6'),
+                fetch('https://rss2json.com/api.json?rss_url=https://feeds.reuters.com/reuters/businessNews&count=6')
+            ]);
+
+            const trendingArticles = [];
+            const marketArticles = [];
+
+            // Process BBC Business for trending
+            if (bbcResponse.ok) {
+                const bbcData = await bbcResponse.json();
+                if (bbcData.items && bbcData.items.length > 0) {
+                    const articles = bbcData.items.map(item => ({
+                        title: item.title,
+                        description: item.description?.replace(/<[^>]*>/g, '').substring(0, 150) + '...' || 'Read more about this business story...',
+                        url: item.link,
+                        publishedAt: item.pubDate,
+                        source: { name: 'BBC Business' },
+                        image: item.thumbnail || `https://via.placeholder.com/400x200/B91C1C/ffffff?text=BBC+Business`
+                    }));
+                    trendingArticles.push(...articles);
+                }
+            }
+
+            // Process Reuters for market news
+            if (reutersResponse.ok) {
+                const reutersData = await reutersResponse.json();
+                if (reutersData.items && reutersData.items.length > 0) {
+                    const articles = reutersData.items.map(item => ({
+                        title: item.title,
+                        description: item.description?.replace(/<[^>]*>/g, '').substring(0, 150) + '...' || 'Read more about this market story...',
+                        url: item.link,
+                        publishedAt: item.pubDate,
+                        source: { name: 'Reuters Business' },
+                        image: item.thumbnail || `https://via.placeholder.com/400x200/F97316/ffffff?text=Reuters+Markets`
+                    }));
+                    marketArticles.push(...articles);
+                }
+            }
+
+            if (trendingArticles.length > 0 || marketArticles.length > 0) {
+                return {
+                    trending: trendingArticles.slice(0, 6),
+                    market: marketArticles.slice(0, 6)
+                };
+            }
+        } catch (error) {
+            console.log('RSS feed fetch failed:', error.message);
+        }
+        return null;
+    }
+
     /**
-     * Fetches news data with automatic fallback to sample data
+     * Fetches news data from multiple API sources and combines them
      * 
      * @returns {Promise<{trending: Article[], market: Article[]}>} News data object containing:
-     *   - trending: Array of trending business news articles
-     *   - market: Array of market/financial news articles
+     *   - trending: Array of trending business news articles from multiple sources
+     *   - market: Array of market/financial news articles from multiple sources
      * 
      * @typedef {Object} Article
      * @property {string} title - Article headline
@@ -117,26 +200,59 @@ class NewsService {
      * @property {string} source.name - Name of the news source
      * @property {string} [image] - Optional article image URL
      * 
-     * @note On API failure, high-quality sample data is returned silently.
-     *       Check console logs for provider status information.
+     * @note Fetches from all available sources and combines them for diversity
      */
     async getNews() {
-        try {
-            // Try NewsAPI first
-            const newsApiData = await this.fetchFromNewsAPI();
-            if (newsApiData) {
-                return newsApiData;
-            }
+        console.log('🔄 Fetching news from multiple APIs simultaneously...');
 
-            // Fallback to sample data
-            console.log('Using sample news data due to API limitations');
-            return this.getSampleNews();
+        // Fetch from all sources in parallel
+        const [newsApiData, guardianData, rssData] = await Promise.allSettled([
+            this.fetchFromNewsAPI(),
+            this.fetchFromGuardianAPI(),
+            this.fetchFromRSSFeed()
+        ]);
 
-        } catch (error) {
-            console.error('Error in getNews:', error);
-            // Return sample data as last resort
-            return this.getSampleNews();
+        const allTrendingNews = [];
+        const allMarketNews = [];
+        let successfulSources = [];
+
+        // Process NewsAPI results
+        if (newsApiData.status === 'fulfilled' && newsApiData.value) {
+            console.log('✅ NewsAPI data received');
+            allTrendingNews.push(...newsApiData.value.trending.slice(0, 2)); // Take 2 articles
+            allMarketNews.push(...newsApiData.value.market.slice(0, 2)); // Take 2 articles
+            successfulSources.push('NewsAPI');
         }
+
+        // Process Guardian API results
+        if (guardianData.status === 'fulfilled' && guardianData.value) {
+            console.log('✅ Guardian API data received');
+            allTrendingNews.push(...guardianData.value.trending.slice(0, 2)); // Take 2 articles
+            allMarketNews.push(...guardianData.value.market.slice(0, 2)); // Take 2 articles
+            successfulSources.push('Guardian');
+        }
+
+        // Process RSS Feed results
+        if (rssData.status === 'fulfilled' && rssData.value) {
+            console.log('✅ RSS Feed data received');
+            allTrendingNews.push(...rssData.value.trending.slice(0, 2)); // Take 2 articles
+            allMarketNews.push(...rssData.value.market.slice(0, 2)); // Take 2 articles
+            successfulSources.push('RSS/BBC');
+        }
+
+        // Check if we have any data
+        if (allTrendingNews.length === 0 && allMarketNews.length === 0) {
+            console.error('❌ All API sources failed to provide news data');
+            throw new Error('Unable to fetch news from any source. Please check your internet connection and try again.');
+        }
+
+        console.log(`✅ Successfully combined news from: ${successfulSources.join(', ')}`);
+        console.log(`📰 Total articles: ${allTrendingNews.length} trending, ${allMarketNews.length} market`);
+
+        return {
+            trending: allTrendingNews.slice(0, 6), // Limit to 6 total
+            market: allMarketNews.slice(0, 6)      // Limit to 6 total
+        };
     }
 }
 
