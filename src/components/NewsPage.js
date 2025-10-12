@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import newsService from '../services/newsService';
 
 const NewsPage = () => {
   const [trendingNews, setTrendingNews] = useState([]);
@@ -11,43 +12,15 @@ const NewsPage = () => {
 
   useEffect(() => {
     setIsLoading(true);
-    const apiKey = process.env.REACT_APP_GNEWS_API_KEY_6;
-    if (!apiKey) {
-      setError('API key is missing');
-      setIsLoading(false);
-      return;
-    }
 
     const fetchNews = async () => {
       try {
-        // Fetch trending news
-        const trendingUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=business`;
-        const trendingResponse = await fetch(trendingUrl);
-
-        if (!trendingResponse.ok) {
-          throw new Error(`HTTP error! status: ${trendingResponse.status}`);
-        }
-
-        const trendingData = await trendingResponse.json();
-        if (trendingData.articles) {
-          setTrendingNews(trendingData.articles);
-        }
-
-        // Fetch market updates
-        const marketUpdatesUrl = `https://gnews.io/api/v4/top-headlines?token=${apiKey}&lang=en&country=in&topic=finance`;
-        const marketResponse = await fetch(marketUpdatesUrl);
-
-        if (!marketResponse.ok) {
-          throw new Error(`HTTP error! status: ${marketResponse.status}`);
-        }
-
-        const marketData = await marketResponse.json();
-        if (marketData.articles) {
-          setMarketUpdates(marketData.articles);
-        }
+        const newsData = await newsService.getNews();
+        setTrendingNews(newsData.trending);
+        setMarketUpdates(newsData.market);
       } catch (error) {
         console.error('Error fetching news:', error);
-        setError(error.message);
+        setError('Unable to load news. Please try again later.');
       } finally {
         setIsLoading(false);
       }
