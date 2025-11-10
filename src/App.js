@@ -91,7 +91,7 @@ function App() {
       const newSrc = `https://trendlyne.com/web-widget/swot-widget/Poppins/${encodedStock}/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
       swotWidget.src = newSrc;
       swotWidget.onload = () => console.log(`SWOT widget loaded for ${encodedStock}`);
-      swotWidget.onerror = (error) => console.error(`SWOT widget failed to load for ${encodedStock}:`, error);
+      swotWidget.onerror = (error) => console.error("SWOT widget failed to load for %s:", encodedStock, error);
     } else {
       console.error('SWOT widget element not found');
     }
