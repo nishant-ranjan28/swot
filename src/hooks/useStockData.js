@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 export function useStockData(endpoint, options = {}) {
   const { enabled = true, refetchOnMount = true } = options;
@@ -12,7 +12,7 @@ export function useStockData(endpoint, options = {}) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(endpoint);
+      const response = await api.get(endpoint);
       setData(response.data);
     } catch (err) {
       const message = err.response?.data?.error || err.message || 'Failed to fetch data';

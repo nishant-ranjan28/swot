@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import axios from 'axios';
+import api from '../api';
 
 const StockSearch = ({
   updateSwotWidget,
@@ -95,14 +95,14 @@ const StockSearch = ({
 
     async function fetchStocks() {
       try {
-        const response = await axios.get(`/api/stocks/search?q=${input}`);
+        const response = await api.get(`/api/stocks/search?q=${input}`);
         const stocks = response.data.results || [];
         const limitedStocks = stocks.slice(0, 5);
 
         const stocksWithPrices = await Promise.all(
           limitedStocks.map(async (stock) => {
             try {
-              const priceResponse = await axios.get(`/api/stocks/${stock.symbol}/quote`);
+              const priceResponse = await api.get(`/api/stocks/${stock.symbol}/quote`);
               return {
                 name: stock.name,
                 symbol: stock.symbol,

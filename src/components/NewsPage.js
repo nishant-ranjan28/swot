@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 const NewsPage = () => {
   const [articles, setArticles] = useState([]);
@@ -16,7 +16,7 @@ const NewsPage = () => {
       const endpoint = symbol
         ? `/api/stocks/news/${symbol}`
         : '/api/stocks/news';
-      const response = await axios.get(endpoint);
+      const response = await api.get(endpoint);
       setArticles(response.data.articles || []);
     } catch (err) {
       console.error('Error fetching news:', err);
