@@ -53,7 +53,7 @@ class TestGetQuote:
                 "currency": "INR",
             }
             result = service.get_quote("RELIANCE.NS")
-            assert result["price"] == 2500.0
+            assert result["price"] == pytest.approx(2500.0)
             assert result["name"] == "Reliance Industries"
             assert result["change"] == pytest.approx(20.0)
             assert result["change_percent"] == pytest.approx(20.0 / 2480.0 * 100, rel=1e-2)
