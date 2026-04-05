@@ -127,6 +127,15 @@ iframe {
   }
 }
 
+/* Hide scrollbar for horizontal scroll areas */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 /* Focus styles for better accessibility */
 button:focus,
 input:focus {

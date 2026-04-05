@@ -36,6 +36,15 @@ async def search_stocks(request: Request, q: Annotated[str, Query(min_length=1, 
     return {"results": results}
 
 
+@router.get("/search/mf")
+@limiter.limit(SEARCH_RATE_LIMIT)
+async def search_mutual_funds(request: Request, q: Annotated[str, Query(min_length=1, max_length=50)]):
+    results = await stock_service.search_mutual_funds(q.strip())
+    if results is None:
+        return _server_error()
+    return {"results": results}
+
+
 @router.get("/trending")
 async def get_trending():
     stocks = await asyncio.to_thread(stock_service.get_trending_stocks)
@@ -46,6 +55,41 @@ async def get_trending():
 async def get_indices():
     indices = await asyncio.to_thread(stock_service.get_market_indices)
     return {"indices": indices}
+
+
+@router.get("/sentiment")
+async def get_sentiment():
+    data = await asyncio.to_thread(stock_service.get_market_sentiment)
+    if not data:
+        return _server_error()
+    return data
+
+
+@router.get("/screener")
+async def get_screener(request: Request):
+    # Pass all query params as filters to Yahoo screener
+    params = dict(request.query_params)
+    result = await stock_service.screener_query(params)
+    return result
+
+
+@router.get("/52week")
+async def get_52week_scanner():
+    data = await asyncio.to_thread(stock_service.get_52week_scanner)
+    return data
+
+
+@router.get("/sip/{symbol}")
+async def get_sip_returns(
+    symbol: str,
+    amount: Annotated[float, Query(ge=100, le=1000000)] = 5000,
+    years: Annotated[int, Query(ge=1, le=20)] = 5,
+):
+    resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
+    result = await asyncio.to_thread(stock_service.calculate_sip_returns, resolved, amount, years)
+    if not result:
+        return _not_found(symbol)
+    return result
 
 
 @router.get("/news")

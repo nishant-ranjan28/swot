@@ -3,34 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SWOT Analysis</title>
+    <title>StockPulse - Indian Stock Research Platform</title>
+    <meta name="description" content="Search any Indian stock for in-depth analysis — live market data, technical indicators, fundamentals, financials, dividends, earnings, analyst ratings, and more." />
+
+    <!-- Open Graph / Facebook / WhatsApp / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://swot-analyse.vercel.app/" />
+    <meta property="og:title" content="StockPulse - Indian Stock Research Platform" />
+    <meta property="og:description" content="Live market indices, technical & fundamental analysis, financials, dividends, analyst ratings, and 60+ news articles — all in one place." />
+    <meta property="og:image" content="https://swot-analyse.vercel.app/og-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="StockPulse - Indian Stock Research Platform" />
+    <meta name="twitter:description" content="Live market indices, technical & fundamental analysis, financials, dividends, analyst ratings, and 60+ news articles — all in one place." />
+    <meta name="twitter:image" content="https://swot-analyse.vercel.app/og-preview.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <meta name="theme-color" content="#1f2937" />
   </head>
 
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <script>
-      // Function to load script asynchronously
-      function loadScript(url, callback) {
-        var script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.async = true; // Load asynchronously
-
-        script.onload = function () {
-          callback();
-        };
-
-        script.onerror = function () {
-          console.error('Failed to load script: ' + url);
-        };
-
-        script.src = url;
-        document.head.appendChild(script);
-      }
-
-      // Usage: Load the TradingView script
-      loadScript('https://s3.tradingview.com/tv.js', function () {
-      });
-    </script>
   </body>
 </html>
