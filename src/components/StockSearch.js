@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import axios from 'axios';
 
 const StockSearch = ({
   updateSwotWidget,
@@ -7,7 +9,9 @@ const StockSearch = ({
   updateStockChart,
   updateSelectedStock,
   className,
+  onSelect,
 }) => {
+  const navigate = useNavigate();
   const params = new URLSearchParams(window.location.search);
   const [input, setInput] = useState(params.get('search') || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -91,63 +95,26 @@ const StockSearch = ({
 
     async function fetchStocks() {
       try {
-        const response = await fetch(
-          `https://api.allorigins.win/get?url=${encodeURIComponent(
-            `https://query1.finance.yahoo.com/v1/finance/search?q=${input}&region=IN`,
-          )}`,
-        );
-        const data = await response.json();
-        const stocks = JSON.parse(data.contents).quotes || [];
-
-        // Limit the number of suggestions to 5 to optimize API calls
+        const response = await axios.get(`/api/stocks/search?q=${input}`);
+        const stocks = response.data.results || [];
         const limitedStocks = stocks.slice(0, 5);
 
-        // Fetch prices for each limited stock
         const stocksWithPrices = await Promise.all(
           limitedStocks.map(async (stock) => {
-            if (
-              stock.symbol &&
-              (stock.symbol.endsWith('.NS') || stock.symbol.endsWith('.BO'))
-            ) {
-              try {
-                const priceResponse = await fetch(
-                  `https://api.allorigins.win/get?url=${encodeURIComponent(
-                    `https://query1.finance.yahoo.com/v8/finance/chart/${stock.symbol}?region=IN&lang=en-IN&interval=1d&range=1d`,
-                  )}`,
-                );
-                const priceData = await priceResponse.json();
-                const parsedPriceData = JSON.parse(priceData.contents);
-                const price =
-                  parsedPriceData.chart.result[0].meta.regularMarketPrice ||
-                  'N/A';
-
-                return {
-                  name: stock.shortname,
-                  symbol: stock.symbol,
-                  price: price,
-                };
-              } catch (priceError) {
-                console.error(
-                  `Error fetching price for ${stock.symbol}:`,
-                  priceError,
-                );
-                return {
-                  name: stock.shortname,
-                  symbol: stock.symbol,
-                  price: 'N/A',
-                };
-              }
-            } else {
-              return null;
+            try {
+              const priceResponse = await axios.get(`/api/stocks/${stock.symbol}/quote`);
+              return {
+                name: stock.name,
+                symbol: stock.symbol,
+                price: priceResponse.data.price || 'N/A',
+              };
+            } catch {
+              return { name: stock.name, symbol: stock.symbol, price: 'N/A' };
             }
-          }),
+          })
         );
 
-        // Filter out any null results
-        const validStocks = stocksWithPrices.filter((stock) => stock !== null);
-
-        setSuggestions(validStocks);
-        // Do not force dropdown visible here; let userTyped logic handle it
+        setSuggestions(stocksWithPrices);
       } catch (error) {
         console.error('Error fetching suggestions:', error);
       }
@@ -168,30 +135,28 @@ const StockSearch = ({
 
   // Invoke parent callbacks when a suggestion is selected
   const handleSuggestionClick = (stock) => {
-    isSelecting.current = true; // Set selecting flag
+    isSelecting.current = true;
     setInput(stock.symbol);
-    setIsDropdownVisible(false); // Hide dropdown when a stock is selected
+    setIsDropdownVisible(false);
 
-    // Update all widgets with proper error handling and timing
+    // Navigation mode (detail page) - if onSelect provided, use it
+    if (onSelect) {
+      onSelect(stock);
+      return;
+    }
+
+    // Dashboard mode - update widgets AND navigate to detail page
     try {
-      if (updateSwotWidget) {
-        updateSwotWidget(stock.symbol);
-      }
-      if (fetchStockPrice) {
-        fetchStockPrice(stock.symbol, null, stock.name);
-      }
-      if (updateSelectedStock) {
-        updateSelectedStock(stock.symbol);
-      }
-      // Delay the stock chart update to ensure other widgets load first
-      if (updateStockChart) {
-        setTimeout(() => {
-          updateStockChart(stock.symbol);
-        }, 300);
-      }
+      if (updateSwotWidget) updateSwotWidget(stock.symbol);
+      if (fetchStockPrice) fetchStockPrice(stock.symbol, null, stock.name);
+      if (updateSelectedStock) updateSelectedStock(stock.symbol);
+      if (updateStockChart) setTimeout(() => updateStockChart(stock.symbol), 300);
     } catch (error) {
       console.error('Error updating widgets:', error);
     }
+
+    // Navigate to stock detail page
+    navigate(`/stock/${stock.symbol}`);
   };
 
   // Close dropdown if user clicks outside
@@ -264,6 +229,7 @@ StockSearch.propTypes = {
   updateStockChart: PropTypes.func,
   updateSelectedStock: PropTypes.func,
   className: PropTypes.string,
+  onSelect: PropTypes.func,
 };
 
 export default StockSearch;

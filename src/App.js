@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import PropTypes from 'prop-types';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import './App.css';
-import StockSearch from './components/StockSearch';
 import NewsPage from './components/NewsPage';
 import Header from './components/Header';
+import HomePage from './components/HomePage';
+import StockDetailPage from './components/StockDetail/StockDetailPage';
 
 function App() {
   const location = useLocation();
@@ -97,16 +98,10 @@ function App() {
     }
   };
 
-  const fetchStockPrice = (stockSymbol, div = null, stockName = null) => {
-    fetch(
-      `https://api.allorigins.win/get?url=${encodeURIComponent(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${stockSymbol}?region=IN&lang=en-IN&interval=1d&range=1d`,
-      )}`,
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        const stockData = JSON.parse(data.contents);
-        const price = stockData.chart.result[0].meta.regularMarketPrice;
+  const fetchStockPrice = useCallback((stockSymbol, div = null, stockName = null) => {
+    axios.get(`/api/stocks/${stockSymbol}/quote`)
+      .then((response) => {
+        const price = response.data.price;
         if (div && stockName) {
           div.textContent = `${stockName} - ₹${price}`;
         }
@@ -117,7 +112,7 @@ function App() {
           div.textContent = `${stockName} - Price not available`;
         }
       });
-  };
+  }, []);
 
   const updateStockChart = useCallback(async (stockSymbol) => {
     const cleanSymbol = stockSymbol.split('.')[0];
@@ -314,123 +309,13 @@ function App() {
     }
   }, []); // Wrapped in useCallback to stabilize reference
 
-  const HomePage = ({
-    updateSwotWidget,
-    fetchStockPrice,
-    updateStockChart,
-  }) => {
-    // --- Begin: Add logic to auto-load stock from URL param ---
-    const [initialized, setInitialized] = useState(false);
-    const searchSymbol = new URLSearchParams(location.search).get('search');
-
-    useEffect(() => {
-      if (searchSymbol && !initialized) {
-        console.log(`Loading stock from URL parameter: ${searchSymbol}`);
-
-        // Update widgets with proper timing
-        updateSwotWidget(searchSymbol);
-        fetchStockPrice(searchSymbol);
-
-        // Delay updateStockChart to ensure widgets are present in DOM and other widgets load first
-        setTimeout(() => {
-          updateStockChart(searchSymbol);
-        }, 500);
-
-        setInitialized(true);
-      }
-    }, [searchSymbol, initialized, updateSwotWidget, fetchStockPrice, updateStockChart]);
-    // --- End: Add logic to auto-load stock from URL param ---
-
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <main className="flex-1 flex flex-col p-3 sm:p-4 md:p-6 gap-4 md:gap-6">
-          {/* Top Part: StockSearch */}
-          <div className="w-full">
-            <div className="max-w-4xl mx-auto">
-              <StockSearch
-                updateSwotWidget={updateSwotWidget}
-                fetchStockPrice={fetchStockPrice}
-                updateStockChart={updateStockChart}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          {/* Widgets Grid */}
-          <div className="w-full max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-              {/* SWOT Analysis */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg col-span-1">
-                <h2 className="text-lg font-semibold mb-4 text-gray-800">SWOT Analysis</h2>
-                <iframe
-                  className="w-full h-80 md:h-96 rounded-lg shadow-md"
-                  id="swot-widget"
-                  src="https://trendlyne.com/web-widget/swot-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-                  title="SWOT Analysis for LT Foods"
-                  data-theme="light"
-                  frameBorder="0"
-                ></iframe>
-              </div>
-
-              {/* QVT Widget */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg col-span-1">
-                <h2 className="text-lg font-semibold mb-4 text-gray-800">QVT Score</h2>
-                <iframe
-                  className="w-full h-80 md:h-96 rounded-lg shadow-md"
-                  id="qvt-widget"
-                  src="https://trendlyne.com/web-widget/qvt-widget/Poppins/LTFOODS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-                  title="QVT Widget for LT Foods"
-                  data-theme="light"
-                  frameBorder="0"
-                ></iframe>
-              </div>
-
-              {/* Checklist Widget */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg col-span-1 lg:col-span-2 xl:col-span-1">
-                <h2 className="text-lg font-semibold mb-4 text-gray-800">Stock Checklist</h2>
-                <iframe
-                  className="w-full h-80 md:h-96 rounded-lg shadow-md"
-                  id="checklist-widget"
-                  src="https://trendlyne.com/web-widget/checklist-widget/Poppins/TATAMOTORS/?posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E"
-                  title="Checklist Widget for TATA Motors"
-                  data-theme="light"
-                  frameBorder="0"
-                ></iframe>
-              </div>
-            </div>
-          </div>
-
-          {/* TradingView Chart */}
-          <div className="w-full max-w-7xl mx-auto">
-            <div className="bg-white p-4 md:p-6 rounded-xl shadow-lg">
-              <h2 className="text-lg font-semibold mb-4 text-gray-800">Stock Chart</h2>
-              <div
-                id="stock-chart-container"
-                className="w-full h-80 sm:h-96 md:h-[500px] lg:h-[600px] bg-gray-100 rounded-lg shadow-inner overflow-hidden relative"
-                style={{ minHeight: '320px' }}
-              >
-                <div id="stock-chart" className="w-full h-full"></div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  };
-
-  HomePage.propTypes = {
-    updateSwotWidget: PropTypes.func.isRequired,
-    fetchStockPrice: PropTypes.func.isRequired,
-    updateStockChart: PropTypes.func.isRequired,
-  };
-
   useEffect(() => {
     if (location.pathname === '/') {
       fetchStockPrice('LTFOODS', null, 'LT Foods');
       updateStockChart('LTFOODS');
       loadTrendlyneScript();
     }
-  }, [location, updateStockChart]); // Dependencies updated
+  }, [location, updateStockChart, fetchStockPrice]); // Dependencies updated
 
   return (
     <div>
@@ -438,14 +323,9 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={
-            <HomePage
-              updateSwotWidget={updateSwotWidget}
-              fetchStockPrice={fetchStockPrice}
-              updateStockChart={updateStockChart}
-            />
-          }
+          element={<HomePage />}
         />
+        <Route path="/stock/:symbol" element={<StockDetailPage />} />
         <Route path="/news" element={<NewsPage />} />
       </Routes>
     </div>
