@@ -1287,80 +1287,83 @@ class StockService:
         "CAMS.NS", "HAPPSTMNDS.NS",
     ]
 
-    # Yahoo screener field mappings
-    YAHOO_FILTER_MAP = {
-        # Market Cap (value in raw number, 1 Cr = 1e7)
-        "market_cap_large": {"operator": "gt", "operands": ["intradaymarketcap", 1000000000000]},  # >1L Cr
-        "market_cap_mid": [
-            {"operator": "gte", "operands": ["intradaymarketcap", 250000000000]},  # >=25K Cr
-            {"operator": "lt", "operands": ["intradaymarketcap", 1000000000000]},  # <1L Cr
-        ],
-        "market_cap_small": {"operator": "lt", "operands": ["intradaymarketcap", 250000000000]},  # <25K Cr
-        # P/E
-        "pe_<10": {"operator": "lt", "operands": ["peratio.lasttwelvemonths", 10]},
-        "pe_10-20": [
-            {"operator": "gte", "operands": ["peratio.lasttwelvemonths", 10]},
-            {"operator": "lte", "operands": ["peratio.lasttwelvemonths", 20]},
-        ],
-        "pe_20-40": [
-            {"operator": "gte", "operands": ["peratio.lasttwelvemonths", 20]},
-            {"operator": "lte", "operands": ["peratio.lasttwelvemonths", 40]},
-        ],
-        "pe_>40": {"operator": "gt", "operands": ["peratio.lasttwelvemonths", 40]},
-        # P/B
-        "pb_<1": {"operator": "lt", "operands": ["pricebookvalue.quarterly", 1]},
-        "pb_1-3": [
-            {"operator": "gte", "operands": ["pricebookvalue.quarterly", 1]},
-            {"operator": "lte", "operands": ["pricebookvalue.quarterly", 3]},
-        ],
-        "pb_3-5": [
-            {"operator": "gte", "operands": ["pricebookvalue.quarterly", 3]},
-            {"operator": "lte", "operands": ["pricebookvalue.quarterly", 5]},
-        ],
-        "pb_>5": {"operator": "gt", "operands": ["pricebookvalue.quarterly", 5]},
-        # Dividend Yield
-        "div_>1": {"operator": "gt", "operands": ["dividendyield", 1]},
-        "div_>3": {"operator": "gt", "operands": ["dividendyield", 3]},
-        "div_>5": {"operator": "gt", "operands": ["dividendyield", 5]},
-        "div_0": {"operator": "eq", "operands": ["dividendyield", 0]},
-        # PEG
-        "peg_<1": {"operator": "lt", "operands": ["pegratio_5y", 1]},
-        "peg_1-2": [
-            {"operator": "gte", "operands": ["pegratio_5y", 1]},
-            {"operator": "lte", "operands": ["pegratio_5y", 2]},
-        ],
-        "peg_>2": {"operator": "gt", "operands": ["pegratio_5y", 2]},
-        # EV/EBITDA
-        "ev_ebitda_<10": {"operator": "lt", "operands": ["evebitda.lasttwelvemonths", 10]},
-        "ev_ebitda_10-20": [
-            {"operator": "gte", "operands": ["evebitda.lasttwelvemonths", 10]},
-            {"operator": "lte", "operands": ["evebitda.lasttwelvemonths", 20]},
-        ],
-        "ev_ebitda_>20": {"operator": "gt", "operands": ["evebitda.lasttwelvemonths", 20]},
-        # ROE
-        "roe_>10": {"operator": "gt", "operands": ["returnonequity.annual", 0.10]},
-        "roe_>15": {"operator": "gt", "operands": ["returnonequity.annual", 0.15]},
-        "roe_>20": {"operator": "gt", "operands": ["returnonequity.annual", 0.20]},
-        "roe_<0": {"operator": "lt", "operands": ["returnonequity.annual", 0]},
-        # Profit Margin
-        "pm_>20": {"operator": "gt", "operands": ["profitmargin.lasttwelvemonths", 0.20]},
-        "pm_>10": {"operator": "gt", "operands": ["profitmargin.lasttwelvemonths", 0.10]},
-        "pm_>0": {"operator": "gt", "operands": ["profitmargin.lasttwelvemonths", 0]},
-        "pm_<0": {"operator": "lt", "operands": ["profitmargin.lasttwelvemonths", 0]},
-        # Revenue Growth
-        "rg_>20": {"operator": "gt", "operands": ["revenue_growth.annual", 0.20]},
-        "rg_>10": {"operator": "gt", "operands": ["revenue_growth.annual", 0.10]},
-        "rg_>0": {"operator": "gt", "operands": ["revenue_growth.annual", 0]},
-        "rg_<0": {"operator": "lt", "operands": ["revenue_growth.annual", 0]},
-        # Analyst
-        "rec_strong_buy": {"operator": "lte", "operands": ["averageanalystrating", 1.5]},
-        "rec_buy": {"operator": "lte", "operands": ["averageanalystrating", 2.5]},
-        "rec_hold": [
-            {"operator": "gt", "operands": ["averageanalystrating", 2.5]},
-            {"operator": "lte", "operands": ["averageanalystrating", 3.5]},
-        ],
-        "rec_sell": {"operator": "gt", "operands": ["averageanalystrating", 3.5]},
-    }
+    # Yahoo screener field constants
+    _MCAP = "intradaymarketcap"
+    _PE = "peratio.lasttwelvemonths"
+    _PB = "pricebookvalue.quarterly"
+    _DIV = "dividendyield"
+    _PEG = "pegratio_5y"
+    _EVEBITDA = "evebitda.lasttwelvemonths"
+    _ROE = "returnonequity.annual"
+    _PM = "profitmargin.lasttwelvemonths"
+    _RG = "revenue_growth.annual"
+    _ANALYST = "averageanalystrating"
+
+    @classmethod
+    def _yf_filter_map(cls):
+        return {
+            "market_cap_large": {"operator": "gt", "operands": [cls._MCAP, 1000000000000]},
+            "market_cap_mid": [
+                {"operator": "gte", "operands": [cls._MCAP, 250000000000]},
+                {"operator": "lt", "operands": [cls._MCAP, 1000000000000]},
+            ],
+            "market_cap_small": {"operator": "lt", "operands": [cls._MCAP, 250000000000]},
+            "pe_<10": {"operator": "lt", "operands": [cls._PE, 10]},
+            "pe_10-20": [
+                {"operator": "gte", "operands": [cls._PE, 10]},
+                {"operator": "lte", "operands": [cls._PE, 20]},
+            ],
+            "pe_20-40": [
+                {"operator": "gte", "operands": [cls._PE, 20]},
+                {"operator": "lte", "operands": [cls._PE, 40]},
+            ],
+            "pe_>40": {"operator": "gt", "operands": [cls._PE, 40]},
+            "pb_<1": {"operator": "lt", "operands": [cls._PB, 1]},
+            "pb_1-3": [
+                {"operator": "gte", "operands": [cls._PB, 1]},
+                {"operator": "lte", "operands": [cls._PB, 3]},
+            ],
+            "pb_3-5": [
+                {"operator": "gte", "operands": [cls._PB, 3]},
+                {"operator": "lte", "operands": [cls._PB, 5]},
+            ],
+            "pb_>5": {"operator": "gt", "operands": [cls._PB, 5]},
+            "div_>1": {"operator": "gt", "operands": [cls._DIV, 1]},
+            "div_>3": {"operator": "gt", "operands": [cls._DIV, 3]},
+            "div_>5": {"operator": "gt", "operands": [cls._DIV, 5]},
+            "div_0": {"operator": "eq", "operands": [cls._DIV, 0]},
+            "peg_<1": {"operator": "lt", "operands": [cls._PEG, 1]},
+            "peg_1-2": [
+                {"operator": "gte", "operands": [cls._PEG, 1]},
+                {"operator": "lte", "operands": [cls._PEG, 2]},
+            ],
+            "peg_>2": {"operator": "gt", "operands": [cls._PEG, 2]},
+            "ev_ebitda_<10": {"operator": "lt", "operands": [cls._EVEBITDA, 10]},
+            "ev_ebitda_10-20": [
+                {"operator": "gte", "operands": [cls._EVEBITDA, 10]},
+                {"operator": "lte", "operands": [cls._EVEBITDA, 20]},
+            ],
+            "ev_ebitda_>20": {"operator": "gt", "operands": [cls._EVEBITDA, 20]},
+            "roe_>10": {"operator": "gt", "operands": [cls._ROE, 0.10]},
+            "roe_>15": {"operator": "gt", "operands": [cls._ROE, 0.15]},
+            "roe_>20": {"operator": "gt", "operands": [cls._ROE, 0.20]},
+            "roe_<0": {"operator": "lt", "operands": [cls._ROE, 0]},
+            "pm_>20": {"operator": "gt", "operands": [cls._PM, 0.20]},
+            "pm_>10": {"operator": "gt", "operands": [cls._PM, 0.10]},
+            "pm_>0": {"operator": "gt", "operands": [cls._PM, 0]},
+            "pm_<0": {"operator": "lt", "operands": [cls._PM, 0]},
+            "rg_>20": {"operator": "gt", "operands": [cls._RG, 0.20]},
+            "rg_>10": {"operator": "gt", "operands": [cls._RG, 0.10]},
+            "rg_>0": {"operator": "gt", "operands": [cls._RG, 0]},
+            "rg_<0": {"operator": "lt", "operands": [cls._RG, 0]},
+            "rec_strong_buy": {"operator": "lte", "operands": [cls._ANALYST, 1.5]},
+            "rec_buy": {"operator": "lte", "operands": [cls._ANALYST, 2.5]},
+            "rec_hold": [
+                {"operator": "gt", "operands": [cls._ANALYST, 2.5]},
+                {"operator": "lte", "operands": [cls._ANALYST, 3.5]},
+            ],
+            "rec_sell": {"operator": "gt", "operands": [cls._ANALYST, 3.5]},
+        }
 
     async def screener_query(self, params: dict) -> dict:
         """Query Yahoo Finance screener with filters. Searches all 8000+ Indian stocks."""
@@ -1393,14 +1396,14 @@ class StockService:
             val = params.get(param_key)
             if val and val != "all" and val in value_map:
                 yahoo_key = value_map[val]
-                yahoo_filter = self.YAHOO_FILTER_MAP.get(yahoo_key)
+                yahoo_filter = self._yf_filter_map().get(yahoo_key)
                 if yahoo_filter:
                     if isinstance(yahoo_filter, list):
                         user_operands.extend(yahoo_filter)
                     else:
                         user_operands.append(yahoo_filter)
 
-        cache_key = f"screener_{hashlib.md5(str(sorted(params.items())).encode()).hexdigest()}"
+        cache_key = f"screener_{hashlib.sha256(str(sorted(params.items())).encode()).hexdigest()[:16]}"
         cached = cache_manager.get("screener", cache_key)
         if cached is not None:
             return cached

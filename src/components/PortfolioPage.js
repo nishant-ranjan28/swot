@@ -671,7 +671,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
 
   // All unique symbols from portfolio + watchlist
   const portfolioSymbols = [...new Set(holdings.map(h => h.symbol))];
-  const symbolsKey = useMemo(() => portfolioSymbols.slice().sort().join(','), [holdings]); // eslint-disable-line react-hooks/exhaustive-deps
+  const symbolsKey = useMemo(() => portfolioSymbols.slice().sort((a, b) => a.localeCompare(b)).join(','), [holdings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch news for portfolio stocks
   useEffect(() => {
