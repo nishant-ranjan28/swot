@@ -1,5 +1,6 @@
 # backend/routers/stocks.py
 import asyncio
+from typing import Annotated
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
@@ -28,7 +29,7 @@ def _server_error():
 
 @router.get("/search")
 @limiter.limit(SEARCH_RATE_LIMIT)
-async def search_stocks(request: Request, q: str = Query(..., min_length=1, max_length=50)):
+async def search_stocks(request: Request, q: Annotated[str, Query(min_length=1, max_length=50)]):
     results = await stock_service.search(q.strip())
     if results is None:
         return _server_error()
@@ -115,7 +116,7 @@ async def get_financials(symbol: str):
 
 
 @router.get("/{symbol}/history")
-async def get_history(symbol: str, range: str = Query("1y", pattern="^(1d|5d|1mo|3mo|6mo|1y|2y|5y|10y|ytd|max)$")):
+async def get_history(symbol: str, range: Annotated[str, Query(pattern="^(1d|5d|1mo|3mo|6mo|1y|2y|5y|10y|ytd|max)$")] = "1y"):
     resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
     result = await asyncio.to_thread(stock_service.get_history, resolved, range)
     if not result:
