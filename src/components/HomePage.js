@@ -212,6 +212,7 @@ const HomePage = () => {
   const [news, setNews] = useState([]);
   const [loadingNews, setLoadingNews] = useState(true);
   const [activeSector, setActiveSector] = useState('All');
+  const [sentiment, setSentiment] = useState(null);
 
   useEffect(() => {
     api.get('/api/stocks/indices')
@@ -234,6 +235,10 @@ const HomePage = () => {
       .then((res) => setNews((res.data.articles || []).slice(0, 4)))
       .catch((err) => console.error('Failed to load news:', err))
       .finally(() => setLoadingNews(false));
+
+    api.get('/api/stocks/sentiment')
+      .then((res) => setSentiment(res.data))
+      .catch((err) => console.error('Failed to load sentiment:', err));
   }, []);
 
   const filteredStocks = activeSector === 'All'
@@ -275,6 +280,101 @@ const HomePage = () => {
             }
           </div>
         </section>
+
+        {/* Market Sentiment */}
+        {sentiment && (
+          <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">Market Sentiment</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Sentiment Gauge */}
+              <div className="text-center">
+                <div className="relative w-24 h-24 mx-auto">
+                  <svg width="96" height="96" className="-rotate-90">
+                    <circle cx="48" cy="48" r="38" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                    <circle cx="48" cy="48" r="38" fill="none"
+                      stroke={sentiment.score >= 55 ? '#16a34a' : sentiment.score >= 45 ? '#eab308' : '#dc2626'}
+                      strokeWidth="8"
+                      strokeDasharray={`${((Number.isFinite(sentiment.score) ? sentiment.score : 50) / 100) * 2 * Math.PI * 38} ${2 * Math.PI * 38}`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-bold" style={{
+                      color: sentiment.score >= 55 ? '#16a34a' : sentiment.score >= 45 ? '#eab308' : '#dc2626'
+                    }}>{sentiment.score}</span>
+                  </div>
+                </div>
+                <div className={`text-sm font-bold mt-1 ${
+                  sentiment.overall.includes('Bullish') ? 'text-green-600' :
+                  sentiment.overall.includes('Bearish') ? 'text-red-600' : 'text-yellow-600'
+                }`}>{sentiment.overall}</div>
+                <div className="text-[10px] text-gray-400 mt-0.5">Sentiment Score</div>
+              </div>
+
+              {/* India VIX */}
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="text-xs text-gray-500 font-medium">India VIX (Fear Gauge)</div>
+                <div className="text-xl font-bold text-gray-900 mt-1">{sentiment.vix?.value?.toFixed(2)}</div>
+                <div className={`text-xs font-semibold ${sentiment.vix?.change >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {sentiment.vix?.change >= 0 ? '+' : ''}{sentiment.vix?.change?.toFixed(2)}
+                </div>
+                <div className={`text-xs font-medium mt-1 px-2 py-0.5 rounded-full inline-block ${
+                  sentiment.vix?.signal === 'Extreme Fear' ? 'bg-red-100 text-red-700' :
+                  sentiment.vix?.signal === 'Fear' ? 'bg-orange-100 text-orange-700' :
+                  sentiment.vix?.signal === 'Neutral' ? 'bg-yellow-100 text-yellow-700' :
+                  sentiment.vix?.signal === 'Greed' ? 'bg-green-100 text-green-700' :
+                  'bg-green-200 text-green-800'
+                }`}>{sentiment.vix?.signal}</div>
+                <div className="text-[10px] text-gray-400 mt-1">High VIX = High Fear</div>
+              </div>
+
+              {/* NIFTY Trend */}
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="text-xs text-gray-500 font-medium">NIFTY Trend</div>
+                <div className="space-y-1.5 mt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">50 DMA</span>
+                    <span className={`text-xs font-semibold ${sentiment.nifty?.above_50dma ? 'text-green-600' : 'text-red-600'}`}>
+                      {sentiment.nifty?.above_50dma ? 'Above' : 'Below'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">200 DMA</span>
+                    <span className={`text-xs font-semibold ${sentiment.nifty?.above_200dma ? 'text-green-600' : 'text-red-600'}`}>
+                      {sentiment.nifty?.above_200dma ? 'Above' : 'Below'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">From 52W High</span>
+                    <span className="text-xs font-semibold text-red-600">-{sentiment.nifty?.pct_from_52w_high}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">From 52W Low</span>
+                    <span className="text-xs font-semibold text-green-600">+{sentiment.nifty?.pct_from_52w_low}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Market Breadth */}
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="text-xs text-gray-500 font-medium">Market Breadth</div>
+                <div className="mt-2">
+                  <div className="flex h-4 rounded-full overflow-hidden">
+                    <div className="bg-green-500" style={{ width: `${sentiment.breadth?.pct || 50}%` }}></div>
+                    <div className="bg-red-500" style={{ width: `${100 - (sentiment.breadth?.pct || 50)}%` }}></div>
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    <span className="text-xs text-green-600 font-semibold">{sentiment.breadth?.gainers} Advancing</span>
+                    <span className="text-xs text-red-600 font-semibold">{sentiment.breadth?.losers} Declining</span>
+                  </div>
+                </div>
+                <div className="text-[10px] text-gray-400 mt-2">
+                  Based on {sentiment.breadth?.total} tracked stocks
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Top Gainers & Losers + Latest News side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

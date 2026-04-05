@@ -1,8 +1,10 @@
 # backend/services/stock_service.py
 import yfinance as yf
 import httpx
+import hashlib
 import numpy as np
 from datetime import datetime
+from urllib.parse import quote_plus
 from utils.cache import cache_manager
 from config import CACHE_TTL, IST, MARKET_OPEN, MARKET_CLOSE
 
@@ -77,12 +79,47 @@ class StockService:
             results = []
             for q in quotes:
                 symbol = q.get("symbol", "")
+                quote_type = q.get("quoteType", "")
                 if symbol.endswith(".NS") or symbol.endswith(".BO"):
+                    # Prefer longname for MFs (shortname is just the code)
+                    name = q.get("longname") or q.get("shortname") or symbol
                     results.append({
-                        "name": q.get("shortname", q.get("longname", "")),
+                        "name": name,
                         "symbol": symbol,
                         "exchange": q.get("exchange", ""),
-                        "type": q.get("quoteType", ""),
+                        "type": quote_type,
+                    })
+
+            cache_manager.set("search", cache_key, results)
+            return results
+        except Exception:
+            return None
+
+    async def search_mutual_funds(self, query: str) -> list[dict] | None:
+        """Search mutual funds using Yahoo Finance search API."""
+        cache_key = f"mf_{query.lower().strip()}"
+        cached = cache_manager.get("search", cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={quote_plus(query)}&quotesCount=20&newsCount=0"
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
+            }
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, timeout=10.0, headers=headers)
+                data = response.json()
+
+            quotes = data.get("quotes", [])
+            results = []
+            for q in quotes:
+                if q.get("quoteType") == "MUTUALFUND":
+                    results.append({
+                        "name": q.get("longname", q.get("shortname", "")),
+                        "symbol": q.get("symbol", ""),
+                        "exchange": q.get("exchange", ""),
+                        "type": "MUTUALFUND",
                     })
 
             cache_manager.set("search", cache_key, results)
@@ -504,6 +541,113 @@ class StockService:
 
         cache_manager.set("trending", "indices", results, ttl=300)
         return results
+
+    def get_market_sentiment(self) -> dict:
+        """Get market sentiment indicators."""
+        cached = cache_manager.get("trending", "sentiment")
+        if cached is not None:
+            return cached
+
+        try:
+            # India VIX (fear gauge)
+            vix = yf.Ticker("^INDIAVIX")
+            vix_info = vix.info
+            vix_price = vix_info.get("regularMarketPrice", 0)
+            vix_prev = vix_info.get("previousClose", 0)
+            vix_change = round(vix_price - vix_prev, 2) if vix_price and vix_prev else 0
+
+            if vix_price < 13:
+                vix_signal = "Extreme Greed"
+            elif vix_price < 17:
+                vix_signal = "Greed"
+            elif vix_price < 22:
+                vix_signal = "Neutral"
+            elif vix_price < 30:
+                vix_signal = "Fear"
+            else:
+                vix_signal = "Extreme Fear"
+
+            # NIFTY position analysis
+            nifty = yf.Ticker("^NSEI")
+            nifty_info = nifty.info
+            nifty_price = nifty_info.get("regularMarketPrice", 0)
+            nifty_50dma = nifty_info.get("fiftyDayAverage", 0)
+            nifty_200dma = nifty_info.get("twoHundredDayAverage", 0)
+            nifty_52h = nifty_info.get("fiftyTwoWeekHigh", 0)
+            nifty_52l = nifty_info.get("fiftyTwoWeekLow", 0)
+
+            # Trend signals
+            above_50dma = nifty_price > nifty_50dma if nifty_50dma else None
+            above_200dma = nifty_price > nifty_200dma if nifty_200dma else None
+            pct_from_high = round(((nifty_52h - nifty_price) / nifty_52h) * 100, 2) if nifty_52h else 0
+            pct_from_low = round(((nifty_price - nifty_52l) / nifty_52l) * 100, 2) if nifty_52l else 0
+
+            # Analyze trending stocks for breadth
+            trending = self.get_trending_stocks()
+            gainers = sum(1 for s in trending if (s.get("change_percent") or 0) > 0)
+            losers = sum(1 for s in trending if (s.get("change_percent") or 0) < 0)
+            total = len(trending)
+            breadth_pct = round((gainers / total) * 100) if total > 0 else 50
+
+            # Overall sentiment score (0-100, 50=neutral)
+            score = 50
+            if vix_price < 15: score += 15
+            elif vix_price < 20: score += 5
+            elif vix_price > 35: score -= 20
+            elif vix_price > 25: score -= 10
+
+            if above_50dma: score += 10
+            else: score -= 10
+
+            if above_200dma: score += 10
+            else: score -= 10
+
+            if breadth_pct > 60: score += 10
+            elif breadth_pct < 40: score -= 10
+
+            score = max(0, min(100, score))
+
+            if score >= 75:
+                overall = "Bullish"
+            elif score >= 55:
+                overall = "Mildly Bullish"
+            elif score >= 45:
+                overall = "Neutral"
+            elif score >= 25:
+                overall = "Mildly Bearish"
+            else:
+                overall = "Bearish"
+
+            result = {
+                "overall": overall,
+                "score": score,
+                "vix": {
+                    "value": vix_price,
+                    "change": vix_change,
+                    "signal": vix_signal,
+                },
+                "nifty": {
+                    "price": nifty_price,
+                    "50dma": round(nifty_50dma, 2) if nifty_50dma else None,
+                    "200dma": round(nifty_200dma, 2) if nifty_200dma else None,
+                    "above_50dma": above_50dma,
+                    "above_200dma": above_200dma,
+                    "pct_from_52w_high": pct_from_high,
+                    "pct_from_52w_low": pct_from_low,
+                },
+                "breadth": {
+                    "gainers": gainers,
+                    "losers": losers,
+                    "total": total,
+                    "pct": breadth_pct,
+                },
+            }
+
+            cache_manager.set("trending", "sentiment", result, ttl=300)
+            return result
+        except Exception as e:
+            print(f"Sentiment error: {e}")
+            return None
 
     def _parse_news(self, news_items: list) -> list[dict]:
         """Parse yfinance news items into a clean format."""
@@ -1120,6 +1264,478 @@ class StockService:
             "overview": overview,
             "financials": financials,
         }
+
+    # Expanded stock list for screener/scanner
+    SCREENER_STOCKS = POPULAR_STOCKS + [
+        # Large Cap
+        "SUNPHARMA.NS", "BAJAJFINSV.NS", "TITAN.NS", "ASIANPAINT.NS",
+        "ULTRACEMCO.NS", "NESTLEIND.NS", "POWERGRID.NS", "NTPC.NS",
+        "JSWSTEEL.NS", "M&M.NS", "COALINDIA.NS", "ONGC.NS",
+        "GRASIM.NS", "CIPLA.NS", "DRREDDY.NS", "DIVISLAB.NS",
+        "BPCL.NS", "HEROMOTOCO.NS", "EICHERMOT.NS", "TECHM.NS",
+        "APOLLOHOSP.NS", "LTIM.NS", "DABUR.NS", "PIDILITIND.NS",
+        "HAVELLS.NS", "GODREJCP.NS", "INDUSINDBK.NS", "BANKBARODA.NS",
+        "PNB.NS", "IOC.NS",
+        # Mid Cap
+        "TATACOMM.NS", "MPHASIS.NS", "PAGEIND.NS", "COFORGE.NS",
+        "PERSISTENT.NS", "AUROPHARMA.NS", "FEDERALBNK.NS", "IDFCFIRSTB.NS",
+        "CROMPTON.NS", "JUBLFOOD.NS", "VOLTAS.NS", "TRENT.NS",
+        "CANBK.NS", "ABCAPITAL.NS", "MANAPPURAM.NS",
+        # Small Cap
+        "KPITTECH.NS", "DEEPAKNTR.NS", "ROUTE.NS", "CDSL.NS",
+        "IIFL.NS", "GRINDWELL.NS", "FINEORG.NS", "RAJESHEXPO.NS",
+        "CAMS.NS", "HAPPSTMNDS.NS",
+    ]
+
+    # Yahoo screener field constants
+    _MCAP = "intradaymarketcap"
+    _PE = "peratio.lasttwelvemonths"
+    _PB = "pricebookvalue.quarterly"
+    _DIV = "dividendyield"
+    _PEG = "pegratio_5y"
+    _EVEBITDA = "evebitda.lasttwelvemonths"
+    _ROE = "returnonequity.annual"
+    _PM = "profitmargin.lasttwelvemonths"
+    _RG = "revenue_growth.annual"
+    _ANALYST = "averageanalystrating"
+
+    @classmethod
+    def _yf_filter_map(cls):
+        return {
+            "market_cap_large": {"operator": "gt", "operands": [cls._MCAP, 1000000000000]},
+            "market_cap_mid": [
+                {"operator": "gte", "operands": [cls._MCAP, 250000000000]},
+                {"operator": "lt", "operands": [cls._MCAP, 1000000000000]},
+            ],
+            "market_cap_small": {"operator": "lt", "operands": [cls._MCAP, 250000000000]},
+            "pe_<10": {"operator": "lt", "operands": [cls._PE, 10]},
+            "pe_10-20": [
+                {"operator": "gte", "operands": [cls._PE, 10]},
+                {"operator": "lte", "operands": [cls._PE, 20]},
+            ],
+            "pe_20-40": [
+                {"operator": "gte", "operands": [cls._PE, 20]},
+                {"operator": "lte", "operands": [cls._PE, 40]},
+            ],
+            "pe_>40": {"operator": "gt", "operands": [cls._PE, 40]},
+            "pb_<1": {"operator": "lt", "operands": [cls._PB, 1]},
+            "pb_1-3": [
+                {"operator": "gte", "operands": [cls._PB, 1]},
+                {"operator": "lte", "operands": [cls._PB, 3]},
+            ],
+            "pb_3-5": [
+                {"operator": "gte", "operands": [cls._PB, 3]},
+                {"operator": "lte", "operands": [cls._PB, 5]},
+            ],
+            "pb_>5": {"operator": "gt", "operands": [cls._PB, 5]},
+            "div_>1": {"operator": "gt", "operands": [cls._DIV, 1]},
+            "div_>3": {"operator": "gt", "operands": [cls._DIV, 3]},
+            "div_>5": {"operator": "gt", "operands": [cls._DIV, 5]},
+            "div_0": {"operator": "eq", "operands": [cls._DIV, 0]},
+            "peg_<1": {"operator": "lt", "operands": [cls._PEG, 1]},
+            "peg_1-2": [
+                {"operator": "gte", "operands": [cls._PEG, 1]},
+                {"operator": "lte", "operands": [cls._PEG, 2]},
+            ],
+            "peg_>2": {"operator": "gt", "operands": [cls._PEG, 2]},
+            "ev_ebitda_<10": {"operator": "lt", "operands": [cls._EVEBITDA, 10]},
+            "ev_ebitda_10-20": [
+                {"operator": "gte", "operands": [cls._EVEBITDA, 10]},
+                {"operator": "lte", "operands": [cls._EVEBITDA, 20]},
+            ],
+            "ev_ebitda_>20": {"operator": "gt", "operands": [cls._EVEBITDA, 20]},
+            "roe_>10": {"operator": "gt", "operands": [cls._ROE, 0.10]},
+            "roe_>15": {"operator": "gt", "operands": [cls._ROE, 0.15]},
+            "roe_>20": {"operator": "gt", "operands": [cls._ROE, 0.20]},
+            "roe_<0": {"operator": "lt", "operands": [cls._ROE, 0]},
+            "pm_>20": {"operator": "gt", "operands": [cls._PM, 0.20]},
+            "pm_>10": {"operator": "gt", "operands": [cls._PM, 0.10]},
+            "pm_>0": {"operator": "gt", "operands": [cls._PM, 0]},
+            "pm_<0": {"operator": "lt", "operands": [cls._PM, 0]},
+            "rg_>20": {"operator": "gt", "operands": [cls._RG, 0.20]},
+            "rg_>10": {"operator": "gt", "operands": [cls._RG, 0.10]},
+            "rg_>0": {"operator": "gt", "operands": [cls._RG, 0]},
+            "rg_<0": {"operator": "lt", "operands": [cls._RG, 0]},
+            "rec_strong_buy": {"operator": "lte", "operands": [cls._ANALYST, 1.5]},
+            "rec_buy": {"operator": "lte", "operands": [cls._ANALYST, 2.5]},
+            "rec_hold": [
+                {"operator": "gt", "operands": [cls._ANALYST, 2.5]},
+                {"operator": "lte", "operands": [cls._ANALYST, 3.5]},
+            ],
+            "rec_sell": {"operator": "gt", "operands": [cls._ANALYST, 3.5]},
+        }
+
+    async def screener_query(self, params: dict) -> dict:
+        """Query Yahoo Finance screener with filters. Searches all 8000+ Indian stocks."""
+        size = min(int(params.get("size", 50)), 200)
+        sort_field = params.get("sort", "intradaymarketcap")
+        sort_type = params.get("sort_dir", "desc")
+        logic = params.get("logic", "AND").upper()
+        if logic not in ("AND", "OR"):
+            logic = "AND"
+
+        # Build operands from filter params
+        # Region filter always applies (AND)
+        region_filter = {"operator": "eq", "operands": ["region", "in"]}
+        user_operands = []
+
+        filter_keys = {
+            "market_cap_range": {"large": "market_cap_large", "mid": "market_cap_mid", "small": "market_cap_small"},
+            "pe_range": {"<10": "pe_<10", "10-20": "pe_10-20", "20-40": "pe_20-40", ">40": "pe_>40"},
+            "pb_range": {"<1": "pb_<1", "1-3": "pb_1-3", "3-5": "pb_3-5", ">5": "pb_>5"},
+            "div_yield_range": {">1": "div_>1", ">3": "div_>3", ">5": "div_>5", "0": "div_0"},
+            "peg_range": {"<1": "peg_<1", "1-2": "peg_1-2", ">2": "peg_>2"},
+            "ev_ebitda_range": {"<10": "ev_ebitda_<10", "10-20": "ev_ebitda_10-20", ">20": "ev_ebitda_>20"},
+            "roe_range": {">10": "roe_>10", ">15": "roe_>15", ">20": "roe_>20", "<0": "roe_<0"},
+            "profit_margin_range": {">20": "pm_>20", ">10": "pm_>10", ">0": "pm_>0", "<0": "pm_<0"},
+            "rev_growth_range": {">20": "rg_>20", ">10": "rg_>10", ">0": "rg_>0", "<0": "rg_<0"},
+            "recommendation_range": {"strong_buy": "rec_strong_buy", "buy": "rec_buy", "hold": "rec_hold", "sell": "rec_sell"},
+        }
+
+        for param_key, value_map in filter_keys.items():
+            val = params.get(param_key)
+            if val and val != "all" and val in value_map:
+                yahoo_key = value_map[val]
+                yahoo_filter = self._yf_filter_map().get(yahoo_key)
+                if yahoo_filter:
+                    if isinstance(yahoo_filter, list):
+                        user_operands.extend(yahoo_filter)
+                    else:
+                        user_operands.append(yahoo_filter)
+
+        cache_key = f"screener_{hashlib.sha256(str(sorted(params.items())).encode()).hexdigest()[:16]}"
+        cached = cache_manager.get("screener", cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+            async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+                await client.get("https://fc.yahoo.com/curveball?crumb")
+                crumb_resp = await client.get("https://query2.finance.yahoo.com/v1/test/getcrumb")
+                crumb = crumb_resp.text
+
+                url = f"https://query2.finance.yahoo.com/v1/finance/screener?crumb={crumb}"
+                payload = {
+                    "offset": 0, "size": size,
+                    "sortField": sort_field, "sortType": sort_type,
+                    "quoteType": "EQUITY",
+                    "query": {"operator": "AND", "operands": [
+                        region_filter,
+                        *(user_operands if logic == "AND" else
+                          [{"operator": "OR", "operands": user_operands}] if user_operands else [])
+                    ]},
+                }
+                resp = await client.post(url, json=payload, timeout=20.0)
+                data = resp.json()
+
+            result_data = data.get("finance", {}).get("result", [{}])[0]
+            total = result_data.get("total", 0)
+            quotes = result_data.get("quotes", [])
+
+            # Transform Yahoo quotes to our format
+            stocks = []
+            seen = set()
+            for q in quotes:
+                sym = q.get("symbol", "")
+                # Dedupe .NS and .BO for same stock
+                base = sym.replace(".NS", "").replace(".BO", "")
+                if base in seen:
+                    continue
+                seen.add(base)
+
+                price = q.get("regularMarketPrice", 0)
+                prev = q.get("regularMarketPreviousClose", 0)
+                change = round(price - prev, 2) if price and prev else 0
+                change_pct = round((change / prev) * 100, 2) if prev else 0
+
+                stocks.append({
+                    "symbol": sym,
+                    "name": q.get("shortName", q.get("longName", "")),
+                    "sector": q.get("sector", ""),
+                    "industry": q.get("industry", ""),
+                    "price": price,
+                    "change": change,
+                    "change_percent": change_pct,
+                    "market_cap": q.get("marketCap"),
+                    "pe_ratio": q.get("trailingPE"),
+                    "forward_pe": q.get("forwardPE"),
+                    "pb_ratio": q.get("priceToBook"),
+                    "peg_ratio": None,
+                    "ev_ebitda": None,
+                    "dividend_yield": round((q.get("dividendYield", 0) or 0) * 100, 2),
+                    "roe": None,
+                    "roa": None,
+                    "profit_margin": None,
+                    "operating_margin": None,
+                    "gross_margin": None,
+                    "revenue_growth": None,
+                    "earnings_growth": None,
+                    "debt_to_equity": None,
+                    "current_ratio": None,
+                    "beta": None,
+                    "eps": q.get("epsTrailingTwelveMonths"),
+                    "forward_eps": q.get("epsForward"),
+                    "book_value": q.get("bookValue"),
+                    "week52_high": q.get("fiftyTwoWeekHigh"),
+                    "week52_low": q.get("fiftyTwoWeekLow"),
+                    "fifty_day_avg": q.get("fiftyDayAverage"),
+                    "two_hundred_day_avg": q.get("twoHundredDayAverage"),
+                    "volume": q.get("regularMarketVolume"),
+                    "avg_volume": q.get("averageDailyVolume3Month"),
+                    "recommendation": q.get("averageAnalystRating", "").split(" - ")[-1].lower().replace(" ", "_") if q.get("averageAnalystRating") else None,
+                    "target_mean_price": None,
+                })
+
+            result = {"stocks": stocks, "total": total, "showing": len(stocks)}
+            cache_manager.set("screener", cache_key, result, ttl=600)
+            return result
+
+        except Exception as e:
+            print(f"Yahoo screener error: {e}")
+            # Fallback
+            fallback = self.get_screener_data(self.SCREENER_STOCKS[:size])
+            return {"stocks": fallback, "total": len(fallback), "showing": len(fallback)}
+
+    async def get_screener_symbols(self, size: int = 100, sort_field: str = "intradaymarketcap", sort_type: str = "desc") -> list[str]:
+        """Fetch Indian stock symbols from Yahoo Finance screener API."""
+        cache_key = f"screener_symbols_{size}_{sort_field}"
+        cached = cache_manager.get("screener", cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+            async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+                await client.get("https://fc.yahoo.com/curveball?crumb")
+                crumb_resp = await client.get("https://query2.finance.yahoo.com/v1/test/getcrumb")
+                crumb = crumb_resp.text
+
+                url = f"https://query2.finance.yahoo.com/v1/finance/screener?crumb={crumb}"
+                payload = {
+                    "offset": 0, "size": size,
+                    "sortField": sort_field, "sortType": sort_type,
+                    "quoteType": "EQUITY",
+                    "query": {"operator": "AND", "operands": [
+                        {"operator": "eq", "operands": ["region", "in"]},
+                    ]}
+                }
+                resp = await client.post(url, json=payload, timeout=15.0)
+                data = resp.json()
+
+            quotes = data.get("finance", {}).get("result", [{}])[0].get("quotes", [])
+            symbols = [q.get("symbol", "") for q in quotes if q.get("symbol", "").endswith((".NS", ".BO"))]
+            cache_manager.set("screener", cache_key, symbols, ttl=900)
+            return symbols
+        except Exception as e:
+            print(f"Yahoo screener API error: {e}")
+            # Fallback to hardcoded list
+            return self.SCREENER_STOCKS
+
+    def get_screener_data(self, symbols: list[str] = None) -> list[dict]:
+        """Get fundamental data for stocks for screening."""
+        stock_list = symbols or self.SCREENER_STOCKS
+        cache_key = "_".join(sorted(stock_list[:10])) + f"_{len(stock_list)}"
+        cached = cache_manager.get("screener", cache_key)
+        if cached is not None:
+            return cached
+
+        results = []
+        for symbol in stock_list:
+            try:
+                info = self._get_ticker_info(symbol)
+                if not info or not info.get("regularMarketPrice"):
+                    continue
+
+                price = info.get("regularMarketPrice", 0)
+                prev_close = info.get("previousClose", 0)
+                change = round(price - prev_close, 2) if price and prev_close else 0
+                change_pct = round((change / prev_close) * 100, 2) if prev_close else 0
+
+                # Helper for safe percentage conversion
+                def pct(val):
+                    return round(val * 100, 2) if val is not None else None
+
+                results.append({
+                    "symbol": symbol,
+                    "name": info.get("shortName", ""),
+                    "sector": info.get("sector", ""),
+                    "industry": info.get("industry", ""),
+                    "price": price,
+                    "change": change,
+                    "change_percent": change_pct,
+                    # Valuation
+                    "market_cap": info.get("marketCap"),
+                    "pe_ratio": info.get("trailingPE"),
+                    "forward_pe": info.get("forwardPE"),
+                    "pb_ratio": info.get("priceToBook"),
+                    "ps_ratio": info.get("priceToSalesTrailing12Months"),
+                    "peg_ratio": info.get("pegRatio"),
+                    "ev": info.get("enterpriseValue"),
+                    "ev_ebitda": info.get("enterpriseToEbitda"),
+                    "ev_revenue": info.get("enterpriseToRevenue"),
+                    # Profitability
+                    "roe": pct(info.get("returnOnEquity")),
+                    "roa": pct(info.get("returnOnAssets")),
+                    "profit_margin": pct(info.get("profitMargins")),
+                    "operating_margin": pct(info.get("operatingMargins")),
+                    "gross_margin": pct(info.get("grossMargins")),
+                    # Growth
+                    "revenue_growth": pct(info.get("revenueGrowth")),
+                    "earnings_growth": pct(info.get("earningsGrowth")),
+                    "earnings_quarterly_growth": pct(info.get("earningsQuarterlyGrowth")),
+                    # Financial Health
+                    "debt_to_equity": info.get("debtToEquity"),
+                    "current_ratio": info.get("currentRatio"),
+                    "total_debt": info.get("totalDebt"),
+                    "total_cash": info.get("totalCash"),
+                    "cash_per_share": info.get("totalCashPerShare"),
+                    # Dividends (dividendYield is already a percentage in yfinance)
+                    "dividend_yield": round(info.get("dividendYield", 0), 2) if info.get("dividendYield") else 0,
+                    "payout_ratio": pct(info.get("payoutRatio")),
+                    "five_yr_avg_yield": info.get("fiveYearAvgDividendYield"),
+                    # Price & Technical
+                    "week52_high": info.get("fiftyTwoWeekHigh"),
+                    "week52_low": info.get("fiftyTwoWeekLow"),
+                    "week52_change": pct(info.get("52WeekChange")),
+                    "fifty_day_avg": info.get("fiftyDayAverage"),
+                    "two_hundred_day_avg": info.get("twoHundredDayAverage"),
+                    "volume": info.get("volume"),
+                    "avg_volume": info.get("averageVolume"),
+                    "beta": info.get("beta"),
+                    # Per Share
+                    "eps": info.get("trailingEps"),
+                    "forward_eps": info.get("forwardEps"),
+                    "book_value": info.get("bookValue"),
+                    "revenue_per_share": info.get("revenuePerShare"),
+                    # Analyst
+                    "recommendation": info.get("recommendationKey"),
+                    "target_mean_price": info.get("targetMeanPrice"),
+                    "num_analysts": info.get("numberOfAnalystOpinions"),
+                    # Risk
+                    "overall_risk": info.get("overallRisk"),
+                })
+            except Exception:
+                continue
+
+        cache_manager.set("screener", cache_key, results, ttl=900)
+        return results
+
+    def get_52week_scanner(self) -> dict:
+        """Get stocks near 52-week high and low."""
+        cached = cache_manager.get("scanner", "52week")
+        if cached is not None:
+            return cached
+
+        screener_data = self.get_screener_data()
+        near_high = []
+        near_low = []
+
+        for stock in screener_data:
+            price = stock.get("price", 0)
+            high = stock.get("week52_high", 0)
+            low = stock.get("week52_low", 0)
+
+            if not price or not high or not low or high == low:
+                continue
+
+            pct_from_high = round(((high - price) / high) * 100, 2)
+            pct_from_low = round(((price - low) / low) * 100, 2)
+            position = round(((price - low) / (high - low)) * 100, 2)
+
+            entry = {
+                **stock,
+                "pct_from_high": pct_from_high,
+                "pct_from_low": pct_from_low,
+                "position_in_range": position,
+            }
+
+            if pct_from_high <= 5:  # Within 5% of 52W high
+                near_high.append(entry)
+            if pct_from_low <= 10:  # Within 10% of 52W low
+                near_low.append(entry)
+
+        near_high.sort(key=lambda x: x["pct_from_high"])
+        near_low.sort(key=lambda x: x["pct_from_low"])
+
+        result = {"near_high": near_high, "near_low": near_low}
+        cache_manager.set("scanner", "52week", result, ttl=900)
+        return result
+
+    def calculate_sip_returns(self, symbol: str, monthly_amount: float = 5000, years: int = 5) -> dict | None:
+        """Calculate SIP returns for a stock over historical period."""
+        cache_key = f"{symbol}_{monthly_amount}_{years}"
+        cached = cache_manager.get("sip", cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            ticker = yf.Ticker(symbol)
+            period = f"{years}y" if years <= 10 else "max"
+            df = ticker.history(period=period)
+            if df.empty or len(df) < 22:
+                return None
+
+            closes = df["Close"]
+            # Get monthly prices (first trading day of each month)
+            monthly = closes.resample("MS").first().dropna()
+
+            if len(monthly) < 2:
+                return None
+
+            total_invested = 0
+            total_units = 0
+            investments = []
+
+            for date, price in monthly.items():
+                if price <= 0:
+                    continue
+                units = monthly_amount / price
+                total_units += units
+                total_invested += monthly_amount
+
+                current_value = total_units * closes.iloc[-1]
+                investments.append({
+                    "date": date.strftime("%Y-%m-%d"),
+                    "price": round(float(price), 2),
+                    "units": round(units, 4),
+                    "total_units": round(total_units, 4),
+                    "invested": round(total_invested, 2),
+                    "current_value": round(float(current_value), 2),
+                })
+
+            current_value = total_units * closes.iloc[-1]
+            total_return = current_value - total_invested
+            total_return_pct = (total_return / total_invested) * 100 if total_invested > 0 else 0
+
+            # XIRR approximation (annualized return)
+            num_months = len(monthly)
+            num_years = num_months / 12
+            if num_years > 0 and total_invested > 0 and current_value > 0:
+                cagr = (pow(float(current_value / total_invested), 1 / num_years) - 1) * 100
+            else:
+                cagr = 0
+
+            result = {
+                "symbol": symbol,
+                "monthly_amount": monthly_amount,
+                "period_years": years,
+                "total_months": num_months,
+                "total_invested": round(total_invested, 2),
+                "current_value": round(float(current_value), 2),
+                "total_return": round(float(total_return), 2),
+                "total_return_pct": round(total_return_pct, 2),
+                "cagr": round(cagr, 2),
+                "total_units": round(total_units, 4),
+                "current_price": round(float(closes.iloc[-1]), 2),
+                "investments": investments,
+            }
+
+            cache_manager.set("sip", cache_key, result, ttl=3600)
+            return result
+        except Exception as e:
+            print(f"SIP calculation error: {e}")
+            return None
 
 
 # Singleton

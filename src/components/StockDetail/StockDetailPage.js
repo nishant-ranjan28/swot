@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useStockData } from '../../hooks/useStockData';
 import StockSearch from '../StockSearch';
@@ -31,6 +31,11 @@ const StockDetailPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const activeTab = searchParams.get('tab') || 'overview';
+
+  // Scroll to top when navigating to a stock page
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [symbol]);
 
   const { data: summary, loading, error } = useStockData(
     symbol ? `/api/stocks/${symbol}/summary` : null
@@ -121,13 +126,13 @@ const StockDetailPage = () => {
         {summary && (
           <>
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
                 <div className="flex min-w-max border-b border-gray-200">
                   {TABS.map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                      className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none ${
                         activeTab === tab.id
                           ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
