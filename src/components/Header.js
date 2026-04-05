@@ -1,8 +1,13 @@
 // src/components/Header.js
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 function Header() {
+  const location = useLocation();
+  const isActive = (path) =>
+    location.pathname === path ||
+    (path === '/' && location.pathname.startsWith('/stock'));
+
   return (
     <header className="bg-gray-800 text-white p-4 shadow-md sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto">
@@ -10,7 +15,7 @@ function Header() {
           {/* Logo/Brand */}
           <div className="text-xl font-bold">
             <Link to="/" className="hover:text-gray-300 transition-colors">
-              SWOT Analysis
+              StockPulse
             </Link>
           </div>
 
@@ -18,13 +23,13 @@ function Header() {
           <div className="flex gap-4 sm:gap-6">
             <Link
               to="/"
-              className="hover:text-gray-300 transition-colors px-2 py-1 rounded"
+              className={`transition-colors px-2 py-1 rounded ${isActive('/') ? 'text-blue-400' : 'hover:text-gray-300'}`}
             >
               Home
             </Link>
             <Link
               to="/news"
-              className="hover:text-gray-300 transition-colors px-2 py-1 rounded"
+              className={`transition-colors px-2 py-1 rounded ${isActive('/news') ? 'text-blue-400' : 'hover:text-gray-300'}`}
             >
               News
             </Link>

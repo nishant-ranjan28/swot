@@ -23,3 +23,10 @@ yarn-debug.log*
 yarn-error.log*
 
 #.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+backend/.pytest_cache/
