@@ -591,7 +591,7 @@ const ComparisonVerdict = ({ data, symbols }) => {
           <div>
             <div className="text-xs text-green-600 font-semibold uppercase tracking-wide mb-1">Overall Winner</div>
             <div className="text-xl font-bold text-green-800">{winner.name}</div>
-            <div className="text-sm text-green-600 mt-0.5">Won {winner.wins} out of {symbols.length > 2 ? '13' : '13'} metric comparisons</div>
+            <div className="text-sm text-green-600 mt-0.5">Won {winner.wins} out of 13 metric comparisons</div>
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold text-green-800">₹{winner.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
