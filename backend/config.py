@@ -31,6 +31,7 @@ CACHE_MAX_SIZE = {
 # CORS
 CORS_ORIGINS = [
     "http://localhost:3000",
+    "https://swot-analyse.vercel.app",
 ]
 
 # Rate limiting

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import StockSearch from './StockSearch';
 
 const formatNumber = (num) => {
@@ -214,12 +214,12 @@ const HomePage = () => {
   const [activeSector, setActiveSector] = useState('All');
 
   useEffect(() => {
-    axios.get('/api/stocks/indices')
+    api.get('/api/stocks/indices')
       .then((res) => setIndices(res.data.indices || []))
       .catch((err) => console.error('Failed to load indices:', err))
       .finally(() => setLoadingIndices(false));
 
-    axios.get('/api/stocks/trending')
+    api.get('/api/stocks/trending')
       .then((res) => {
         const stocks = res.data.stocks || [];
         setTrendingStocks(stocks);
@@ -230,7 +230,7 @@ const HomePage = () => {
       .catch((err) => console.error('Failed to load trending:', err))
       .finally(() => setLoadingStocks(false));
 
-    axios.get('/api/stocks/news')
+    api.get('/api/stocks/news')
       .then((res) => setNews((res.data.articles || []).slice(0, 4)))
       .catch((err) => console.error('Failed to load news:', err))
       .finally(() => setLoadingNews(false));
