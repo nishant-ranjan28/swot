@@ -1,6 +1,7 @@
 # backend/services/stock_service.py
 import yfinance as yf
 import httpx
+import numpy as np
 from datetime import datetime
 from utils.cache import cache_manager
 from config import CACHE_TTL, IST, MARKET_OPEN, MARKET_CLOSE
@@ -572,6 +573,538 @@ class StockService:
         all_articles.sort(key=lambda x: x.get("published_at", ""), reverse=True)
         cache_manager.set("news", "market", all_articles, ttl=900)
         return all_articles
+
+    def _calc_sma(self, prices, period):
+        """Simple Moving Average."""
+        if len(prices) < period:
+            return None
+        return round(float(np.mean(prices[-period:])), 2)
+
+    def _calc_ema(self, prices, period):
+        """Exponential Moving Average."""
+        if len(prices) < period:
+            return None
+        multiplier = 2 / (period + 1)
+        ema = prices[0]
+        for price in prices[1:]:
+            ema = (price - ema) * multiplier + ema
+        return round(float(ema), 2)
+
+    def _calc_rsi(self, prices, period=14):
+        """Relative Strength Index."""
+        if len(prices) < period + 1:
+            return None
+        deltas = np.diff(prices)
+        gains = np.where(deltas > 0, deltas, 0)
+        losses = np.where(deltas < 0, -deltas, 0)
+        avg_gain = np.mean(gains[:period])
+        avg_loss = np.mean(losses[:period])
+        for i in range(period, len(gains)):
+            avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+            avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+        if avg_loss == 0:
+            return 100.0
+        rs = avg_gain / avg_loss
+        return round(100 - (100 / (1 + rs)), 2)
+
+    def _calc_macd(self, prices):
+        """MACD (12, 26, 9)."""
+        if len(prices) < 26:
+            return None, None, None
+        ema12 = self._calc_ema(prices, 12)
+        ema26 = self._calc_ema(prices, 26)
+        macd_line = round(ema12 - ema26, 2)
+        # Signal line approximation using last 9 MACD values
+        macd_values = []
+        for i in range(max(0, len(prices) - 30), len(prices)):
+            subset = prices[:i + 1]
+            if len(subset) >= 26:
+                e12 = self._calc_ema(subset, 12)
+                e26 = self._calc_ema(subset, 26)
+                macd_values.append(e12 - e26)
+        signal = self._calc_ema(macd_values, 9) if len(macd_values) >= 9 else None
+        histogram = round(macd_line - signal, 2) if signal else None
+        return macd_line, signal, histogram
+
+    def _calc_bollinger(self, prices, period=20):
+        """Bollinger Bands."""
+        if len(prices) < period:
+            return None, None, None
+        sma = np.mean(prices[-period:])
+        std = np.std(prices[-period:])
+        return round(float(sma + 2 * std), 2), round(float(sma), 2), round(float(sma - 2 * std), 2)
+
+    def _calc_atr(self, highs, lows, closes, period=14):
+        """Average True Range."""
+        if len(closes) < period + 1:
+            return None
+        tr_values = []
+        for i in range(1, len(closes)):
+            tr = max(
+                highs[i] - lows[i],
+                abs(highs[i] - closes[i - 1]),
+                abs(lows[i] - closes[i - 1])
+            )
+            tr_values.append(tr)
+        if len(tr_values) < period:
+            return None
+        return round(float(np.mean(tr_values[-period:])), 2)
+
+    def _find_support_resistance(self, prices, window=20):
+        """Find support and resistance levels."""
+        if len(prices) < window * 2:
+            return [], []
+        supports = []
+        resistances = []
+        for i in range(window, len(prices) - window):
+            if prices[i] == min(prices[i - window:i + window + 1]):
+                supports.append(round(float(prices[i]), 2))
+            if prices[i] == max(prices[i - window:i + window + 1]):
+                resistances.append(round(float(prices[i]), 2))
+        # Return closest levels
+        current = prices[-1]
+        supports = sorted(set(s for s in supports if s < current), reverse=True)[:3]
+        resistances = sorted(set(r for r in resistances if r > current))[:3]
+        return supports, resistances
+
+    def get_technical_analysis(self, symbol: str) -> dict | None:
+        """Comprehensive technical analysis with indicators and signals."""
+        cached = cache_manager.get("technical", symbol)
+        if cached is not None:
+            return cached
+
+        try:
+            ticker = yf.Ticker(symbol)
+            df = ticker.history(period="1y")
+            if df.empty or len(df) < 50:
+                return None
+
+            closes = df["Close"].values.tolist()
+            highs = df["High"].values.tolist()
+            lows = df["Low"].values.tolist()
+            current_price = closes[-1]
+
+            # Moving Averages
+            sma_20 = self._calc_sma(closes, 20)
+            sma_50 = self._calc_sma(closes, 50)
+            sma_200 = self._calc_sma(closes, 200)
+            ema_12 = self._calc_ema(closes, 12)
+            ema_26 = self._calc_ema(closes, 26)
+            ema_50 = self._calc_ema(closes, 50)
+
+            # Oscillators
+            rsi = self._calc_rsi(closes)
+            macd_line, macd_signal, macd_histogram = self._calc_macd(closes)
+            bb_upper, bb_middle, bb_lower = self._calc_bollinger(closes)
+            atr = self._calc_atr(highs, lows, closes)
+
+            # Support/Resistance
+            supports, resistances = self._find_support_resistance(closes)
+
+            # Generate signals
+            ma_signals = []
+            ma_buy = 0
+            ma_total = 0
+
+            for label, ma_val in [("SMA 20", sma_20), ("SMA 50", sma_50), ("SMA 200", sma_200),
+                                   ("EMA 12", ema_12), ("EMA 26", ema_26), ("EMA 50", ema_50)]:
+                if ma_val:
+                    signal = "Buy" if current_price > ma_val else "Sell"
+                    ma_signals.append({"name": label, "value": ma_val, "signal": signal})
+                    ma_total += 1
+                    if signal == "Buy":
+                        ma_buy += 1
+
+            osc_signals = []
+            osc_buy = 0
+            osc_total = 0
+
+            # RSI signal
+            if rsi is not None:
+                if rsi < 30:
+                    sig = "Buy"
+                elif rsi > 70:
+                    sig = "Sell"
+                else:
+                    sig = "Neutral"
+                osc_signals.append({"name": "RSI (14)", "value": rsi, "signal": sig})
+                osc_total += 1
+                if sig == "Buy":
+                    osc_buy += 1
+                elif sig == "Neutral":
+                    osc_buy += 0.5
+
+            # MACD signal
+            if macd_histogram is not None:
+                sig = "Buy" if macd_histogram > 0 else "Sell"
+                osc_signals.append({"name": "MACD (12,26,9)", "value": macd_line, "signal": sig})
+                osc_total += 1
+                if sig == "Buy":
+                    osc_buy += 1
+
+            # Bollinger signal
+            if bb_upper and bb_lower:
+                if current_price < bb_lower:
+                    sig = "Buy"
+                elif current_price > bb_upper:
+                    sig = "Sell"
+                else:
+                    sig = "Neutral"
+                osc_signals.append({"name": "Bollinger Bands", "value": f"{bb_lower} - {bb_upper}", "signal": sig})
+                osc_total += 1
+                if sig == "Buy":
+                    osc_buy += 1
+                elif sig == "Neutral":
+                    osc_buy += 0.5
+
+            # Overall signal
+            total_buy = ma_buy + osc_buy
+            total_indicators = ma_total + osc_total
+            buy_pct = (total_buy / total_indicators * 100) if total_indicators > 0 else 50
+
+            if buy_pct >= 70:
+                overall = "Strong Buy"
+            elif buy_pct >= 55:
+                overall = "Buy"
+            elif buy_pct >= 45:
+                overall = "Neutral"
+            elif buy_pct >= 30:
+                overall = "Sell"
+            else:
+                overall = "Strong Sell"
+
+            # Trend analysis
+            trend_short = "Bullish" if current_price > (sma_20 or 0) else "Bearish"
+            trend_medium = "Bullish" if current_price > (sma_50 or 0) else "Bearish"
+            trend_long = "Bullish" if current_price > (sma_200 or 0) else "Bearish"
+
+            # Volatility
+            daily_returns = np.diff(closes) / closes[:-1]
+            volatility = round(float(np.std(daily_returns) * np.sqrt(252) * 100), 2)
+
+            result = {
+                "symbol": symbol,
+                "current_price": round(current_price, 2),
+                "overall_signal": overall,
+                "buy_percentage": round(buy_pct, 1),
+                "moving_averages": {
+                    "signals": ma_signals,
+                    "buy_count": ma_buy,
+                    "sell_count": ma_total - ma_buy,
+                    "summary": "Buy" if ma_buy > ma_total / 2 else "Sell" if ma_buy < ma_total / 2 else "Neutral",
+                },
+                "oscillators": {
+                    "signals": osc_signals,
+                    "rsi": rsi,
+                    "macd": {"line": macd_line, "signal": macd_signal, "histogram": macd_histogram},
+                    "bollinger": {"upper": bb_upper, "middle": bb_middle, "lower": bb_lower},
+                    "summary": "Buy" if osc_buy > osc_total / 2 else "Sell" if osc_buy < osc_total / 2 else "Neutral",
+                },
+                "trend": {
+                    "short_term": trend_short,
+                    "medium_term": trend_medium,
+                    "long_term": trend_long,
+                },
+                "volatility": volatility,
+                "atr": atr,
+                "support_levels": supports,
+                "resistance_levels": resistances,
+            }
+
+            cache_manager.set("technical", symbol, result, ttl=3600)
+            return result
+        except Exception as e:
+            print(f"Technical analysis error: {e}")
+            return None
+
+    def get_fundamental_analysis(self, symbol: str) -> dict | None:
+        """Comprehensive fundamental analysis with scoring."""
+        cached = cache_manager.get("fundamental", symbol)
+        if cached is not None:
+            return cached
+
+        try:
+            info = self._get_ticker_info(symbol)
+            if not info:
+                return None
+
+            ticker = yf.Ticker(symbol)
+
+            # --- Valuation ---
+            pe = info.get("trailingPE")
+            forward_pe = info.get("forwardPE")
+            pb = info.get("priceToBook")
+            peg = info.get("pegRatio")
+            ev_ebitda = info.get("enterpriseToEbitda")
+            ev_revenue = info.get("enterpriseToRevenue")
+
+            valuation_score = 0
+            valuation_max = 0
+            valuation_items = []
+
+            def score_metric(name, value, good_range, ok_range, description):
+                nonlocal valuation_score, valuation_max
+                if value is None:
+                    return
+                valuation_max += 10
+                if good_range[0] <= value <= good_range[1]:
+                    s = 10
+                    verdict = "Attractive"
+                elif ok_range[0] <= value <= ok_range[1]:
+                    s = 6
+                    verdict = "Fair"
+                else:
+                    s = 2
+                    verdict = "Expensive" if value > ok_range[1] else "Very Low"
+                valuation_score += s
+                valuation_items.append({
+                    "name": name, "value": round(value, 2), "score": s,
+                    "max_score": 10, "verdict": verdict, "description": description,
+                })
+
+            score_metric("P/E Ratio", pe, (0, 20), (0, 30),
+                         "Price relative to earnings. Lower suggests better value.")
+            score_metric("Forward P/E", forward_pe, (0, 18), (0, 25),
+                         "Expected P/E based on future earnings estimates.")
+            score_metric("P/B Ratio", pb, (0, 3), (0, 5),
+                         "Price relative to book value. Under 3 is generally good.")
+            score_metric("PEG Ratio", peg, (0, 1), (0, 2),
+                         "P/E adjusted for growth. Under 1 suggests undervaluation.")
+            score_metric("EV/EBITDA", ev_ebitda, (0, 12), (0, 20),
+                         "Enterprise value relative to operating earnings.")
+
+            # --- Profitability ---
+            profit_margin = info.get("profitMargins")
+            operating_margin = info.get("operatingMargins")
+            gross_margin = info.get("grossMargins")
+            roe = info.get("returnOnEquity")
+            roa = info.get("returnOnAssets")
+
+            profitability_score = 0
+            profitability_max = 0
+            profitability_items = []
+
+            def score_profit(name, value, good_thresh, ok_thresh, description):
+                nonlocal profitability_score, profitability_max
+                if value is None:
+                    return
+                profitability_max += 10
+                pct = value * 100
+                if pct >= good_thresh:
+                    s = 10
+                    verdict = "Excellent"
+                elif pct >= ok_thresh:
+                    s = 6
+                    verdict = "Good"
+                elif pct >= 0:
+                    s = 3
+                    verdict = "Weak"
+                else:
+                    s = 1
+                    verdict = "Negative"
+                profitability_score += s
+                profitability_items.append({
+                    "name": name, "value": round(pct, 2), "unit": "%", "score": s,
+                    "max_score": 10, "verdict": verdict, "description": description,
+                })
+
+            score_profit("Profit Margin", profit_margin, 15, 8,
+                         "Net income as % of revenue. Higher means more profitable.")
+            score_profit("Operating Margin", operating_margin, 20, 10,
+                         "Operating income as % of revenue. Measures operational efficiency.")
+            score_profit("Gross Margin", gross_margin, 40, 25,
+                         "Revenue minus cost of goods. Higher means better pricing power.")
+            score_profit("Return on Equity", roe, 15, 10,
+                         "Profit generated per rupee of shareholder equity.")
+            score_profit("Return on Assets", roa, 8, 4,
+                         "How efficiently assets generate profit.")
+
+            # --- Growth ---
+            revenue_growth = info.get("revenueGrowth")
+            earnings_growth = info.get("earningsGrowth")
+
+            growth_score = 0
+            growth_max = 0
+            growth_items = []
+
+            def score_growth(name, value, good_thresh, ok_thresh, description):
+                nonlocal growth_score, growth_max
+                if value is None:
+                    return
+                growth_max += 10
+                pct = value * 100
+                if pct >= good_thresh:
+                    s = 10
+                    verdict = "Strong"
+                elif pct >= ok_thresh:
+                    s = 6
+                    verdict = "Moderate"
+                elif pct >= 0:
+                    s = 3
+                    verdict = "Slow"
+                else:
+                    s = 1
+                    verdict = "Declining"
+                growth_score += s
+                growth_items.append({
+                    "name": name, "value": round(pct, 2), "unit": "%", "score": s,
+                    "max_score": 10, "verdict": verdict, "description": description,
+                })
+
+            score_growth("Revenue Growth", revenue_growth, 15, 5,
+                         "Year-over-year revenue increase. Shows business expansion.")
+            score_growth("Earnings Growth", earnings_growth, 15, 5,
+                         "Year-over-year earnings increase. Shows profitability trend.")
+
+            # --- Financial Health ---
+            debt_equity = info.get("debtToEquity")
+            current_ratio = info.get("currentRatio")
+            quick_ratio = info.get("quickRatio")
+
+            health_score = 0
+            health_max = 0
+            health_items = []
+
+            if debt_equity is not None:
+                health_max += 10
+                de = debt_equity / 100 if debt_equity > 10 else debt_equity  # normalize
+                if de < 0.5:
+                    s, v = 10, "Low Debt"
+                elif de < 1:
+                    s, v = 7, "Moderate"
+                elif de < 2:
+                    s, v = 4, "High"
+                else:
+                    s, v = 1, "Very High"
+                health_score += s
+                health_items.append({
+                    "name": "Debt/Equity", "value": round(de, 2), "score": s,
+                    "max_score": 10, "verdict": v,
+                    "description": "Total debt relative to equity. Lower is safer.",
+                })
+
+            if current_ratio is not None:
+                health_max += 10
+                if current_ratio >= 2:
+                    s, v = 10, "Strong"
+                elif current_ratio >= 1.5:
+                    s, v = 7, "Good"
+                elif current_ratio >= 1:
+                    s, v = 4, "Adequate"
+                else:
+                    s, v = 1, "Weak"
+                health_score += s
+                health_items.append({
+                    "name": "Current Ratio", "value": round(current_ratio, 2), "score": s,
+                    "max_score": 10, "verdict": v,
+                    "description": "Ability to pay short-term obligations. Above 1.5 is healthy.",
+                })
+
+            if quick_ratio is not None:
+                health_max += 10
+                if quick_ratio >= 1.5:
+                    s, v = 10, "Strong"
+                elif quick_ratio >= 1:
+                    s, v = 7, "Good"
+                elif quick_ratio >= 0.5:
+                    s, v = 4, "Adequate"
+                else:
+                    s, v = 1, "Weak"
+                health_score += s
+                health_items.append({
+                    "name": "Quick Ratio", "value": round(quick_ratio, 2), "score": s,
+                    "max_score": 10, "verdict": v,
+                    "description": "Like current ratio but excludes inventory. Stricter test.",
+                })
+
+            # --- Dividend ---
+            div_yield = info.get("dividendYield")
+            payout = info.get("payoutRatio")
+
+            dividend_items = []
+            dividend_score = 0
+            dividend_max = 0
+
+            if div_yield is not None:
+                dividend_max += 10
+                dy = div_yield * 100
+                if dy >= 3:
+                    s, v = 10, "High Yield"
+                elif dy >= 1:
+                    s, v = 6, "Moderate"
+                elif dy > 0:
+                    s, v = 3, "Low"
+                else:
+                    s, v = 1, "None"
+                dividend_score += s
+                dividend_items.append({
+                    "name": "Dividend Yield", "value": round(dy, 2), "unit": "%",
+                    "score": s, "max_score": 10, "verdict": v,
+                    "description": "Annual dividend as % of stock price.",
+                })
+
+            if payout is not None and payout > 0:
+                dividend_max += 10
+                po = payout * 100
+                if 20 <= po <= 60:
+                    s, v = 10, "Sustainable"
+                elif po < 20:
+                    s, v = 5, "Conservative"
+                elif po <= 80:
+                    s, v = 4, "High"
+                else:
+                    s, v = 1, "Unsustainable"
+                dividend_score += s
+                dividend_items.append({
+                    "name": "Payout Ratio", "value": round(po, 2), "unit": "%",
+                    "score": s, "max_score": 10, "verdict": v,
+                    "description": "% of earnings paid as dividends. 20-60% is ideal.",
+                })
+
+            # Overall Score
+            total_score = valuation_score + profitability_score + growth_score + health_score + dividend_score
+            total_max = valuation_max + profitability_max + growth_max + health_max + dividend_max
+            overall_pct = round((total_score / total_max * 100), 1) if total_max > 0 else 0
+
+            if overall_pct >= 75:
+                overall_verdict = "Strong"
+            elif overall_pct >= 60:
+                overall_verdict = "Good"
+            elif overall_pct >= 45:
+                overall_verdict = "Average"
+            elif overall_pct >= 30:
+                overall_verdict = "Weak"
+            else:
+                overall_verdict = "Poor"
+
+            result = {
+                "symbol": symbol,
+                "overall_score": total_score,
+                "overall_max": total_max,
+                "overall_percentage": overall_pct,
+                "overall_verdict": overall_verdict,
+                "valuation": {
+                    "score": valuation_score, "max": valuation_max, "items": valuation_items,
+                },
+                "profitability": {
+                    "score": profitability_score, "max": profitability_max, "items": profitability_items,
+                },
+                "growth": {
+                    "score": growth_score, "max": growth_max, "items": growth_items,
+                },
+                "financial_health": {
+                    "score": health_score, "max": health_max, "items": health_items,
+                },
+                "dividend": {
+                    "score": dividend_score, "max": dividend_max, "items": dividend_items,
+                },
+            }
+
+            cache_manager.set("fundamental", symbol, result, ttl=86400)
+            return result
+        except Exception as e:
+            print(f"Fundamental analysis error: {e}")
+            return None
 
     def get_summary(self, symbol: str) -> dict | None:
         """Composite: quote + overview + financials in one call (reuses cached ticker.info)."""

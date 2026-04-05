@@ -60,6 +60,24 @@ async def get_stock_news(symbol: str):
     return {"articles": articles}
 
 
+@router.get("/{symbol}/technical")
+async def get_technical(symbol: str):
+    resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
+    result = await asyncio.to_thread(stock_service.get_technical_analysis, resolved)
+    if not result:
+        return _not_found(symbol)
+    return result
+
+
+@router.get("/{symbol}/fundamental")
+async def get_fundamental(symbol: str):
+    resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
+    result = await asyncio.to_thread(stock_service.get_fundamental_analysis, resolved)
+    if not result:
+        return _not_found(symbol)
+    return result
+
+
 @router.get("/{symbol}/quote")
 async def get_quote(symbol: str):
     resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)

@@ -9,9 +9,15 @@ import AnalystsTab from './AnalystsTab';
 import HoldersTab from './HoldersTab';
 import EarningsTab from './EarningsTab';
 import SwotTab from './SwotTab';
+import ChartTab from './ChartTab';
+import TechnicalTab from './TechnicalTab';
+import FundamentalTab from './FundamentalTab';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
+  { id: 'chart', label: 'Chart' },
+  { id: 'technical', label: 'Technical' },
+  { id: 'fundamental', label: 'Fundamental' },
   { id: 'financials', label: 'Financials' },
   { id: 'dividends', label: 'Dividends' },
   { id: 'analysts', label: 'Analysts' },
@@ -46,6 +52,12 @@ const StockDetailPage = () => {
     switch (activeTab) {
       case 'overview':
         return <OverviewTab symbol={symbol} overview={summary?.overview} />;
+      case 'chart':
+        return <ChartTab symbol={symbol} />;
+      case 'technical':
+        return <TechnicalTab symbol={symbol} />;
+      case 'fundamental':
+        return <FundamentalTab symbol={symbol} />;
       case 'financials':
         return <FinancialsTab symbol={symbol} />;
       case 'dividends':
