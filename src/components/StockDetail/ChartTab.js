@@ -28,7 +28,7 @@ const StockChart = ({ data, range }) => {
   const [tooltip, setTooltip] = useState(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  const padding = { top: 20, right: 60, bottom: 40, left: 10 };
+  const PADDING = React.useMemo(() => ({ top: 20, right: 60, bottom: 40, left: 10 }), []);
   const chartHeight = 320;
   const volumeHeight = 60;
 
@@ -37,14 +37,14 @@ const StockChart = ({ data, range }) => {
       if (containerRef.current) {
         setDimensions({
           width: containerRef.current.offsetWidth,
-          height: chartHeight + volumeHeight + padding.top + padding.bottom,
+          height: chartHeight + volumeHeight + PADDING.top + PADDING.bottom,
         });
       }
     };
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
-  }, []);
+  }, [PADDING]);
 
   const drawChart = useCallback(() => {
     const canvas = canvasRef.current;
@@ -67,13 +67,12 @@ const StockChart = ({ data, range }) => {
     const maxPrice = Math.max(...closes) * 1.005;
     const maxVolume = Math.max(...volumes);
 
-    const chartW = w - padding.left - padding.right;
+    const chartW = w - PADDING.left - PADDING.right;
     const priceH = chartHeight;
-    const volTop = padding.top + priceH + 10;
+    const volTop = PADDING.top + priceH + 10;
 
-    const xScale = (i) => padding.left + (i / (data.length - 1)) * chartW;
-    const yScale = (price) => padding.top + priceH - ((price - minPrice) / (maxPrice - minPrice)) * priceH;
-    const volScale = (vol) => volTop + volumeHeight - (vol / maxVolume) * volumeHeight;
+    const xScale = (i) => PADDING.left + (i / (data.length - 1)) * chartW;
+    const yScale = (price) => PADDING.top + priceH - ((price - minPrice) / (maxPrice - minPrice)) * priceH;
 
     const isPositive = closes[closes.length - 1] >= closes[0];
     const lineColor = isPositive ? '#16a34a' : '#dc2626';
@@ -84,10 +83,10 @@ const StockChart = ({ data, range }) => {
     ctx.lineWidth = 1;
     const priceSteps = 5;
     for (let i = 0; i <= priceSteps; i++) {
-      const y = padding.top + (priceH / priceSteps) * i;
+      const y = PADDING.top + (priceH / priceSteps) * i;
       ctx.beginPath();
-      ctx.moveTo(padding.left, y);
-      ctx.lineTo(w - padding.right, y);
+      ctx.moveTo(PADDING.left, y);
+      ctx.lineTo(w - PADDING.right, y);
       ctx.stroke();
 
       // Price labels
@@ -117,8 +116,8 @@ const StockChart = ({ data, range }) => {
     for (let i = 1; i < data.length; i++) {
       ctx.lineTo(xScale(i), yScale(closes[i]));
     }
-    ctx.lineTo(xScale(data.length - 1), padding.top + priceH);
-    ctx.lineTo(xScale(0), padding.top + priceH);
+    ctx.lineTo(xScale(data.length - 1), PADDING.top + priceH);
+    ctx.lineTo(xScale(0), PADDING.top + priceH);
     ctx.closePath();
     ctx.fillStyle = fillColor;
     ctx.fill();
@@ -142,7 +141,7 @@ const StockChart = ({ data, range }) => {
       ctx.fillStyle = barColor;
       ctx.fillRect(x, volTop + volumeHeight - barH, barWidth, barH);
     }
-  }, [data, dimensions]);
+  }, [data, dimensions, PADDING]);
 
   useEffect(() => {
     drawChart();
@@ -152,8 +151,8 @@ const StockChart = ({ data, range }) => {
     if (!data || data.length === 0 || dimensions.width === 0) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
-    const chartW = dimensions.width - padding.left - padding.right;
-    const idx = Math.round(((mouseX - padding.left) / chartW) * (data.length - 1));
+    const chartW = dimensions.width - PADDING.left - PADDING.right;
+    const idx = Math.round(((mouseX - PADDING.left) / chartW) * (data.length - 1));
     if (idx >= 0 && idx < data.length) {
       const point = data[idx];
       const change = point.close - data[0].close;
