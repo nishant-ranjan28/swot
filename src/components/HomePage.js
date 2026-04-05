@@ -294,7 +294,7 @@ const HomePage = () => {
                     <circle cx="48" cy="48" r="38" fill="none"
                       stroke={sentiment.score >= 55 ? '#16a34a' : sentiment.score >= 45 ? '#eab308' : '#dc2626'}
                       strokeWidth="8"
-                      strokeDasharray={`${(sentiment.score / 100) * 2 * Math.PI * 38} ${2 * Math.PI * 38}`}
+                      strokeDasharray={`${((Number.isFinite(sentiment.score) ? sentiment.score : 50) / 100) * 2 * Math.PI * 38} ${2 * Math.PI * 38}`}
                       strokeLinecap="round"
                     />
                   </svg>

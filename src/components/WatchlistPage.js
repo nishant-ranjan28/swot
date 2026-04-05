@@ -109,7 +109,7 @@ const WatchlistPage = () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await api.get(`/api/stocks/search?q=${searchInput}`);
+        const res = await api.get(`/api/stocks/search?q=${encodeURIComponent(searchInput)}`);
         setSearchResults((res.data.results || []).slice(0, 6));
         setShowDropdown(true);
       } catch {
@@ -269,26 +269,27 @@ const WatchlistPage = () => {
                 {searchResults.map((stock) => {
                   const exists = alreadyInWatchlist(stock.symbol);
                   return (
-                    <button
-                      key={stock.symbol}
-                      disabled={exists}
-                      className={`p-3 flex justify-between items-center w-full text-left border-b border-gray-100 last:border-b-0 transition-colors focus:outline-none ${
-                        exists ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:bg-gray-50'
-                      }`}
-                      onClick={() => !exists && addToWatchlist(stock)}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                        <span className="font-medium text-gray-900 text-sm">{stock.name}</span>
-                        <span className="text-xs text-gray-500">({stock.symbol})</span>
-                      </div>
-                      {exists ? (
-                        <span className="text-xs text-gray-400 font-medium ml-2">Added</span>
-                      ) : (
-                        <svg className="w-5 h-5 text-blue-500 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                      )}
-                    </button>
+                    <li key={stock.symbol} className="list-none">
+                      <button
+                        disabled={exists}
+                        className={`p-3 flex justify-between items-center w-full text-left border-b border-gray-100 last:border-b-0 transition-colors focus:outline-none ${
+                          exists ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:bg-gray-50'
+                        }`}
+                        onClick={() => !exists && addToWatchlist(stock)}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                          <span className="font-medium text-gray-900 text-sm">{stock.name}</span>
+                          <span className="text-xs text-gray-500">({stock.symbol})</span>
+                        </div>
+                        {exists ? (
+                          <span className="text-xs text-gray-400 font-medium ml-2">Added</span>
+                        ) : (
+                          <svg className="w-5 h-5 text-blue-500 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                          </svg>
+                        )}
+                      </button>
+                    </li>
                   );
                 })}
               </ul>

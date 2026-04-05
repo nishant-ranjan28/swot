@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -671,6 +671,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
 
   // All unique symbols from portfolio + watchlist
   const portfolioSymbols = [...new Set(holdings.map(h => h.symbol))];
+  const symbolsKey = useMemo(() => portfolioSymbols.slice().sort().join(','), [holdings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch news for portfolio stocks
   useEffect(() => {
@@ -703,7 +704,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
       setLoadingNews(false);
     };
     fetchNews();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [symbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch analyst data for portfolio stocks
   useEffect(() => {
@@ -721,7 +722,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
       setLoadingAnalysts(false);
     };
     fetchAnalysts();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [symbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Price alerts from watchlist
   const alertsTriggered = (watchlist || []).filter(w => {

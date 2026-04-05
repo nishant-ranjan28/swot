@@ -1,8 +1,10 @@
 # backend/services/stock_service.py
 import yfinance as yf
 import httpx
+import hashlib
 import numpy as np
 from datetime import datetime
+from urllib.parse import quote_plus
 from utils.cache import cache_manager
 from config import CACHE_TTL, IST, MARKET_OPEN, MARKET_CLOSE
 
@@ -101,7 +103,7 @@ class StockService:
             return cached
 
         try:
-            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={query}&quotesCount=20&newsCount=0"
+            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={quote_plus(query)}&quotesCount=20&newsCount=0"
             headers = {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
             }
@@ -591,8 +593,8 @@ class StockService:
             score = 50
             if vix_price < 15: score += 15
             elif vix_price < 20: score += 5
-            elif vix_price > 25: score -= 10
             elif vix_price > 35: score -= 20
+            elif vix_price > 25: score -= 10
 
             if above_50dma: score += 10
             else: score -= 10
@@ -1398,7 +1400,7 @@ class StockService:
                     else:
                         user_operands.append(yahoo_filter)
 
-        cache_key = f"screener_{hash(str(sorted(params.items())))}"
+        cache_key = f"screener_{hashlib.md5(str(sorted(params.items())).encode()).hexdigest()}"
         cached = cache_manager.get("screener", cache_key)
         if cached is not None:
             return cached
@@ -1458,7 +1460,7 @@ class StockService:
                     "pb_ratio": q.get("priceToBook"),
                     "peg_ratio": None,
                     "ev_ebitda": None,
-                    "dividend_yield": q.get("dividendYield", 0) or 0,
+                    "dividend_yield": round((q.get("dividendYield", 0) or 0) * 100, 2),
                     "roe": None,
                     "roa": None,
                     "profit_margin": None,

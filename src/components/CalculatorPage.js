@@ -157,6 +157,12 @@ const SearchInput = ({ label, value, onChange, onSelect, placeholder, searchEndp
   useEffect(() => { setQuery(value || ''); }, [value]);
 
   useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false);
     };

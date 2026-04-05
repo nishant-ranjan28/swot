@@ -10,11 +10,29 @@ function getNotified() {
   } catch { return {}; }
 }
 
+function pruneOldNotified(notified) {
+  const now = Date.now();
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  const pruned = {};
+  for (const [key, value] of Object.entries(notified)) {
+    // Keys contain a date string as the last segment after the second underscore
+    // Format: symbol_type_DateString
+    const parts = key.split('_');
+    const dateStr = parts.slice(2).join('_');
+    const entryTime = new Date(dateStr).getTime();
+    if (!isNaN(entryTime) && now - entryTime < sevenDays) {
+      pruned[key] = value;
+    }
+  }
+  return pruned;
+}
+
 function markNotified(symbol, type) {
   const notified = getNotified();
   const today = new Date().toDateString();
   notified[`${symbol}_${type}_${today}`] = true;
-  localStorage.setItem(NOTIFIED_KEY, JSON.stringify(notified));
+  const pruned = pruneOldNotified(notified);
+  localStorage.setItem(NOTIFIED_KEY, JSON.stringify(pruned));
 }
 
 function wasNotified(symbol, type) {
@@ -92,19 +110,19 @@ export function useAlertNotifications() {
   }, []);
 
   useEffect(() => {
-    const init = async () => {
-      const granted = await requestPermission();
-      if (!granted) return;
+    if (!('Notification' in window)) return;
+
+    // Only start checking if permission is already granted.
+    // Don't prompt the user on mount — let them trigger from the watchlist page.
+    if (Notification.permission === 'granted') {
       checkAlerts();
       intervalRef.current = setInterval(checkAlerts, CHECK_INTERVAL);
-    };
-
-    init();
+    }
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [checkAlerts, requestPermission]);
+  }, [checkAlerts]);
 
   return { checkAlerts, requestPermission };
 }

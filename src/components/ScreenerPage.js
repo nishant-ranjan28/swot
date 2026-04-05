@@ -233,7 +233,7 @@ const ScreenerPage = () => {
             <div className="text-[10px] text-gray-400">{stock.symbol}</div>
           </Link>
         );
-      case 'price': return <span className="font-medium">₹{val?.toFixed(2)}</span>;
+      case 'price': return val != null ? <span className="font-medium">₹{val.toFixed(2)}</span> : <span>-</span>;
       case 'change_percent':
         return <span className={`font-semibold ${val >= 0 ? 'text-green-600' : 'text-red-600'}`}>{val >= 0 ? '+' : ''}{val?.toFixed(2)}%</span>;
       case 'market_cap': return formatNumber(val);
