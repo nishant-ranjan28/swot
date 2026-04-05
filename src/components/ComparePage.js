@@ -559,7 +559,6 @@ const ComparisonVerdict = ({ data, symbols }) => {
   const winner = ranked[0];
   const categories = ['valuation', 'profitability', 'growth', 'health', 'momentum'];
   const catLabels = { valuation: 'Valuation', profitability: 'Profitability', growth: 'Growth', health: 'Financial Health', momentum: 'Momentum' };
-  const catColors = { valuation: 'blue', profitability: 'green', growth: 'purple', health: 'amber', momentum: 'cyan' };
 
   // Generate insights
   const insights = [];

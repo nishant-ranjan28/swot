@@ -4,47 +4,47 @@ import api from '../api';
 const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
 const NOTIFIED_KEY = 'stockpulse_notified_alerts';
 
+function getNotified() {
+  try {
+    return JSON.parse(localStorage.getItem(NOTIFIED_KEY) || '{}');
+  } catch { return {}; }
+}
+
+function markNotified(symbol, type) {
+  const notified = getNotified();
+  const today = new Date().toDateString();
+  notified[`${symbol}_${type}_${today}`] = true;
+  localStorage.setItem(NOTIFIED_KEY, JSON.stringify(notified));
+}
+
+function wasNotified(symbol, type) {
+  const notified = getNotified();
+  const today = new Date().toDateString();
+  return !!notified[`${symbol}_${type}_${today}`];
+}
+
+function sendNotification(title, body, symbol) {
+  if (Notification.permission !== 'granted') return;
+  try {
+    const notification = new Notification(title, {
+      body,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: `alert_${symbol}`,
+      requireInteraction: true,
+    });
+    notification.onclick = () => {
+      window.focus();
+      window.location.href = `/stock/${symbol}`;
+      notification.close();
+    };
+  } catch (e) {
+    console.error('Notification error:', e);
+  }
+}
+
 export function useAlertNotifications() {
   const intervalRef = useRef(null);
-
-  const getNotified = () => {
-    try {
-      return JSON.parse(localStorage.getItem(NOTIFIED_KEY) || '{}');
-    } catch { return {}; }
-  };
-
-  const markNotified = (symbol, type) => {
-    const notified = getNotified();
-    const today = new Date().toDateString();
-    notified[`${symbol}_${type}_${today}`] = true;
-    localStorage.setItem(NOTIFIED_KEY, JSON.stringify(notified));
-  };
-
-  const wasNotified = (symbol, type) => {
-    const notified = getNotified();
-    const today = new Date().toDateString();
-    return !!notified[`${symbol}_${type}_${today}`];
-  };
-
-  const sendNotification = (title, body, symbol) => {
-    if (Notification.permission !== 'granted') return;
-    try {
-      const notification = new Notification(title, {
-        body,
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: `alert_${symbol}`,
-        requireInteraction: true,
-      });
-      notification.onclick = () => {
-        window.focus();
-        window.location.href = `/stock/${symbol}`;
-        notification.close();
-      };
-    } catch (e) {
-      console.error('Notification error:', e);
-    }
-  };
 
   const checkAlerts = useCallback(async () => {
     const watchlistRaw = localStorage.getItem('stockpulse_watchlist');
@@ -91,16 +91,11 @@ export function useAlertNotifications() {
     return result === 'granted';
   }, []);
 
-  // Start checking on mount
   useEffect(() => {
     const init = async () => {
       const granted = await requestPermission();
       if (!granted) return;
-
-      // Check immediately
       checkAlerts();
-
-      // Then check periodically
       intervalRef.current = setInterval(checkAlerts, CHECK_INTERVAL);
     };
 
