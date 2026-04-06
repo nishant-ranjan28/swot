@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useStockData } from '../../hooks/useStockData';
+import { useMarket } from '../../context/MarketContext';
 import TabSkeleton from './TabSkeleton';
 
 const RANGES = [
@@ -13,7 +14,7 @@ const RANGES = [
   { label: 'Max', value: 'max' },
 ];
 
-const formatPrice = (price) => `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatPrice = (price, currency = '₹') => `${currency}${price.toLocaleString(currency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const formatVolume = (vol) => {
   if (vol >= 1e7) return `${(vol / 1e7).toFixed(1)}Cr`;
@@ -22,7 +23,7 @@ const formatVolume = (vol) => {
   return vol.toString();
 };
 
-const StockChart = ({ data, range }) => {
+const StockChart = ({ data, range, currency = '₹' }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
@@ -94,7 +95,7 @@ const StockChart = ({ data, range }) => {
       ctx.fillStyle = '#9ca3af';
       ctx.font = '11px system-ui';
       ctx.textAlign = 'right';
-      ctx.fillText(formatPrice(price), w - 5, y + 4);
+      ctx.fillText(formatPrice(price, currency), w - 5, y + 4);
     }
 
     // Date labels
@@ -141,7 +142,7 @@ const StockChart = ({ data, range }) => {
       ctx.fillStyle = barColor;
       ctx.fillRect(x, volTop + volumeHeight - barH, barWidth, barH);
     }
-  }, [data, dimensions, PADDING]);
+  }, [data, dimensions, PADDING, currency]);
 
   useEffect(() => {
     drawChart();
@@ -190,14 +191,14 @@ const StockChart = ({ data, range }) => {
         >
           <div className="font-semibold mb-1">{tooltip.date}</div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-            <span className="text-gray-400">Open</span><span>{formatPrice(tooltip.open)}</span>
-            <span className="text-gray-400">High</span><span>{formatPrice(tooltip.high)}</span>
-            <span className="text-gray-400">Low</span><span>{formatPrice(tooltip.low)}</span>
-            <span className="text-gray-400">Close</span><span className="font-semibold">{formatPrice(tooltip.close)}</span>
+            <span className="text-gray-400">Open</span><span>{formatPrice(tooltip.open, currency)}</span>
+            <span className="text-gray-400">High</span><span>{formatPrice(tooltip.high, currency)}</span>
+            <span className="text-gray-400">Low</span><span>{formatPrice(tooltip.low, currency)}</span>
+            <span className="text-gray-400">Close</span><span className="font-semibold">{formatPrice(tooltip.close, currency)}</span>
             <span className="text-gray-400">Volume</span><span>{formatVolume(tooltip.volume)}</span>
           </div>
           <div className={`mt-1 pt-1 border-t border-gray-700 font-semibold ${tooltip.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {tooltip.change >= 0 ? '+' : ''}{formatPrice(tooltip.change)} ({tooltip.changePct >= 0 ? '+' : ''}{tooltip.changePct.toFixed(2)}%)
+            {tooltip.change >= 0 ? '+' : ''}{formatPrice(tooltip.change, currency)} ({tooltip.changePct >= 0 ? '+' : ''}{tooltip.changePct.toFixed(2)}%)
           </div>
         </div>
       )}
@@ -207,6 +208,7 @@ const StockChart = ({ data, range }) => {
 
 const ChartTab = ({ symbol }) => {
   const [range, setRange] = useState('1y');
+  const { currency } = useMarket();
   const { data, loading, error, refetch } = useStockData(`/api/stocks/${symbol}/history?range=${range}`);
 
   const historyData = data?.data || [];
@@ -250,11 +252,11 @@ const ChartTab = ({ symbol }) => {
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <div className="text-xs text-gray-500">Period High</div>
-            <div className="text-sm font-bold text-gray-900">{formatPrice(highest)}</div>
+            <div className="text-sm font-bold text-gray-900">{formatPrice(highest, currency)}</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <div className="text-xs text-gray-500">Period Low</div>
-            <div className="text-sm font-bold text-gray-900">{formatPrice(lowest)}</div>
+            <div className="text-sm font-bold text-gray-900">{formatPrice(lowest, currency)}</div>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <div className="text-xs text-gray-500">Avg Volume</div>
@@ -270,7 +272,7 @@ const ChartTab = ({ symbol }) => {
         <div className="text-red-600 text-center py-8">{error} <button onClick={refetch} className="text-blue-600 underline ml-2">Retry</button></div>
       ) : historyData.length > 0 ? (
         <div className="bg-white rounded-lg border border-gray-100">
-          <StockChart data={historyData} range={range} />
+          <StockChart data={historyData} range={range} currency={currency} />
         </div>
       ) : (
         <div className="text-gray-500 text-center py-8">No chart data available for this period.</div>

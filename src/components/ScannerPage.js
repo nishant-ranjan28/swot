@@ -1,16 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
+import { useMarket } from '../context/MarketContext';
 
-const formatNumber = (num) => {
+const formatNumber = (num, market = 'in') => {
   if (!num) return 'N/A';
+  if (market === 'us') {
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+    return `$${num.toLocaleString('en-US')}`;
+  }
   if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
   if (num >= 1e7) return `${(num / 1e7).toFixed(2)}Cr`;
   if (num >= 1e5) return `${(num / 1e5).toFixed(2)}L`;
   return num.toLocaleString('en-IN');
 };
 
-const PriceRangeBar = ({ low, high, current, theme }) => {
+const PriceRangeBar = ({ low, high, current, theme, locale = 'en-IN', currencyCode = 'INR' }) => {
   if (!low || !high || !current || high === low) return null;
   const position = Math.min(Math.max(((current - low) / (high - low)) * 100, 0), 100);
   const gradientClass = theme === 'green'
@@ -21,9 +28,9 @@ const PriceRangeBar = ({ low, high, current, theme }) => {
   return (
     <div className="mt-2">
       <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
-        <span>{low.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</span>
+        <span>{low.toLocaleString(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 })}</span>
         <span className="text-[10px] text-gray-300">52W Range</span>
-        <span>{high.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}</span>
+        <span>{high.toLocaleString(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 })}</span>
       </div>
       <div className="relative h-1.5 bg-gray-200 rounded-full">
         <div
@@ -39,7 +46,7 @@ const PriceRangeBar = ({ low, high, current, theme }) => {
   );
 };
 
-const StockCard = ({ stock, type }) => {
+const StockCard = ({ stock, type, locale = 'en-IN', currencyCode = 'INR', market = 'in' }) => {
   const isNearHigh = type === 'high';
   const theme = isNearHigh ? 'green' : 'red';
   const isPositive = (stock.change_percent || 0) >= 0;
@@ -64,14 +71,14 @@ const StockCard = ({ stock, type }) => {
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold text-gray-900 truncate">{stock.name}</div>
-          <div className="text-xs text-gray-500 mt-0.5">{stock.symbol?.replace('.NS', '')}</div>
+          <div className="text-xs text-gray-500 mt-0.5">{stock.symbol?.replace(/\.(NS|BO)$/, '')}</div>
           {stock.sector && (
             <div className="text-[10px] text-gray-400 mt-0.5">{stock.sector}</div>
           )}
         </div>
         <div className="text-right ml-3">
           <div className="text-sm font-bold text-gray-900">
-            {stock.price?.toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {stock.price?.toLocaleString(locale, { style: 'currency', currency: currencyCode, minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className={`text-xs font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
             {isPositive ? '+' : ''}{stock.change_percent?.toFixed(2)}%
@@ -79,10 +86,10 @@ const StockCard = ({ stock, type }) => {
         </div>
       </div>
 
-      <PriceRangeBar low={stock.week52_low} high={stock.week52_high} current={stock.price} theme={theme} />
+      <PriceRangeBar low={stock.week52_low} high={stock.week52_high} current={stock.price} theme={theme} locale={locale} currencyCode={currencyCode} />
 
       <div className="mt-2 flex justify-between items-center">
-        <span className="text-xs text-gray-400">MCap: {formatNumber(stock.market_cap)}</span>
+        <span className="text-xs text-gray-400">MCap: {formatNumber(stock.market_cap, market)}</span>
         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeClass}`}>
           {badgeText}
         </span>
@@ -113,6 +120,7 @@ const SkeletonCard = () => (
 );
 
 const ScannerPage = () => {
+  const { market } = useMarket();
   const [activeTab, setActiveTab] = useState('high');
   const [nearHigh, setNearHigh] = useState([]);
   const [nearLow, setNearLow] = useState([]);
@@ -123,7 +131,7 @@ const ScannerPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/api/stocks/52week');
+      const response = await api.get(`/api/stocks/52week?market=${market}`);
       const data = response.data;
       setNearHigh(data.near_high || []);
       setNearLow(data.near_low || []);
@@ -133,7 +141,7 @@ const ScannerPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [market]);
 
   useEffect(() => {
     fetchData();
@@ -237,7 +245,14 @@ const ScannerPage = () => {
         ) : activeStocks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {activeStocks.map((stock) => (
-              <StockCard key={stock.symbol} stock={stock} type={activeTab} />
+              <StockCard
+                key={stock.symbol}
+                stock={stock}
+                type={activeTab}
+                locale={market === 'us' ? 'en-US' : 'en-IN'}
+                currencyCode={market === 'us' ? 'USD' : 'INR'}
+                market={market}
+              />
             ))}
           </div>
         ) : (

@@ -12,6 +12,7 @@ import SwotTab from './SwotTab';
 import ChartTab from './ChartTab';
 import TechnicalTab from './TechnicalTab';
 import FundamentalTab from './FundamentalTab';
+import { useMarket } from '../../context/MarketContext';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -30,6 +31,7 @@ const StockDetailPage = () => {
   const { symbol } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { currency } = useMarket();
   const activeTab = searchParams.get('tab') || 'overview';
 
   // Scroll to top when navigating to a stock page
@@ -100,7 +102,7 @@ const StockDetailPage = () => {
               </div>
               <div className="text-right">
                 <div className="text-3xl font-bold text-gray-900">
-                  {quote.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  {currency}{quote.price?.toLocaleString(currency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}
                 </div>
                 <div className={`text-lg font-semibold ${changeColor}`}>
                   {changeSign}{quote.change?.toFixed(2)} ({changeSign}{quote.change_percent?.toFixed(2)}%)

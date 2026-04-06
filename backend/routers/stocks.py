@@ -29,8 +29,8 @@ def _server_error():
 
 @router.get("/search")
 @limiter.limit(SEARCH_RATE_LIMIT)
-async def search_stocks(request: Request, q: Annotated[str, Query(min_length=1, max_length=50)]):
-    results = await stock_service.search(q.strip())
+async def search_stocks(request: Request, q: Annotated[str, Query(min_length=1, max_length=50)], market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    results = await stock_service.search(q.strip(), market)
     if results is None:
         return _server_error()
     return {"results": results}
@@ -46,20 +46,20 @@ async def search_mutual_funds(request: Request, q: Annotated[str, Query(min_leng
 
 
 @router.get("/trending")
-async def get_trending():
-    stocks = await asyncio.to_thread(stock_service.get_trending_stocks)
+async def get_trending(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    stocks = await asyncio.to_thread(stock_service.get_trending_stocks, market)
     return {"stocks": stocks}
 
 
 @router.get("/indices")
-async def get_indices():
-    indices = await asyncio.to_thread(stock_service.get_market_indices)
+async def get_indices(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    indices = await asyncio.to_thread(stock_service.get_market_indices, market)
     return {"indices": indices}
 
 
 @router.get("/sentiment")
-async def get_sentiment():
-    data = await asyncio.to_thread(stock_service.get_market_sentiment)
+async def get_sentiment(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    data = await asyncio.to_thread(stock_service.get_market_sentiment, market)
     if not data:
         return _server_error()
     return data
@@ -74,8 +74,8 @@ async def get_screener(request: Request):
 
 
 @router.get("/52week")
-async def get_52week_scanner():
-    data = await asyncio.to_thread(stock_service.get_52week_scanner)
+async def get_52week_scanner(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    data = await asyncio.to_thread(stock_service.get_52week_scanner, market)
     return data
 
 
@@ -93,8 +93,8 @@ async def get_sip_returns(
 
 
 @router.get("/news")
-async def get_market_news():
-    articles = await asyncio.to_thread(stock_service.get_market_news)
+async def get_market_news(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    articles = await asyncio.to_thread(stock_service.get_market_news, market)
     return {"articles": articles}
 
 

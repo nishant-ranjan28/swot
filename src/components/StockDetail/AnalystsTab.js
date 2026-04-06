@@ -1,6 +1,7 @@
 // src/components/StockDetail/AnalystsTab.js
 import React from 'react';
 import { useStockData } from '../../hooks/useStockData';
+import { useMarket } from '../../context/MarketContext';
 import TabSkeleton from './TabSkeleton';
 
 const RatingBar = ({ label, value, total, color }) => {
@@ -18,6 +19,7 @@ const RatingBar = ({ label, value, total, color }) => {
 
 const AnalystsTab = ({ symbol }) => {
   const { data, loading, error, refetch } = useStockData(`/api/stocks/${symbol}/analysts`);
+  const { currency } = useMarket();
 
   if (loading) return <TabSkeleton rows={6} />;
   if (error) return <div className="text-red-600 text-center py-8">{error} <button onClick={refetch} className="text-blue-600 underline ml-2">Retry</button></div>;
@@ -36,7 +38,7 @@ const AnalystsTab = ({ symbol }) => {
           <div key={item.label} className="bg-gray-50 rounded-lg p-4 text-center">
             <div className="text-sm text-gray-500 mb-1">{item.label}</div>
             <div className="text-lg font-bold text-gray-900">
-              {item.label === 'Analysts' ? item.value || 'N/A' : item.value ? `₹${item.value.toFixed(2)}` : 'N/A'}
+              {item.label === 'Analysts' ? item.value || 'N/A' : item.value ? `${currency}${item.value.toFixed(2)}` : 'N/A'}
             </div>
           </div>
         ))}

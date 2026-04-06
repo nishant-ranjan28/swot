@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
+import { useMarket } from '../context/MarketContext';
 
 const formatNumber = (num) => {
   if (num == null) return 'N/A';
@@ -142,6 +143,7 @@ const RatingBadge = ({ rating }) => {
 };
 
 const ScreenerPage = () => {
+  const { market, marketLabel } = useMarket();
   const [stocks, setStocks] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -163,6 +165,7 @@ const ScreenerPage = () => {
     params.set('sort', sortKey === 'market_cap' ? 'intradaymarketcap' : sortKey);
     params.set('sort_dir', sortDir);
     params.set('logic', filterLogic);
+    params.set('market', market);
 
     // Add active filters
     Object.entries(filters).forEach(([key, value]) => {
@@ -178,7 +181,7 @@ const ScreenerPage = () => {
       })
       .catch(() => setError('Failed to load screener data'))
       .finally(() => setLoading(false));
-  }, [filters, resultSize, sortKey, sortDir, filterLogic]);
+  }, [filters, resultSize, sortKey, sortDir, filterLogic, market]);
 
   useEffect(() => {
     fetchStocks();
@@ -251,7 +254,7 @@ const ScreenerPage = () => {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Stock Screener</h1>
             <p className="text-sm text-gray-500 mt-1">
-              Search across {total.toLocaleString('en-IN')}+ Indian stocks with real-time filters
+              Search across {total.toLocaleString('en-IN')}+ {marketLabel} stocks with real-time filters
             </p>
           </div>
           <select value={resultSize} onChange={(e) => setResultSize(parseInt(e.target.value))}

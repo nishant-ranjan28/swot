@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import StockSearch from './StockSearch';
+import { useMarket } from '../context/MarketContext';
 
 const formatNumber = (num) => {
   if (!num) return 'N/A';
@@ -96,9 +97,9 @@ const PriceRangeBar = ({ low, high, current }) => {
   return (
     <div className="mt-2">
       <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
-        <span>₹{low.toFixed(0)}</span>
+        <span>{low.toFixed(0)}</span>
         <span className="text-[10px] text-gray-300">52W Range</span>
-        <span>₹{high.toFixed(0)}</span>
+        <span>{high.toFixed(0)}</span>
       </div>
       <div className="relative h-1.5 bg-gray-200 rounded-full">
         <div
@@ -128,7 +129,7 @@ const StockCard = ({ stock }) => {
         </div>
         <div className="text-right ml-3">
           <div className="text-sm font-bold text-gray-900">
-            ₹{stock.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {stock.currency === 'USD' ? '$' : '₹'}{stock.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className={`text-xs font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
             {isPositive ? '+' : ''}{stock.change_percent?.toFixed(2)}%
@@ -197,12 +198,13 @@ const SECTORS = ['All', 'Banking', 'IT', 'Energy', 'Auto', 'FMCG', 'Pharma', 'Me
 const STOCK_SECTORS = {
   'RELIANCE.NS': 'Energy', 'TCS.NS': 'IT', 'HDFCBANK.NS': 'Banking', 'INFY.NS': 'IT',
   'ICICIBANK.NS': 'Banking', 'HINDUNILVR.NS': 'FMCG', 'SBIN.NS': 'Banking', 'BHARTIARTL.NS': 'Telecom',
-  'ITC.NS': 'FMCG', 'KOTAKBANK.NS': 'Banking', 'LT.NS': 'Infra', 'TATAMOTORS.NS': 'Auto',
+  'ITC.NS': 'FMCG', 'KOTAKBANK.NS': 'Banking', 'LT.NS': 'Infra', 'TMCV.NS': 'Auto',
   'AXISBANK.NS': 'Banking', 'BAJFINANCE.NS': 'Finance', 'MARUTI.NS': 'Auto', 'WIPRO.NS': 'IT',
   'ADANIENT.NS': 'Energy', 'TATAPOWER.NS': 'Energy', 'TATASTEEL.NS': 'Metals', 'HCLTECH.NS': 'IT',
 };
 
 const HomePage = () => {
+  const { market, currency, marketLabel } = useMarket();
   const [indices, setIndices] = useState([]);
   const [trendingStocks, setTrendingStocks] = useState([]);
   const [loadingIndices, setLoadingIndices] = useState(true);
@@ -215,12 +217,17 @@ const HomePage = () => {
   const [sentiment, setSentiment] = useState(null);
 
   useEffect(() => {
-    api.get('/api/stocks/indices')
+    setLoadingIndices(true);
+    setLoadingStocks(true);
+    setLoadingNews(true);
+    setSentiment(null);
+
+    api.get(`/api/stocks/indices?market=${market}`)
       .then((res) => setIndices(res.data.indices || []))
       .catch((err) => console.error('Failed to load indices:', err))
       .finally(() => setLoadingIndices(false));
 
-    api.get('/api/stocks/trending')
+    api.get(`/api/stocks/trending?market=${market}`)
       .then((res) => {
         const stocks = res.data.stocks || [];
         setTrendingStocks(stocks);
@@ -236,10 +243,10 @@ const HomePage = () => {
       .catch((err) => console.error('Failed to load news:', err))
       .finally(() => setLoadingNews(false));
 
-    api.get('/api/stocks/sentiment')
+    api.get(`/api/stocks/sentiment?market=${market}`)
       .then((res) => setSentiment(res.data))
       .catch((err) => console.error('Failed to load sentiment:', err));
-  }, []);
+  }, [market]);
 
   const filteredStocks = activeSector === 'All'
     ? trendingStocks
@@ -254,7 +261,7 @@ const HomePage = () => {
             StockPulse
           </h1>
           <p className="text-gray-500 text-base md:text-lg mb-4">
-            Search any Indian stock for in-depth analysis, financials, and more
+            Search any {marketLabel} stock for in-depth analysis, financials, and more
           </p>
           <div className="mb-4">
             <MarketStatus />
@@ -313,7 +320,7 @@ const HomePage = () => {
 
               {/* India VIX */}
               <div className="bg-gray-50 rounded-lg p-3">
-                <div className="text-xs text-gray-500 font-medium">India VIX (Fear Gauge)</div>
+                <div className="text-xs text-gray-500 font-medium">{sentiment.vix?.name || 'VIX'} (Fear Gauge)</div>
                 <div className="text-xl font-bold text-gray-900 mt-1">{sentiment.vix?.value?.toFixed(2)}</div>
                 <div className={`text-xs font-semibold ${sentiment.vix?.change >= 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {sentiment.vix?.change >= 0 ? '+' : ''}{sentiment.vix?.change?.toFixed(2)}
@@ -330,27 +337,27 @@ const HomePage = () => {
 
               {/* NIFTY Trend */}
               <div className="bg-gray-50 rounded-lg p-3">
-                <div className="text-xs text-gray-500 font-medium">NIFTY Trend</div>
+                <div className="text-xs text-gray-500 font-medium">{sentiment.index?.name || 'Index'} Trend</div>
                 <div className="space-y-1.5 mt-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">50 DMA</span>
-                    <span className={`text-xs font-semibold ${sentiment.nifty?.above_50dma ? 'text-green-600' : 'text-red-600'}`}>
-                      {sentiment.nifty?.above_50dma ? 'Above' : 'Below'}
+                    <span className={`text-xs font-semibold ${sentiment.index?.above_50dma ? 'text-green-600' : 'text-red-600'}`}>
+                      {sentiment.index?.above_50dma ? 'Above' : 'Below'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">200 DMA</span>
-                    <span className={`text-xs font-semibold ${sentiment.nifty?.above_200dma ? 'text-green-600' : 'text-red-600'}`}>
-                      {sentiment.nifty?.above_200dma ? 'Above' : 'Below'}
+                    <span className={`text-xs font-semibold ${sentiment.index?.above_200dma ? 'text-green-600' : 'text-red-600'}`}>
+                      {sentiment.index?.above_200dma ? 'Above' : 'Below'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">From 52W High</span>
-                    <span className="text-xs font-semibold text-red-600">-{sentiment.nifty?.pct_from_52w_high}%</span>
+                    <span className="text-xs font-semibold text-red-600">-{sentiment.index?.pct_from_52w_high}%</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-600">From 52W Low</span>
-                    <span className="text-xs font-semibold text-green-600">+{sentiment.nifty?.pct_from_52w_low}%</span>
+                    <span className="text-xs font-semibold text-green-600">+{sentiment.index?.pct_from_52w_low}%</span>
                   </div>
                 </div>
               </div>
@@ -400,7 +407,7 @@ const HomePage = () => {
                             <div className="text-xs text-gray-500">{stock.symbol?.replace('.NS', '')}</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-sm font-bold">₹{stock.price?.toFixed(2)}</div>
+                            <div className="text-sm font-bold">{currency}{stock.price?.toFixed(2)}</div>
                             <div className="text-xs font-semibold text-green-600">+{stock.change_percent?.toFixed(2)}%</div>
                           </div>
                         </Link>
@@ -427,7 +434,7 @@ const HomePage = () => {
                             <div className="text-xs text-gray-500">{stock.symbol?.replace('.NS', '')}</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-sm font-bold">₹{stock.price?.toFixed(2)}</div>
+                            <div className="text-sm font-bold">{currency}{stock.price?.toFixed(2)}</div>
                             <div className="text-xs font-semibold text-red-600">{stock.change_percent?.toFixed(2)}%</div>
                           </div>
                         </Link>
@@ -509,10 +516,13 @@ const HomePage = () => {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Explore</h2>
             <div className="flex flex-wrap gap-2">
-              {['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TATAMOTORS', 'SBIN', 'ITC', 'WIPRO', 'ADANIENT', 'BAJFINANCE'].map((sym) => (
+              {(market === 'us'
+                ? ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'JPM', 'NFLX', 'AMD']
+                : ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TMCV', 'SBIN', 'ITC', 'WIPRO', 'ADANIENT', 'BAJFINANCE']
+              ).map((sym) => (
                 <Link
                   key={sym}
-                  to={`/stock/${sym}.NS`}
+                  to={`/stock/${market === 'us' ? sym : `${sym}.NS`}`}
                   className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-blue-100 hover:text-blue-700 transition-colors"
                 >
                   {sym}

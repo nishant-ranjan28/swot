@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStockData } from '../../hooks/useStockData';
+import { useMarket } from '../../context/MarketContext';
 import TabSkeleton from './TabSkeleton';
 
 const SignalBadge = ({ signal }) => {
@@ -61,6 +62,7 @@ const GaugeChart = ({ percentage, signal }) => {
 
 const TechnicalTab = ({ symbol }) => {
   const { data, loading, error, refetch } = useStockData(`/api/stocks/${symbol}/technical`);
+  const { currency } = useMarket();
 
   if (loading) return <TabSkeleton rows={10} />;
   if (error) return <div className="text-red-600 text-center py-8">{error} <button onClick={refetch} className="text-blue-600 underline ml-2">Retry</button></div>;
@@ -145,7 +147,7 @@ const TechnicalTab = ({ symbol }) => {
               {data.moving_averages?.signals?.map((ma) => (
                 <tr key={ma.name} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="p-2 text-gray-700">{ma.name}</td>
-                  <td className="p-2 text-right font-medium">₹{ma.value?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                  <td className="p-2 text-right font-medium">{currency}{ma.value?.toLocaleString(currency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}</td>
                   <td className="p-2 text-right"><SignalBadge signal={ma.signal} /></td>
                 </tr>
               ))}
@@ -189,15 +191,15 @@ const TechnicalTab = ({ symbol }) => {
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-gray-50 rounded-lg p-3 text-center">
               <div className="text-xs text-gray-500">Upper Band</div>
-              <div className="text-sm font-bold text-red-600">₹{data.oscillators.bollinger.upper}</div>
+              <div className="text-sm font-bold text-red-600">{currency}{data.oscillators.bollinger.upper}</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-center">
               <div className="text-xs text-gray-500">Middle (SMA 20)</div>
-              <div className="text-sm font-bold text-gray-900">₹{data.oscillators.bollinger.middle}</div>
+              <div className="text-sm font-bold text-gray-900">{currency}{data.oscillators.bollinger.middle}</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-center">
               <div className="text-xs text-gray-500">Lower Band</div>
-              <div className="text-sm font-bold text-green-600">₹{data.oscillators.bollinger.lower}</div>
+              <div className="text-sm font-bold text-green-600">{currency}{data.oscillators.bollinger.lower}</div>
             </div>
           </div>
         </div>
@@ -215,7 +217,7 @@ const TechnicalTab = ({ symbol }) => {
                 {data.support_levels.map((level, idx) => (
                   <div key={idx} className="flex justify-between bg-green-50 rounded-lg p-3">
                     <span className="text-sm text-gray-600">S{idx + 1}</span>
-                    <span className="text-sm font-bold text-green-700">₹{level.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-sm font-bold text-green-700">{currency}{level.toLocaleString(currency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 ))}
               </div>
@@ -230,7 +232,7 @@ const TechnicalTab = ({ symbol }) => {
                 {data.resistance_levels.map((level, idx) => (
                   <div key={idx} className="flex justify-between bg-red-50 rounded-lg p-3">
                     <span className="text-sm text-gray-600">R{idx + 1}</span>
-                    <span className="text-sm font-bold text-red-700">₹{level.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="text-sm font-bold text-red-700">{currency}{level.toLocaleString(currency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 ))}
               </div>

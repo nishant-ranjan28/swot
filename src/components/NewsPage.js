@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api';
+import { useMarket } from '../context/MarketContext';
+
+const QUICK_STOCKS = {
+  in: ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TMCV', 'SBIN', 'ITC', 'WIPRO'],
+  us: ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'JPM'],
+};
 
 const NewsPage = () => {
+  const { market } = useMarket();
   const [articles, setArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,7 +41,8 @@ const NewsPage = () => {
     e.preventDefault();
     if (stockInput.trim()) {
       const symbol = stockInput.trim().toUpperCase();
-      const resolved = symbol.includes('.') ? symbol : `${symbol}.NS`;
+      const suffix = market === 'us' ? '' : '.NS';
+      const resolved = symbol.includes('.') ? symbol : `${symbol}${suffix}`;
       setStockSymbol(resolved);
       fetchNews(resolved);
     }
@@ -96,7 +104,7 @@ const NewsPage = () => {
             <form onSubmit={handleStockFilter} className="flex gap-2">
               <input
                 type="text"
-                placeholder="Stock (e.g. TCS, RELIANCE)"
+                placeholder={market === 'us' ? 'Stock (e.g. AAPL, MSFT)' : 'Stock (e.g. TCS, RELIANCE)'}
                 value={stockInput}
                 onChange={(e) => setStockInput(e.target.value)}
                 className="w-40 sm:w-48 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -209,10 +217,16 @@ const NewsPage = () => {
           <div className="mt-8 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Get news for specific stocks</h3>
             <div className="flex flex-wrap gap-2">
-              {['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TATAMOTORS', 'SBIN', 'ITC', 'WIPRO'].map((sym) => (
+              {(QUICK_STOCKS[market] || QUICK_STOCKS.in).map((sym) => (
                 <button
                   key={sym}
-                  onClick={() => { setStockInput(sym); setStockSymbol(`${sym}.NS`); fetchNews(`${sym}.NS`); }}
+                  onClick={() => {
+                    const suffix = market === 'us' ? '' : '.NS';
+                    const resolved = `${sym}${suffix}`;
+                    setStockInput(sym);
+                    setStockSymbol(resolved);
+                    fetchNews(resolved);
+                  }}
                   className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium hover:bg-blue-100 hover:text-blue-700 transition-colors"
                 >
                   {sym}
