@@ -278,7 +278,7 @@ const ComparePage = () => {
       }
     } catch (err) {
       setError('Failed to fetch stock data. Please try again.');
-      console.error(err);
+      // silently handle fetch errors
     } finally {
       setLoading(false);
     }

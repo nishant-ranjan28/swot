@@ -36,3 +36,5 @@ CORS_ORIGINS = [
 
 # Rate limiting
 SEARCH_RATE_LIMIT = "30/minute"
+DEFAULT_RATE_LIMIT = "60/minute"
+NEWS_RATE_LIMIT = "20/minute"

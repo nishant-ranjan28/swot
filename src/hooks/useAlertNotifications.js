@@ -57,7 +57,7 @@ function sendNotification(title, body, symbol) {
       notification.close();
     };
   } catch (e) {
-    console.error('Notification error:', e);
+    // silently handle notification errors
   }
 }
 

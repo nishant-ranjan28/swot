@@ -43,11 +43,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Analyze with SonarCloud
-        uses: SonarSource/sonarcloud-github-action@v1
+        uses: SonarSource/sonarcloud-github-action@v5
         with:
           args: >
             -Dsonar.projectKey=nishant-ranjan28_swot
             -Dsonar.organization=nishant-ranjan28
         env:
-          SONAR_TOKEN: ${{ secrets.6604f71d1d96c2f4d343ef2b45e2567daca88fbf }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

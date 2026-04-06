@@ -217,7 +217,7 @@ const HomePage = () => {
   useEffect(() => {
     api.get('/api/stocks/indices')
       .then((res) => setIndices(res.data.indices || []))
-      .catch((err) => console.error('Failed to load indices:', err))
+      .catch(() => {})
       .finally(() => setLoadingIndices(false));
 
     api.get('/api/stocks/trending')
@@ -228,17 +228,17 @@ const HomePage = () => {
         setGainers(sorted.filter(s => s.change_percent > 0).slice(0, 5));
         setLosers(sorted.filter(s => s.change_percent < 0).reverse().slice(0, 5));
       })
-      .catch((err) => console.error('Failed to load trending:', err))
+      .catch(() => {})
       .finally(() => setLoadingStocks(false));
 
     api.get('/api/stocks/news')
       .then((res) => setNews((res.data.articles || []).slice(0, 4)))
-      .catch((err) => console.error('Failed to load news:', err))
+      .catch(() => {})
       .finally(() => setLoadingNews(false));
 
     api.get('/api/stocks/sentiment')
       .then((res) => setSentiment(res.data))
-      .catch((err) => console.error('Failed to load sentiment:', err));
+      .catch(() => {});
   }, []);
 
   const filteredStocks = activeSector === 'All'

@@ -19,7 +19,7 @@ const NewsPage = () => {
       const response = await api.get(endpoint);
       setArticles(response.data.articles || []);
     } catch (err) {
-      console.error('Error fetching news:', err);
+      // silently handle fetch errors
       setError('Unable to load news. Please try again.');
     } finally {
       setIsLoading(false);

@@ -67,7 +67,7 @@ class StockService:
             return cached
 
         try:
-            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={query}&region=IN&quotesCount=10"
+            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={quote_plus(query)}&region=IN&quotesCount=10"
             headers = {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
             }

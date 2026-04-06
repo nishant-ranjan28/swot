@@ -128,7 +128,7 @@ const ScannerPage = () => {
       setNearHigh(data.near_high || []);
       setNearLow(data.near_low || []);
     } catch (err) {
-      console.error('Failed to load 52-week data:', err);
+      // silently handle fetch errors
       setError('Unable to load scanner data. Please try again.');
     } finally {
       setLoading(false);
