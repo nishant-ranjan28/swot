@@ -18,7 +18,7 @@ export function useLocalStorage(key, initialValue) {
         return valueToStore;
       });
     } catch (error) {
-      console.error('localStorage error:', error);
+      // silently handle localStorage errors
     }
   }, [key]);
 

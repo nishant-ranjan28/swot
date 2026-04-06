@@ -95,7 +95,7 @@ const StockSearch = ({
 
     async function fetchStocks() {
       try {
-        const response = await api.get(`/api/stocks/search?q=${input}`);
+        const response = await api.get(`/api/stocks/search?q=${encodeURIComponent(input)}`);
         const stocks = response.data.results || [];
         const limitedStocks = stocks.slice(0, 5);
 
@@ -116,7 +116,7 @@ const StockSearch = ({
 
         setSuggestions(stocksWithPrices);
       } catch (error) {
-        console.error('Error fetching suggestions:', error);
+        // silently handle fetch errors
       }
     }
 
@@ -152,7 +152,7 @@ const StockSearch = ({
       if (updateSelectedStock) updateSelectedStock(stock.symbol);
       if (updateStockChart) setTimeout(() => updateStockChart(stock.symbol), 300);
     } catch (error) {
-      console.error('Error updating widgets:', error);
+      // silently handle widget update errors
     }
 
     // Navigate to stock detail page

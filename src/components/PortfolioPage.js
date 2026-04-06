@@ -182,7 +182,7 @@ const PortfolioPage = () => {
       });
       setLiveData(map);
     } catch (err) {
-      console.error('Error fetching live prices:', err);
+      // silently handle fetch errors
     } finally {
       setLoading(false);
     }
