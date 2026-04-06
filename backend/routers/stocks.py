@@ -13,7 +13,7 @@ router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 # Valid stock symbol: alphanumeric, dots, hyphens, carets (for indices like ^NSEI), 1-20 chars
-SYMBOL_PATTERN = r"^[\w\.\-\^&]{1,20}$"
+SYMBOL_PATTERN = r"^[A-Za-z0-9.\-^&]{1,20}$"
 ValidSymbol = Annotated[str, Path(pattern=SYMBOL_PATTERN)]
 
 
