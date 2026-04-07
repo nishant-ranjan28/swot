@@ -638,6 +638,13 @@ class StockService:
             {"symbol": "^DJI", "name": "Dow Jones"},
             {"symbol": "^RUT", "name": "Russell 2000"},
         ],
+        "global": [
+            {"symbol": "^FTSE", "name": "FTSE 100"},
+            {"symbol": "^N225", "name": "Nikkei 225"},
+            {"symbol": "^GDAXI", "name": "DAX"},
+            {"symbol": "^HSI", "name": "Hang Seng"},
+            {"symbol": "^STOXX50E", "name": "Euro Stoxx 50"},
+        ],
     }
 
     SENTIMENT_CONFIG = {
@@ -2022,6 +2029,364 @@ class StockService:
         except Exception as e:
             print(f"Options error: {e}")
             return None
+
+    def get_earnings_calendar(self, market: str = "in") -> list[dict]:
+        """Get upcoming earnings dates for top stocks in the given market."""
+        cache_key = f"earnings_calendar_{market}"
+        cached = cache_manager.get("earnings_calendar", cache_key)
+        if cached is not None:
+            return cached
+
+        symbols = self.POPULAR_STOCKS.get(market, self.POPULAR_STOCKS["in"])[:20]
+        results = []
+
+        for symbol in symbols:
+            try:
+                ticker = yf.Ticker(symbol)
+                earnings_dates = ticker.earnings_dates
+                if earnings_dates is None or earnings_dates.empty:
+                    continue
+
+                # Filter upcoming earnings (where Reported EPS is NaN = not yet reported)
+                for idx, row in earnings_dates.iterrows():
+                    reported_eps = row.get("Reported EPS")
+                    if pd.isna(reported_eps):
+                        eps_estimate = row.get("EPS Estimate")
+                        date_val = idx
+                        if hasattr(date_val, 'tz_localize'):
+                            date_str = date_val.strftime("%Y-%m-%d")
+                        else:
+                            date_str = str(date_val)[:10]
+
+                        info = ticker.info or {}
+                        name = info.get("shortName") or info.get("longName") or symbol.replace(".NS", "").replace(".BO", "")
+
+                        results.append({
+                            "symbol": symbol,
+                            "name": name,
+                            "date": date_str,
+                            "eps_estimate": round(float(eps_estimate), 2) if not pd.isna(eps_estimate) else None,
+                        })
+            except Exception as e:
+                print(f"Earnings calendar error for {symbol}: {e}")
+                continue
+
+        # Sort by date
+        results.sort(key=lambda x: x["date"])
+        cache_manager.set("earnings_calendar", cache_key, results, ttl=3600)
+        return results
+
+    # ── Sector Performance (Heatmap) ────────────────────────────────
+    SECTOR_STOCKS = {
+        "in": {
+            "Banking": ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS"],
+            "IT": ["TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS", "TECHM.NS"],
+            "Energy": ["RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS", "TATAPOWER.NS"],
+            "Auto": ["TATAMOTORS.NS", "MARUTI.NS", "M&M.NS", "EICHERMOT.NS", "BAJAJ-AUTO.NS"],
+            "Pharma": ["SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "AUROPHARMA.NS"],
+            "FMCG": ["HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "DABUR.NS", "GODREJCP.NS"],
+            "Metals": ["TATASTEEL.NS", "JSWSTEEL.NS", "HINDALCO.NS", "COALINDIA.NS"],
+            "Infra": ["LT.NS", "ULTRACEMCO.NS", "GRASIM.NS", "ADANIENT.NS"],
+            "Telecom": ["BHARTIARTL.NS"],
+            "Finance": ["BAJFINANCE.NS", "BAJAJFINSV.NS", "SBILIFE.NS"],
+        },
+        "us": {
+            "Technology": ["AAPL", "MSFT", "GOOGL", "META", "NVDA"],
+            "Finance": ["JPM", "BAC", "GS", "V", "MA"],
+            "Healthcare": ["UNH", "JNJ", "PFE", "ABBV", "MRK"],
+            "Consumer": ["AMZN", "WMT", "HD", "PG", "KO"],
+            "Energy": ["XOM", "CVX", "COP"],
+            "Industrials": ["CAT", "HON", "GE", "BA"],
+        },
+    }
+
+    def get_sector_performance(self, market: str = "in") -> list[dict]:
+        """Calculate sector-level performance stats using batch quotes."""
+        cache_key = f"sector_perf_{market}"
+        cached = cache_manager.get("sector_performance", cache_key)
+        if cached is not None:
+            return cached
+
+        sectors_map = self.SECTOR_STOCKS.get(market, self.SECTOR_STOCKS["in"])
+        results = []
+
+        for sector_name, symbols in sectors_map.items():
+            try:
+                quotes = self.get_batch_quotes(symbols)
+                if not quotes:
+                    continue
+
+                changes = []
+                total_mcap = 0
+                top_gainer = None
+                top_loser = None
+
+                for sym in symbols:
+                    q = quotes.get(sym)
+                    if not q or q.get("price") is None:
+                        continue
+                    cp = q.get("change_percent", 0) or 0
+                    mcap = q.get("market_cap") or 0
+                    changes.append(cp)
+                    total_mcap += mcap
+
+                    if top_gainer is None or cp > top_gainer["change_percent"]:
+                        top_gainer = {"symbol": sym, "name": q.get("name", sym), "change_percent": cp}
+                    if top_loser is None or cp < top_loser["change_percent"]:
+                        top_loser = {"symbol": sym, "name": q.get("name", sym), "change_percent": cp}
+
+                if not changes:
+                    continue
+
+                avg_change = round(sum(changes) / len(changes), 2)
+                results.append({
+                    "sector": sector_name,
+                    "avg_change_percent": avg_change,
+                    "total_market_cap": total_mcap,
+                    "stock_count": len(changes),
+                    "top_gainer": top_gainer,
+                    "top_loser": top_loser,
+                })
+            except Exception as e:
+                print(f"Sector performance error for {sector_name}: {e}")
+                continue
+
+        # Sort by absolute avg change (most movement first)
+        results.sort(key=lambda x: abs(x["avg_change_percent"]), reverse=True)
+        cache_manager.set("sector_performance", cache_key, results, ttl=300)
+        return results
+
+    # NIFTY 50 / S&P 500 constituents for stock-level heatmap
+    INDEX_STOCKS = {
+        "in": [
+            "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS",
+            "HINDUNILVR.NS", "SBIN.NS", "BHARTIARTL.NS", "ITC.NS", "KOTAKBANK.NS",
+            "LT.NS", "AXISBANK.NS", "BAJFINANCE.NS", "MARUTI.NS", "WIPRO.NS",
+            "ADANIENT.NS", "TATAPOWER.NS", "TATASTEEL.NS", "HCLTECH.NS", "M&M.NS",
+            "SUNPHARMA.NS", "BAJAJFINSV.NS", "TITAN.NS", "ASIANPAINT.NS", "ULTRACEMCO.NS",
+            "NESTLEIND.NS", "POWERGRID.NS", "NTPC.NS", "JSWSTEEL.NS", "ONGC.NS",
+            "GRASIM.NS", "CIPLA.NS", "DRREDDY.NS", "DIVISLAB.NS", "BPCL.NS",
+            "HEROMOTOCO.NS", "EICHERMOT.NS", "TECHM.NS", "APOLLOHOSP.NS", "LTIM.NS",
+            "COALINDIA.NS", "INDUSINDBK.NS", "BAJAJ-AUTO.NS", "TRENT.NS",
+            "SBILIFE.NS", "HINDALCO.NS", "DABUR.NS", "GODREJCP.NS", "PIDILITIND.NS",
+        ],
+        "us": [
+            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "BRK-B",
+            "JPM", "V", "UNH", "JNJ", "WMT", "MA", "PG", "HD", "DIS", "NFLX",
+            "CRM", "AMD", "INTC", "CSCO", "PEP", "KO", "ABBV", "MRK", "PFE",
+            "XOM", "CVX", "COP", "BAC", "GS", "MS", "CAT", "HON", "GE", "BA",
+            "LLY", "AVGO", "COST", "ADBE", "ORCL", "ACN", "IBM", "QCOM",
+        ],
+    }
+
+    def get_index_stock_heatmap(self, market: str = "in") -> list[dict]:
+        """Get individual stock data for NIFTY 50 / S&P 500 heatmap."""
+        cache_key = f"index_heatmap_{market}"
+        cached = cache_manager.get("heatmap", cache_key)
+        if cached is not None:
+            return cached
+
+        symbols = self.INDEX_STOCKS.get(market, self.INDEX_STOCKS["in"])
+        quotes = self.get_batch_quotes(symbols)
+
+        results = []
+        for sym in symbols:
+            q = quotes.get(sym)
+            if not q or not q.get("price"):
+                continue
+            results.append({
+                "symbol": sym,
+                "name": q.get("name", sym),
+                "price": q.get("price"),
+                "change_percent": q.get("change_percent", 0) or 0,
+                "market_cap": q.get("market_cap", 0) or 0,
+                "volume": q.get("volume", 0) or 0,
+            })
+
+        results.sort(key=lambda x: x["market_cap"], reverse=True)
+        cache_manager.set("heatmap", cache_key, results, ttl=300)
+        return results
+
+    # ── Technical Alerts Engine ──────────────────────────────────────
+    def scan_technical_alerts(self, symbols: list[str]) -> list[dict]:
+        """Scan symbols for technical alert conditions (crossovers, RSI, MACD)."""
+        cache_key = f"tech_alerts_{'_'.join(sorted(symbols[:30]))}"
+        cached = cache_manager.get("technical_alerts", cache_key)
+        if cached is not None:
+            return cached
+
+        alerts = []
+        for symbol in symbols[:30]:  # cap at 30 symbols
+            try:
+                ticker = yf.Ticker(symbol)
+                df = ticker.history(period="3mo")
+                if df.empty or len(df) < 50:
+                    continue
+
+                name = ticker.info.get("shortName", symbol) if hasattr(ticker, "info") else symbol
+
+                # Compute indicators
+                df.ta.sma(length=50, append=True)
+                df.ta.sma(length=200, append=True)
+                df.ta.rsi(length=14, append=True)
+                df.ta.macd(fast=12, slow=26, signal=9, append=True)
+
+                # Need at least 2 rows to detect crossovers
+                if len(df) < 2:
+                    continue
+
+                last = df.iloc[-1]
+                prev = df.iloc[-2]
+
+                # Helper to safely get float
+                def _val(row, col):
+                    if col in df.columns and pd.notna(row.get(col)):
+                        return float(row[col])
+                    return None
+
+                sma50_now = _val(last, "SMA_50")
+                sma50_prev = _val(prev, "SMA_50")
+                sma200_now = _val(last, "SMA_200")
+                sma200_prev = _val(prev, "SMA_200")
+                rsi_now = _val(last, "RSI_14")
+                macd_hist_now = _val(last, "MACDh_12_26_9")
+                macd_hist_prev = _val(prev, "MACDh_12_26_9")
+
+                # Golden Cross: SMA50 crosses above SMA200
+                if (sma50_now is not None and sma200_now is not None and
+                        sma50_prev is not None and sma200_prev is not None):
+                    if sma50_prev <= sma200_prev and sma50_now > sma200_now:
+                        alerts.append({
+                            "symbol": symbol, "name": name,
+                            "alert": "Golden Cross",
+                            "type": "bullish",
+                            "description": f"50-day SMA crossed above 200-day SMA — a classic bullish signal.",
+                        })
+                    # Death Cross: SMA50 crosses below SMA200
+                    if sma50_prev >= sma200_prev and sma50_now < sma200_now:
+                        alerts.append({
+                            "symbol": symbol, "name": name,
+                            "alert": "Death Cross",
+                            "type": "bearish",
+                            "description": f"50-day SMA crossed below 200-day SMA — a classic bearish signal.",
+                        })
+
+                # RSI Oversold
+                if rsi_now is not None and rsi_now < 30:
+                    alerts.append({
+                        "symbol": symbol, "name": name,
+                        "alert": "RSI Oversold",
+                        "type": "bullish",
+                        "description": f"RSI at {rsi_now:.1f} — stock may be oversold and due for a bounce.",
+                    })
+                # RSI Overbought
+                if rsi_now is not None and rsi_now > 70:
+                    alerts.append({
+                        "symbol": symbol, "name": name,
+                        "alert": "RSI Overbought",
+                        "type": "bearish",
+                        "description": f"RSI at {rsi_now:.1f} — stock may be overbought and due for a pullback.",
+                    })
+
+                # MACD Bullish Crossover (histogram goes from negative to positive)
+                if macd_hist_now is not None and macd_hist_prev is not None:
+                    if macd_hist_prev <= 0 and macd_hist_now > 0:
+                        alerts.append({
+                            "symbol": symbol, "name": name,
+                            "alert": "MACD Bullish Crossover",
+                            "type": "bullish",
+                            "description": "MACD histogram turned positive — bullish momentum building.",
+                        })
+                    # MACD Bearish Crossover (histogram goes from positive to negative)
+                    if macd_hist_prev >= 0 and macd_hist_now < 0:
+                        alerts.append({
+                            "symbol": symbol, "name": name,
+                            "alert": "MACD Bearish Crossover",
+                            "type": "bearish",
+                            "description": "MACD histogram turned negative — bearish momentum building.",
+                        })
+
+            except Exception as e:
+                print(f"Technical alert scan error for {symbol}: {e}")
+                continue
+
+        cache_manager.set("technical_alerts", cache_key, alerts, ttl=900)
+        return alerts
+
+    async def get_fii_dii_data(self) -> dict | None:
+        """Fetch real-time FII/DII data from NSE."""
+        cached = cache_manager.get("fii_dii", "daily")
+        if cached is not None:
+            return cached
+
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Referer": "https://www.nseindia.com/",
+                "Accept": "application/json",
+            }
+            async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+                # Get cookies first
+                await client.get("https://www.nseindia.com", timeout=10.0)
+                # Fetch FII/DII data
+                resp = await client.get("https://www.nseindia.com/api/fiidiiTradeReact", timeout=10.0)
+                data = resp.json()
+
+            result = {"date": None, "fii": None, "dii": None}
+            for entry in data:
+                category = entry.get("category", "")
+                buy = float(entry.get("buyValue", 0))
+                sell = float(entry.get("sellValue", 0))
+                net = float(entry.get("netValue", 0))
+                date = entry.get("date", "")
+
+                item = {
+                    "buy": round(buy, 2),
+                    "sell": round(sell, 2),
+                    "net": round(net, 2),
+                    "date": date,
+                }
+
+                if "FII" in category or "FPI" in category:
+                    result["fii"] = item
+                elif "DII" in category:
+                    result["dii"] = item
+
+                if date:
+                    result["date"] = date
+
+            cache_manager.set("fii_dii", "daily", result, ttl=300)
+            return result
+        except Exception as e:
+            print(f"FII/DII fetch error: {e}")
+            return None
+
+    def get_insider_transactions(self, symbol: str) -> list:
+        """Get insider transactions for a stock."""
+        cached = cache_manager.get("insider", symbol)
+        if cached is not None:
+            return cached
+
+        try:
+            ticker = yf.Ticker(symbol)
+            txns = ticker.insider_transactions
+            if txns is None or txns.empty:
+                return []
+            result = []
+            for _, row in txns.head(20).iterrows():
+                result.append({
+                    "insider": str(row.get("Insider Trading", row.get("insiderName", ""))),
+                    "relation": str(row.get("Relationship", row.get("relation", ""))),
+                    "transaction": str(row.get("Transaction", row.get("transactionType", ""))),
+                    "shares": int(row.get("Shares", row.get("shares", 0))) if row.get("Shares", row.get("shares")) else 0,
+                    "value": float(row.get("Value", 0)) if row.get("Value") else None,
+                    "date": str(row.get("Start Date", row.get("startDate", "")))[:10],
+                })
+            result = sanitize_json(result)
+            cache_manager.set("insider", symbol, result, ttl=3600)
+            return result
+        except Exception:
+            return []
 
 
 # Singleton

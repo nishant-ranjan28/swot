@@ -52,7 +52,7 @@ async def get_trending(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"
 
 
 @router.get("/indices")
-async def get_indices(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+async def get_indices(market: Annotated[str, Query(pattern="^(in|us|global)$")] = "in"):
     indices = await asyncio.to_thread(stock_service.get_market_indices, market)
     return {"indices": indices}
 
@@ -88,6 +88,14 @@ async def get_batch_quotes(symbols: Annotated[str, Query()]):
     return {"quotes": result}
 
 
+@router.get("/fii-dii")
+async def get_fii_dii():
+    result = await stock_service.get_fii_dii_data()
+    if not result:
+        return _server_error()
+    return result
+
+
 @router.get("/sip/{symbol}")
 async def get_sip_returns(
     symbol: str,
@@ -112,6 +120,33 @@ async def get_stock_news(symbol: str):
     resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
     articles = await asyncio.to_thread(stock_service.get_stock_news, resolved)
     return {"articles": articles}
+
+
+@router.get("/earnings-calendar")
+async def get_earnings_calendar(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    data = await asyncio.to_thread(stock_service.get_earnings_calendar, market)
+    return {"earnings": data}
+
+
+@router.get("/sector-performance")
+async def get_sector_performance(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    data = await asyncio.to_thread(stock_service.get_sector_performance, market)
+    return {"sectors": data}
+
+
+@router.get("/index-heatmap")
+async def get_index_heatmap(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    data = await asyncio.to_thread(stock_service.get_index_stock_heatmap, market)
+    return {"stocks": data}
+
+
+@router.get("/technical-alerts")
+async def get_technical_alerts(symbols: Annotated[str, Query()]):
+    symbol_list = [s.strip() for s in symbols.split(",") if s.strip()][:30]
+    if not symbol_list:
+        return JSONResponse(status_code=400, content={"error": "No valid symbols provided"})
+    data = await asyncio.to_thread(stock_service.scan_technical_alerts, symbol_list)
+    return {"alerts": data}
 
 
 @router.get("/{symbol}/technical")
@@ -230,6 +265,13 @@ async def get_holders(symbol: str):
     if not result:
         return _not_found(symbol)
     return result
+
+
+@router.get("/{symbol}/insider")
+async def get_insider(symbol: str):
+    resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
+    result = await asyncio.to_thread(stock_service.get_insider_transactions, resolved)
+    return {"transactions": result}
 
 
 @router.get("/{symbol}/earnings")

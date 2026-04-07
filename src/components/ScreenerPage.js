@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useMarket } from '../context/MarketContext';
+import { exportToCSV } from '../utils/exportUtils';
 
 const formatNumber = (num) => {
   if (num == null) return 'N/A';
@@ -332,9 +333,35 @@ const ScreenerPage = () => {
 
         {/* Results info */}
         <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-500">
-            {loading ? 'Searching...' : `${sortedStocks.length} stocks shown (${total.toLocaleString('en-IN')} matched)`}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-500">
+              {loading ? 'Searching...' : `${sortedStocks.length} stocks shown (${total.toLocaleString('en-IN')} matched)`}
+            </span>
+            {sortedStocks.length > 0 && !loading && (
+              <button
+                onClick={() => {
+                  const csvColumns = COLUMNS.map(col => ({
+                    label: col.label,
+                    key: row => {
+                      const val = row[col.key];
+                      if (col.key === 'name') return `${row.name} (${row.symbol})`;
+                      if (col.key === 'market_cap' || col.key === 'volume') return val != null ? val : '';
+                      if (col.key === 'recommendation') return val || '';
+                      return val != null ? val : '';
+                    }
+                  }));
+                  exportToCSV(sortedStocks, csvColumns, `screener_${new Date().toISOString().split('T')[0]}`);
+                }}
+                className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-none flex items-center gap-1"
+                title="Export results to CSV"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export CSV
+              </button>
+            )}
+          </div>
           <span className="text-[10px] text-gray-400">Click column headers to sort</span>
         </div>
 

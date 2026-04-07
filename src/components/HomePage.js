@@ -222,6 +222,8 @@ const HomePage = () => {
   const [loadingNews, setLoadingNews] = useState(true);
   const [activeSector, setActiveSector] = useState('All');
   const [sentiment, setSentiment] = useState(null);
+  const [globalIndices, setGlobalIndices] = useState([]);
+  const [loadingGlobal, setLoadingGlobal] = useState(true);
 
   useEffect(() => {
     setLoadingIndices(true);
@@ -253,6 +255,13 @@ const HomePage = () => {
     api.get(`/api/stocks/sentiment?market=${market}`)
       .then((res) => setSentiment(res.data))
       .catch((err) => console.error('Failed to load sentiment:', err));
+
+    // Global indices — always fetched regardless of market toggle
+    setLoadingGlobal(true);
+    api.get('/api/stocks/indices?market=global')
+      .then((res) => setGlobalIndices(res.data.indices || []))
+      .catch((err) => console.error('Failed to load global indices:', err))
+      .finally(() => setLoadingGlobal(false));
   }, [market]);
 
   const filteredStocks = activeSector === 'All'
@@ -389,6 +398,23 @@ const HomePage = () => {
             </div>
           </section>
         )}
+
+        {/* Global Markets */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">Global Markets</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {loadingGlobal
+              ? [...Array(5)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl p-4 shadow-sm animate-pulse">
+                    <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+                    <div className="h-5 bg-gray-200 rounded w-28 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                  </div>
+                ))
+              : globalIndices.map((idx) => <IndexCard key={idx.symbol} index={idx} />)
+            }
+          </div>
+        </section>
 
         {/* Top Gainers & Losers + Latest News side by side */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
