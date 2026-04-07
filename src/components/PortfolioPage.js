@@ -234,7 +234,7 @@ const PortfolioPage = () => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [searchQuery]);
+  }, [searchQuery, market]);
 
   // Close dropdown on outside click
   useEffect(() => {

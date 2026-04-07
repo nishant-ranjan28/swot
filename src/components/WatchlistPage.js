@@ -224,7 +224,7 @@ const WatchlistPage = () => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [searchInput]);
+  }, [searchInput, market]);
 
   // Close dropdown on outside click
   useEffect(() => {
