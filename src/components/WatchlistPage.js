@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import Sparkline from './Sparkline';
 
 const MAX_WATCHLIST = 20;
 
@@ -17,6 +18,7 @@ const SkeletonRow = () => (
     <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-28"></div><div className="h-3 bg-gray-200 rounded w-16 mt-1"></div></td>
     <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
     <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+    <td className="px-4 py-3"><div className="h-[30px] bg-gray-200 rounded w-[80px]"></div></td>
     <td className="px-4 py-3"><div className="h-1.5 bg-gray-200 rounded-full w-28"></div></td>
     <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
     <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-8"></div></td>
@@ -50,6 +52,7 @@ const PriceRangeBar = ({ low, high, current }) => {
 const WatchlistPage = () => {
   const [watchlist, setWatchlist] = useLocalStorage('stockpulse_watchlist', []);
   const [quotes, setQuotes] = useState({});
+  const [sparklineData, setSparklineData] = useState({});
   const [loadingQuotes, setLoadingQuotes] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -59,28 +62,35 @@ const WatchlistPage = () => {
   const dropdownRef = useRef(null);
   const debounceRef = useRef(null);
 
-  // Fetch live quotes for all watchlist stocks
-  const fetchQuotes = useCallback(async (list) => {
+  // Fetch live quotes and sparkline data for all watchlist stocks
+  const fetchQuotesAndSparklines = useCallback(async (list) => {
     if (list.length === 0) return;
     setLoadingQuotes(true);
-    const results = {};
+    const quoteResults = {};
+    const sparkResults = {};
+
     await Promise.all(
       list.map(async (item) => {
-        try {
-          const res = await api.get(`/api/stocks/${item.symbol}/quote`);
-          results[item.symbol] = res.data;
-        } catch {
-          results[item.symbol] = null;
+        const [quoteRes, histRes] = await Promise.all([
+          api.get(`/api/stocks/${item.symbol}/quote`).catch(() => ({ data: null })),
+          api.get(`/api/stocks/${item.symbol}/history?range=5d`).catch(() => ({ data: null })),
+        ]);
+        quoteResults[item.symbol] = quoteRes.data;
+        if (histRes.data && Array.isArray(histRes.data)) {
+          sparkResults[item.symbol] = histRes.data.map((d) => d.close).filter((v) => v != null);
+        } else if (histRes.data && Array.isArray(histRes.data.prices)) {
+          sparkResults[item.symbol] = histRes.data.prices.map((d) => d.close).filter((v) => v != null);
         }
       })
     );
-    setQuotes(results);
+    setQuotes(quoteResults);
+    setSparklineData(sparkResults);
     setLoadingQuotes(false);
   }, []);
 
   useEffect(() => {
-    fetchQuotes(watchlist);
-  }, [watchlist, fetchQuotes]);
+    fetchQuotesAndSparklines(watchlist);
+  }, [watchlist, fetchQuotesAndSparklines]);
 
   // Check price alerts when quotes load
   useEffect(() => {
@@ -314,6 +324,7 @@ const WatchlistPage = () => {
                     <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Stock</th>
                     <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Price</th>
                     <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Change</th>
+                    <th className="text-center px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">5D</th>
                     <th className="text-center px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">52W Range</th>
                     <th className="text-center px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Alert High</th>
                     <th className="text-center px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Alert Low</th>
@@ -364,6 +375,15 @@ const WatchlistPage = () => {
                               ) : (
                                 <span className="text-gray-400">--</span>
                               )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex justify-center">
+                                {sparklineData[item.symbol] && sparklineData[item.symbol].length >= 2 ? (
+                                  <Sparkline data={sparklineData[item.symbol]} />
+                                ) : (
+                                  <div className="w-[80px] h-[30px] bg-gray-100 rounded animate-pulse" />
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex justify-center">

@@ -79,6 +79,13 @@ async def get_52week_scanner(market: Annotated[str, Query(pattern="^(in|us)$")] 
     return data
 
 
+@router.get("/batch")
+async def get_batch_quotes(symbols: Annotated[str, Query()]):
+    symbol_list = [s.strip() for s in symbols.split(",") if s.strip()][:20]
+    result = await asyncio.to_thread(stock_service.get_batch_quotes, symbol_list)
+    return {"quotes": result}
+
+
 @router.get("/sip/{symbol}")
 async def get_sip_returns(
     symbol: str,
