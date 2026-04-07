@@ -8,10 +8,12 @@ import DividendsTab from './DividendsTab';
 import AnalystsTab from './AnalystsTab';
 import HoldersTab from './HoldersTab';
 import EarningsTab from './EarningsTab';
+import OptionsTab from './OptionsTab';
 import SwotTab from './SwotTab';
 import ChartTab from './ChartTab';
 import TechnicalTab from './TechnicalTab';
 import FundamentalTab from './FundamentalTab';
+import PredictionTab from './PredictionTab';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -23,6 +25,8 @@ const TABS = [
   { id: 'analysts', label: 'Analysts' },
   { id: 'holders', label: 'Holders' },
   { id: 'earnings', label: 'Earnings' },
+  { id: 'options', label: 'Options' },
+  { id: 'prediction', label: 'AI Predict' },
   { id: 'swot', label: 'SWOT' },
 ];
 
@@ -74,6 +78,10 @@ const StockDetailPage = () => {
         return <HoldersTab symbol={symbol} />;
       case 'earnings':
         return <EarningsTab symbol={symbol} />;
+      case 'options':
+        return <OptionsTab symbol={symbol} />;
+      case 'prediction':
+        return <PredictionTab symbol={symbol} />;
       case 'swot':
         return <SwotTab symbol={symbol} />;
       default:

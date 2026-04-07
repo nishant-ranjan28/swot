@@ -654,9 +654,170 @@ const PortfolioPage = () => {
         </>
       )}
 
+      {/* ===== OPTIMIZE PORTFOLIO SECTION ===== */}
+      {(() => {
+        const uniqueSymbols = [...new Set(holdings.map(h => h.symbol))];
+        if (uniqueSymbols.length < 2) return null;
+        return (
+          <OptimizePortfolio
+            symbols={uniqueSymbols}
+            totalInvested={totalInvested}
+            holdings={holdings}
+            liveData={liveData}
+            totalCurrent={totalCurrent}
+          />
+        );
+      })()}
+
       {/* ===== INSIGHTS SECTION (only when portfolio has data and prices loaded) ===== */}
       {holdings.length > 0 && !loading && Object.keys(liveData).length > 0 && (
         <PortfolioInsights holdings={holdings} liveData={liveData} watchlist={watchlist} />
+      )}
+    </div>
+  );
+};
+
+// ===== Optimize Portfolio Component =====
+const OptimizePortfolio = ({ symbols, totalInvested, holdings, liveData, totalCurrent }) => {
+  const [optResult, setOptResult] = useState(null);
+  const [optLoading, setOptLoading] = useState(false);
+  const [optError, setOptError] = useState('');
+
+  const handleOptimize = async () => {
+    setOptLoading(true);
+    setOptError('');
+    setOptResult(null);
+    try {
+      const amount = Math.max(totalInvested, 10000);
+      const res = await api.get('/api/portfolio/optimize', {
+        params: { symbols: symbols.join(','), amount: Math.round(amount) },
+      });
+      setOptResult(res.data);
+    } catch (err) {
+      setOptError(err.response?.data?.error || 'Optimization failed. Please try again.');
+    } finally {
+      setOptLoading(false);
+    }
+  };
+
+  // Compute current weights per symbol
+  const currentWeights = {};
+  holdings.forEach((h) => {
+    const price = liveData[h.symbol]?.price || h.buyPrice;
+    const val = price * h.quantity;
+    currentWeights[h.symbol] = (currentWeights[h.symbol] || 0) + val;
+  });
+  Object.keys(currentWeights).forEach((sym) => {
+    currentWeights[sym] = totalCurrent > 0 ? (currentWeights[sym] / totalCurrent) * 100 : 0;
+  });
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mt-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-700">Portfolio Optimization</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Mean-Variance optimization (Max Sharpe Ratio) using 2 years of historical data
+          </p>
+        </div>
+        <button
+          onClick={handleOptimize}
+          disabled={optLoading}
+          className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-none"
+        >
+          {optLoading ? 'Optimizing...' : 'Optimize Portfolio'}
+        </button>
+      </div>
+
+      {optError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-red-700">{optError}</p>
+        </div>
+      )}
+
+      {optLoading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span className="ml-3 text-sm text-gray-500">Running optimization...</span>
+        </div>
+      )}
+
+      {optResult && !optLoading && (
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div className="bg-indigo-50 rounded-lg p-3">
+              <div className="text-xs text-indigo-500 font-medium">Expected Return</div>
+              <div className="text-lg font-bold text-indigo-700">{optResult.expected_return}%</div>
+            </div>
+            <div className="bg-amber-50 rounded-lg p-3">
+              <div className="text-xs text-amber-500 font-medium">Volatility</div>
+              <div className="text-lg font-bold text-amber-700">{optResult.volatility}%</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-3">
+              <div className="text-xs text-green-500 font-medium">Sharpe Ratio</div>
+              <div className="text-lg font-bold text-green-700">{optResult.sharpe_ratio}</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500 font-medium">Leftover Cash</div>
+              <div className="text-lg font-bold text-gray-700">
+                {formatNumber(optResult.leftover_cash)}
+              </div>
+            </div>
+          </div>
+
+          {/* Allocation Table */}
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-gray-500 text-xs uppercase">
+                  <th className="text-left px-4 py-3 font-medium">Stock</th>
+                  <th className="text-right px-3 py-3 font-medium">Current Wt%</th>
+                  <th className="text-right px-3 py-3 font-medium">Optimal Wt%</th>
+                  <th className="text-right px-3 py-3 font-medium">Suggested Shares</th>
+                  <th className="text-right px-3 py-3 font-medium">Price</th>
+                  <th className="text-right px-4 py-3 font-medium">Value</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {optResult.allocations.map((a) => {
+                  const curWt = currentWeights[a.symbol] || 0;
+                  const diff = a.weight - curWt;
+                  return (
+                    <tr key={a.symbol} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-900">{a.symbol}</td>
+                      <td className="text-right px-3 py-3 text-gray-600">{curWt.toFixed(1)}%</td>
+                      <td className="text-right px-3 py-3">
+                        <span className="font-medium text-gray-900">{a.weight.toFixed(1)}%</span>
+                        {Math.abs(diff) > 0.5 && (
+                          <span className={`ml-1 text-xs ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ({diff > 0 ? '+' : ''}{diff.toFixed(1)}%)
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-right px-3 py-3 text-gray-700">{a.shares}</td>
+                      <td className="text-right px-3 py-3 text-gray-600">{a.price.toFixed(2)}</td>
+                      <td className="text-right px-4 py-3 font-medium text-gray-900">
+                        {formatNumber(a.value)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Disclaimer */}
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-xs text-yellow-700">
+              <strong>Disclaimer:</strong> This optimization is for educational purposes only and does not
+              constitute financial advice. Past performance does not guarantee future results. The Max Sharpe
+              optimization assumes normally distributed returns and may not reflect real-world constraints
+              such as taxes, transaction costs, or liquidity. Always consult a qualified financial advisor
+              before making investment decisions.
+            </p>
+          </div>
+        </>
       )}
     </div>
   );

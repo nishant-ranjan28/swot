@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { to: '/screener', label: 'Screener' },
   { to: '/scanner', label: '52W Scanner' },
   { to: '/calculator', label: 'Calculators' },
+  { to: '/backtest', label: 'Backtest' },
+  { to: '/crypto', label: 'Crypto' },
   { to: '/news', label: 'News' },
 ];
 

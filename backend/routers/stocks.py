@@ -123,6 +123,25 @@ async def get_fundamental(symbol: str):
     return result
 
 
+@router.get("/{symbol}/options")
+async def get_options(symbol: str):
+    resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
+    result = await asyncio.to_thread(stock_service.get_options, resolved)
+    if not result:
+        return _not_found(symbol)
+    return result
+
+
+@router.get("/{symbol}/predict")
+async def get_prediction(symbol: str, days: Annotated[int, Query(ge=1, le=30)] = 7):
+    from services.prediction_service import prediction_service
+    resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
+    result = await asyncio.to_thread(prediction_service.predict, resolved, days)
+    if not result:
+        return _not_found(symbol)
+    return result
+
+
 @router.get("/{symbol}/quote")
 async def get_quote(symbol: str):
     resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
