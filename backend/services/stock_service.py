@@ -466,7 +466,7 @@ class StockService:
             return None
 
     def get_earnings(self, symbol: str) -> dict | None:
-        """Get earnings history and upcoming dates."""
+        """Get comprehensive earnings data."""
         cached = cache_manager.get("earnings", symbol)
         if cached is not None:
             return cached
@@ -477,38 +477,130 @@ class StockService:
             if not info:
                 return None
 
-            earnings_dates = info.get("earningsTimestamp")
-            if earnings_dates:
-                from datetime import datetime as dt
-                earnings_dates = dt.fromtimestamp(earnings_dates).strftime("%Y-%m-%d") if isinstance(earnings_dates, (int, float)) else str(earnings_dates)
+            from datetime import datetime as dt
 
-            earnings_hist = ticker.earnings_history
-            history = []
-            if earnings_hist is not None and not earnings_hist.empty:
-                for idx, row in earnings_hist.iterrows():
-                    quarter_date = str(idx) if idx else ""
-                    # Try formatting as date if it's a Timestamp
-                    try:
-                        quarter_date = idx.strftime("%Y-%m-%d")
-                    except (AttributeError, ValueError):
-                        quarter_date = str(idx)
-                    history.append({
-                        "date": quarter_date,
-                        "actual": row.get("epsActual"),
-                        "estimate": row.get("epsEstimate"),
-                        "surprise": row.get("epsDifference"),
-                        "surprise_percent": round(row.get("surprisePercent", 0) * 100, 2) if row.get("surprisePercent") is not None else None,
-                    })
+            # Next earnings date
+            earnings_date = info.get("earningsTimestamp")
+            if earnings_date and isinstance(earnings_date, (int, float)):
+                earnings_date = dt.fromtimestamp(earnings_date).strftime("%Y-%m-%d")
 
-            result = {
-                "symbol": symbol,
-                "earnings_date": earnings_dates,
-                "history": history,
+            # EPS data from earnings_dates (more reliable than earnings_history)
+            eps_history = []
+            upcoming_earnings = []
+            try:
+                ed = ticker.earnings_dates
+                if ed is not None and not ed.empty:
+                    for idx, row in ed.iterrows():
+                        try:
+                            date_str = idx.strftime("%Y-%m-%d")
+                        except (AttributeError, ValueError):
+                            date_str = str(idx)
+                        entry = {
+                            "date": date_str,
+                            "estimate": float(row.get("EPS Estimate")) if row.get("EPS Estimate") is not None and row.get("EPS Estimate") == row.get("EPS Estimate") else None,
+                            "actual": float(row.get("Reported EPS")) if row.get("Reported EPS") is not None and row.get("Reported EPS") == row.get("Reported EPS") else None,
+                            "surprise_percent": round(float(row.get("Surprise(%)")), 2) if row.get("Surprise(%)") is not None and row.get("Surprise(%)") == row.get("Surprise(%)") else None,
+                        }
+                        if entry["actual"] is not None:
+                            eps_history.append(entry)
+                        else:
+                            upcoming_earnings.append(entry)
+            except Exception:
+                pass
+
+            # Fallback to earnings_history if earnings_dates is empty
+            if not eps_history:
+                try:
+                    eh = ticker.earnings_history
+                    if eh is not None and not eh.empty:
+                        for idx, row in eh.iterrows():
+                            try:
+                                date_str = idx.strftime("%Y-%m-%d")
+                            except (AttributeError, ValueError):
+                                date_str = str(idx)
+                            eps_history.append({
+                                "date": date_str,
+                                "actual": row.get("epsActual"),
+                                "estimate": row.get("epsEstimate"),
+                                "surprise_percent": round(row.get("surprisePercent", 0) * 100, 2) if row.get("surprisePercent") is not None else None,
+                            })
+                except Exception:
+                    pass
+
+            # Quarterly revenue and income from financial statements
+            quarterly_results = []
+            try:
+                qf = ticker.quarterly_financials
+                if qf is not None and not qf.empty:
+                    for col in qf.columns[:8]:  # Last 8 quarters
+                        entry = {"date": col.strftime("%Y-%m-%d")}
+                        for row_name, key in [
+                            ("Total Revenue", "revenue"),
+                            ("Net Income", "net_income"),
+                            ("Operating Income", "operating_income"),
+                            ("Gross Profit", "gross_profit"),
+                            ("EBITDA", "ebitda"),
+                        ]:
+                            val = qf.loc[row_name, col] if row_name in qf.index else None
+                            entry[key] = float(val) if val is not None and val == val else None
+                        quarterly_results.append(entry)
+            except Exception:
+                pass
+
+            # Annual revenue and income
+            annual_results = []
+            try:
+                af = ticker.financials
+                if af is not None and not af.empty:
+                    for col in af.columns[:5]:  # Last 5 years
+                        entry = {"date": col.strftime("%Y-%m-%d")}
+                        for row_name, key in [
+                            ("Total Revenue", "revenue"),
+                            ("Net Income", "net_income"),
+                            ("Operating Income", "operating_income"),
+                            ("Gross Profit", "gross_profit"),
+                            ("EBITDA", "ebitda"),
+                        ]:
+                            val = af.loc[row_name, col] if row_name in af.index else None
+                            entry[key] = float(val) if val is not None and val == val else None
+                        annual_results.append(entry)
+            except Exception:
+                pass
+
+            # Key metrics from info
+            key_metrics = {
+                "trailing_eps": info.get("trailingEps"),
+                "forward_eps": info.get("forwardEps"),
+                "eps_current_year": info.get("epsCurrentYear"),
+                "pe_ratio": info.get("trailingPE"),
+                "forward_pe": info.get("forwardPE"),
+                "peg_ratio": info.get("pegRatio"),
+                "earnings_growth": info.get("earningsGrowth"),
+                "earnings_quarterly_growth": info.get("earningsQuarterlyGrowth"),
+                "revenue_growth": info.get("revenueGrowth"),
+                "total_revenue": info.get("totalRevenue"),
+                "net_income": info.get("netIncomeToCommon"),
+                "ebitda": info.get("ebitda"),
+                "ebitda_margins": info.get("ebitdaMargins"),
+                "profit_margins": info.get("profitMargins"),
+                "gross_profits": info.get("grossProfits"),
+                "revenue_per_share": info.get("revenuePerShare"),
             }
+
+            result = sanitize_json({
+                "symbol": symbol,
+                "earnings_date": earnings_date,
+                "upcoming": upcoming_earnings,
+                "history": eps_history,
+                "quarterly": quarterly_results,
+                "annual": annual_results,
+                "metrics": key_metrics,
+            })
 
             cache_manager.set("earnings", symbol, result)
             return result
-        except Exception:
+        except Exception as e:
+            print(f"Earnings error: {e}")
             return None
 
     # Popular Indian stocks for homepage
