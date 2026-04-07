@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useMarket } from '../context/MarketContext';
 import Sparkline from './Sparkline';
 
 const MAX_WATCHLIST = 20;
@@ -131,7 +132,8 @@ const TechnicalSignals = ({ watchlist }) => {
 };
 
 const WatchlistPage = () => {
-  const [watchlist, setWatchlist] = useLocalStorage('stockpulse_watchlist', []);
+  const { market } = useMarket();
+  const [watchlist, setWatchlist] = useLocalStorage(`stockpulse_watchlist_${market}`, []);
   const [quotes, setQuotes] = useState({});
   const [sparklineData, setSparklineData] = useState({});
   const [loadingQuotes, setLoadingQuotes] = useState(false);
@@ -212,7 +214,7 @@ const WatchlistPage = () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await api.get(`/api/stocks/search?q=${encodeURIComponent(searchInput)}`);
+        const res = await api.get(`/api/stocks/search?q=${encodeURIComponent(searchInput)}&market=${market}`);
         setSearchResults((res.data.results || []).slice(0, 6));
         setShowDropdown(true);
       } catch {

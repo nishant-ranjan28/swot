@@ -65,11 +65,16 @@ export function useAlertNotifications() {
   const intervalRef = useRef(null);
 
   const checkAlerts = useCallback(async () => {
-    const watchlistRaw = localStorage.getItem('stockpulse_watchlist');
-    if (!watchlistRaw) return;
-
-    let watchlist;
-    try { watchlist = JSON.parse(watchlistRaw); } catch { return; }
+    // Check both market watchlists for alerts
+    const inRaw = localStorage.getItem('stockpulse_watchlist_in');
+    const usRaw = localStorage.getItem('stockpulse_watchlist_us');
+    // Also check legacy key for backward compatibility
+    const legacyRaw = localStorage.getItem('stockpulse_watchlist');
+    let watchlist = [];
+    try { if (inRaw) watchlist = watchlist.concat(JSON.parse(inRaw)); } catch { /* ignore */ }
+    try { if (usRaw) watchlist = watchlist.concat(JSON.parse(usRaw)); } catch { /* ignore */ }
+    try { if (legacyRaw) watchlist = watchlist.concat(JSON.parse(legacyRaw)); } catch { /* ignore */ }
+    if (watchlist.length === 0) return;
 
     const alertStocks = watchlist.filter(w => w.alertHigh || w.alertLow);
     if (alertStocks.length === 0) return;

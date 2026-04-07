@@ -17,13 +17,13 @@ const formatCurrency = (num, currency) => {
 };
 
 const DEFAULT_TAX_RATES = {
-  in: { stcg: 15, ltcg: 10, ltcgExemption: 100000 },
-  us: { stcg: 30, ltcg: 15, ltcgExemption: 0 },
+  in: { stcg: 20, ltcg: 12.5, ltcgExemption: 125000, cess: 4 },
+  us: { stcg: 24, ltcg: 15, ltcgExemption: 0, cess: 0 },
 };
 
 const TaxCalculatorPage = () => {
-  const [holdings] = useLocalStorage('stockpulse_portfolio', []);
   const { market, currency } = useMarket();
+  const [holdings] = useLocalStorage(`stockpulse_portfolio_${market}`, []);
   const [liveData, setLiveData] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -104,21 +104,38 @@ const TaxCalculatorPage = () => {
     const totalLosses = stcgLosses + ltcgLosses;
     const netGain = totalGains + totalLosses;
 
-    // Net STCG / LTCG after offsetting losses
-    const netSTCG = Math.max(0, stcgGains + stcgLosses);
-    const netLTCG = Math.max(0, ltcgGains + ltcgLosses);
+    // Intra-category offset first
+    let netSTCG = stcgGains + stcgLosses;
+    let netLTCG = ltcgGains + ltcgLosses;
+
+    // Cross-category loss offset: STCG loss can offset LTCG gain and vice versa
+    if (netSTCG < 0 && netLTCG > 0) {
+      netLTCG = netLTCG + netSTCG; // netSTCG is negative
+      netSTCG = Math.min(0, netLTCG); // if LTCG also went negative, carry the remainder
+      if (netLTCG < 0) { netSTCG = netLTCG; netLTCG = 0; }
+      else { netSTCG = 0; }
+    } else if (netLTCG < 0 && netSTCG > 0) {
+      netSTCG = netSTCG + netLTCG; // netLTCG is negative
+      if (netSTCG < 0) { netLTCG = netSTCG; netSTCG = 0; }
+      else { netLTCG = 0; }
+    }
+
+    const taxableSTCG = Math.max(0, netSTCG);
+    const taxableLTCGBeforeExemption = Math.max(0, netLTCG);
 
     // Tax calculations
-    const stcgTax = netSTCG * (taxRates.stcg / 100);
-    const taxableLTCG = Math.max(0, netLTCG - (taxRates.ltcgExemption || 0));
+    const stcgTax = taxableSTCG * (taxRates.stcg / 100);
+    const taxableLTCG = Math.max(0, taxableLTCGBeforeExemption - (taxRates.ltcgExemption || 0));
     const ltcgTax = taxableLTCG * (taxRates.ltcg / 100);
-    const totalTax = stcgTax + ltcgTax;
+    const baseTax = stcgTax + ltcgTax;
+    const cessAmount = baseTax * ((taxRates.cess || 0) / 100);
+    const totalTax = baseTax + cessAmount;
 
     return {
       stcgGains, stcgLosses, ltcgGains, ltcgLosses,
       totalGains, totalLosses, netGain,
-      netSTCG, netLTCG,
-      stcgTax, ltcgTax, taxableLTCG, totalTax,
+      netSTCG: taxableSTCG, netLTCG: taxableLTCGBeforeExemption,
+      stcgTax, ltcgTax, taxableLTCG, totalTax, cessAmount,
     };
   }, [holdingDetails, taxRates]);
 
@@ -160,7 +177,7 @@ const TaxCalculatorPage = () => {
             {/* Tax Rate Settings */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Tax Rate Settings ({market === 'in' ? 'India' : 'US'})</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs text-gray-500 font-medium mb-1">STCG Rate (%)</label>
                   <input
@@ -171,7 +188,7 @@ const TaxCalculatorPage = () => {
                     className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
-                    {market === 'in' ? 'Default: 15% for equity' : 'Default: 30% (ordinary income)'}
+                    {market === 'in' ? 'Default: 20% (Budget 2024)' : 'Default: 24% (ordinary income)'}
                   </p>
                 </div>
                 <div>
@@ -184,7 +201,7 @@ const TaxCalculatorPage = () => {
                     className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
-                    {market === 'in' ? 'Default: 10% above exemption' : 'Default: 15%'}
+                    {market === 'in' ? 'Default: 12.5% above exemption' : 'Default: 15%'}
                   </p>
                 </div>
                 <div>
@@ -197,7 +214,20 @@ const TaxCalculatorPage = () => {
                     className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
-                    {market === 'in' ? 'Default: ₹1,00,000 per year' : 'Default: $0'}
+                    {market === 'in' ? 'Default: ₹1,25,000 per year' : 'Default: $0'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 font-medium mb-1">Cess (%)</label>
+                  <input
+                    type="number"
+                    value={taxRates.cess}
+                    onChange={e => setTaxRates(prev => ({ ...prev, cess: parseFloat(e.target.value) || 0 }))}
+                    min="0" max="100" step="0.5"
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    {market === 'in' ? 'Default: 4% H&E cess' : 'Default: 0%'}
                   </p>
                 </div>
               </div>
@@ -242,6 +272,7 @@ const TaxCalculatorPage = () => {
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
                   STCG: {formatCurrency(taxSummary.stcgTax, currency)} + LTCG: {formatCurrency(taxSummary.ltcgTax, currency)}
+                  {taxSummary.cessAmount > 0 && ` + Cess: ${formatCurrency(taxSummary.cessAmount, currency)}`}
                 </div>
               </div>
             </div>
@@ -454,8 +485,8 @@ const TaxCalculatorPage = () => {
                   </p>
                   <p className="text-xs text-amber-600 mt-1">
                     {market === 'in'
-                      ? 'India: STCG at 15% (Section 111A), LTCG at 10% above ₹1L exemption (Section 112A) for listed equity.'
-                      : 'US: Simplified rates shown. Actual rates depend on income bracket and filing status.'}
+                      ? 'India (Budget 2024): STCG at 20% (Section 111A), LTCG at 12.5% above ₹1.25L exemption (Section 112A) for listed equity + 4% H&E cess. Losses offset across STCG/LTCG categories.'
+                      : 'US: Simplified rates shown. Actual rates depend on income bracket and filing status. STCG taxed as ordinary income (10-37%).'}
                   </p>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useMarket } from '../context/MarketContext';
 import Sparkline from './Sparkline';
 import { exportPortfolio } from '../utils/exportUtils';
 
@@ -128,8 +129,9 @@ const PieLegend = ({ holdings, liveData }) => {
 };
 
 const PortfolioPage = () => {
-  const [holdings, setHoldings] = useLocalStorage('stockpulse_portfolio', []);
-  const [watchlist] = useLocalStorage('stockpulse_watchlist', []);
+  const { market } = useMarket();
+  const [holdings, setHoldings] = useLocalStorage(`stockpulse_portfolio_${market}`, []);
+  const [watchlist] = useLocalStorage(`stockpulse_watchlist_${market}`, []);
   const [liveData, setLiveData] = useState({});
   const [sparklineData, setSparklineData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -221,7 +223,7 @@ const PortfolioPage = () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await api.get(`/api/stocks/search?q=${encodeURIComponent(searchQuery)}`);
+        const res = await api.get(`/api/stocks/search?q=${encodeURIComponent(searchQuery)}&market=${market}`);
         const results = res.data.results || [];
         setSearchResults(results.slice(0, 6));
         setShowDropdown(true);
