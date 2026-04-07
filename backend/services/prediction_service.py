@@ -19,6 +19,7 @@ class PredictionService:
         try:
             ticker = yf.Ticker(symbol)
             df = ticker.history(period="2y")
+            df = df.dropna(subset=["Close"])  # Drop rows with NaN prices
             if df.empty or len(df) < 100:
                 return None
 

@@ -68,7 +68,9 @@ const StockChart = ({ data }) => {
       wickUpColor: '#16a34a',
     });
 
-    const candleData = data.map((d) => ({
+    const validData = data.filter((d) => d.open != null && d.high != null && d.low != null && d.close != null);
+
+    const candleData = validData.map((d) => ({
       time: d.date.split('T')[0],
       open: d.open,
       high: d.high,
@@ -91,9 +93,9 @@ const StockChart = ({ data }) => {
       },
     });
 
-    const volumeData = data.map((d) => ({
+    const volumeData = validData.map((d) => ({
       time: d.date.split('T')[0],
-      value: d.volume,
+      value: d.volume || 0,
       color: d.close >= d.open ? 'rgba(22, 163, 74, 0.3)' : 'rgba(220, 38, 38, 0.3)',
     }));
 

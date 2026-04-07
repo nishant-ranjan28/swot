@@ -36,11 +36,11 @@ const PredictionTab = ({ symbol }) => {
     ctx.clearRect(0, 0, W, H);
 
     const predictions = data.predictions || [];
-    if (predictions.length === 0) return;
+    if (predictions.length === 0 || !data.current_price) return;
 
     // Build data points: current price + predictions
-    const currentPrice = data.current_price;
-    const allPrices = [currentPrice, ...predictions.map((p) => p.predicted_price)];
+    const currentPrice = data.current_price || 0;
+    const allPrices = [currentPrice, ...predictions.map((p) => p.predicted_price || 0)].filter(p => p != null);
     const labels = ['Current', ...predictions.map((p) => p.date.slice(5))]; // MM-DD
 
     const minPrice = Math.min(...allPrices) * 0.995;
@@ -251,8 +251,8 @@ const PredictionTab = ({ symbol }) => {
             </thead>
             <tbody>
               {(data.predictions || []).map((p, idx) => {
-                const diff = p.predicted_price - data.current_price;
-                const diffPct = ((diff / data.current_price) * 100).toFixed(2);
+                const diff = (p.predicted_price || 0) - (data.current_price || 0);
+                const diffPct = data.current_price ? ((diff / data.current_price) * 100).toFixed(2) : '0.00';
                 const isUp = diff >= 0;
                 return (
                   <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">

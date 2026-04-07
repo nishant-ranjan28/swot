@@ -269,6 +269,7 @@ class StockService:
         try:
             ticker = yf.Ticker(symbol)
             df = ticker.history(period=range)
+            df = df.dropna(subset=["Close"])  # Drop rows with NaN prices
             if df.empty:
                 return None
 
