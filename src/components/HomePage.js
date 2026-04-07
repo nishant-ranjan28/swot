@@ -208,9 +208,9 @@ const SECTORS_BY_MARKET = {
 const STOCK_SECTORS = {
   // India
   'RELIANCE.NS': 'Energy', 'TCS.NS': 'IT', 'HDFCBANK.NS': 'Banking', 'INFY.NS': 'IT',
-  'ICICIBANK.NS': 'Banking', 'HINDUNILVR.NS': 'FMCG', 'SBIN.NS': 'Banking', 'BHARTIARTL.NS': 'Telecom',
-  'ITC.NS': 'FMCG', 'KOTAKBANK.NS': 'Banking', 'LT.NS': 'Infra', 'TMCV.NS': 'Auto',
-  'AXISBANK.NS': 'Banking', 'BAJFINANCE.NS': 'Finance', 'MARUTI.NS': 'Auto', 'WIPRO.NS': 'IT',
+  'ICICIBANK.NS': 'Banking', 'HINDUNILVR.NS': 'FMCG', 'SBIN.NS': 'Banking', 'BHARTIARTL.NS': 'IT',
+  'ITC.NS': 'FMCG', 'KOTAKBANK.NS': 'Banking', 'LT.NS': 'Energy', 'TMCV.NS': 'Auto',
+  'AXISBANK.NS': 'Banking', 'BAJFINANCE.NS': 'Banking', 'MARUTI.NS': 'Auto', 'WIPRO.NS': 'IT',
   'ADANIENT.NS': 'Energy', 'TATAPOWER.NS': 'Energy', 'TATASTEEL.NS': 'Metals', 'HCLTECH.NS': 'IT',
   // US
   'AAPL': 'Tech', 'MSFT': 'Tech', 'GOOGL': 'Tech', 'AMZN': 'Consumer', 'NVDA': 'Tech',

@@ -655,7 +655,7 @@ class StockService:
     def _yf_fallback_batch(self, symbols: list[str]) -> dict:
         """Fallback: fetch quotes one-by-one via yfinance when yahooquery fails."""
         results = {}
-        for sym in symbols[:20]:
+        for sym in symbols:
             try:
                 info = self._get_ticker_info(sym)
                 if not info:
