@@ -303,10 +303,11 @@ function ForexPage() {
           const isPositive = changePct >= 0;
 
           return (
-            <div
+            <button
               key={p.symbol}
+              type="button"
               onClick={() => setSelected(isSelected ? null : p.symbol)}
-              className={`rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md ${
+              className={`rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md text-left ${
                 isSelected
                   ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
                   : 'bg-white border-gray-100'
@@ -329,7 +330,7 @@ function ForexPage() {
                   </div>
                 </>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
