@@ -14,7 +14,7 @@ export function exportToCSV(data, columns, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `${filename}.csv`; a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 export function generateStockReport(quote, overview, financials, currency = '₹') {
@@ -33,9 +33,9 @@ export function generateStockReport(quote, overview, financials, currency = '₹
   // Price
   doc.setFontSize(16);
   doc.text(`${currency}${quote?.price?.toFixed(2) || 'N/A'}`, 14, 40);
-  const change = quote?.change_percent;
+  const change = quote?.change_percent ?? 0;
   doc.setTextColor(change >= 0 ? 0 : 255, change >= 0 ? 128 : 0, 0);
-  doc.text(`${change >= 0 ? '+' : ''}${change?.toFixed(2) || 0}%`, 80, 40);
+  doc.text(`${change >= 0 ? '+' : ''}${change.toFixed(2)}%`, 80, 40);
   doc.setTextColor(0, 0, 0);
 
   // Overview table

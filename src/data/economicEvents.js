@@ -50,14 +50,14 @@ export const ECONOMIC_EVENTS = [
   },
   {
     name: "ECB Interest Rate Decision",
-    country: "US",
+    country: "EU",
     dates: ["2026-04-16", "2026-06-11", "2026-07-23", "2026-09-10", "2026-10-29", "2026-12-17"],
     impact: "High",
     description: "European Central Bank sets eurozone interest rates. Impacts global markets."
   },
   {
     name: "BOJ Policy Meeting",
-    country: "US",
+    country: "JP",
     dates: ["2026-04-28", "2026-06-16", "2026-07-31", "2026-09-18", "2026-10-30", "2026-12-18"],
     impact: "Medium",
     description: "Bank of Japan monetary policy decision. Affects yen and Asian markets."

@@ -52,7 +52,7 @@ async def get_trending(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"
 
 
 @router.get("/indices")
-async def get_indices(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+async def get_indices(market: Annotated[str, Query(pattern="^(in|us|global)$")] = "in"):
     indices = await asyncio.to_thread(stock_service.get_market_indices, market)
     return {"indices": indices}
 

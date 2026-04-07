@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { ECONOMIC_EVENTS } from '../data/economicEvents';
 
-const COUNTRY_FLAGS = { IN: '\ud83c\uddee\ud83c\uddf3', US: '\ud83c\uddfa\ud83c\uddf8' };
-const COUNTRY_FILTERS = ['All', 'India', 'US'];
+const COUNTRY_FLAGS = { IN: '\ud83c\uddee\ud83c\uddf3', US: '\ud83c\uddfa\ud83c\uddf8', EU: '\ud83c\uddea\ud83c\uddfa', JP: '\ud83c\uddef\ud83c\uddf5' };
+const COUNTRY_FILTERS = ['All', 'India', 'US', 'EU', 'Japan'];
 const IMPACT_FILTERS = ['All', 'High', 'Medium'];
 
 function getNextDate(dates) {
@@ -57,6 +57,8 @@ const EconomicCalendarPage = () => {
       .filter(ev => {
         if (countryFilter === 'India' && ev.country !== 'IN') return false;
         if (countryFilter === 'US' && ev.country !== 'US') return false;
+        if (countryFilter === 'EU' && ev.country !== 'EU') return false;
+        if (countryFilter === 'Japan' && ev.country !== 'JP') return false;
         if (impactFilter !== 'All' && ev.impact !== impactFilter) return false;
         return true;
       })

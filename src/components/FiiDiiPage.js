@@ -161,7 +161,7 @@ function FiiDiiPage() {
     );
   }
 
-  const prices = data?.prices || [];
+  const prices = data?.data || [];
   const latest = prices[prices.length - 1];
   const prev = prices.length > 1 ? prices[prices.length - 2] : latest;
   const dayChange = latest && prev ? ((latest.close - prev.close) / prev.close * 100).toFixed(2) : 0;
