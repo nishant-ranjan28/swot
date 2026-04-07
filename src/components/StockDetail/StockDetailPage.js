@@ -12,7 +12,6 @@ import SwotTab from './SwotTab';
 import ChartTab from './ChartTab';
 import TechnicalTab from './TechnicalTab';
 import FundamentalTab from './FundamentalTab';
-import { useMarket } from '../../context/MarketContext';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -31,7 +30,6 @@ const StockDetailPage = () => {
   const { symbol } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { currency } = useMarket();
   const activeTab = searchParams.get('tab') || 'overview';
 
   // Scroll to top when navigating to a stock page

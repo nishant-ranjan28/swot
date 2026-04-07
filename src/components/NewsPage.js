@@ -35,7 +35,7 @@ const NewsPage = () => {
 
   useEffect(() => {
     fetchNews();
-  }, []);
+  }, [market]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStockFilter = (e) => {
     e.preventDefault();
