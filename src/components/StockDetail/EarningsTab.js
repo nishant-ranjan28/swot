@@ -14,7 +14,6 @@ const EarningsTab = ({ symbol }) => {
   if (!data) return <div className="text-gray-500 text-center py-8">No earnings data available.</div>;
 
   const m = data.metrics || {};
-  const locale = currency === '$' ? 'en-US' : 'en-IN';
 
   const fmtPct = (val) => {
     if (val == null) return '-';

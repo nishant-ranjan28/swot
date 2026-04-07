@@ -3,10 +3,13 @@ import yfinance as yf
 import httpx
 import hashlib
 import numpy as np
+import pandas as pd
+import pandas_ta as ta
 from datetime import datetime
 from urllib.parse import quote_plus
 from utils.cache import cache_manager
 from config import CACHE_TTL, IST, MARKET_OPEN, MARKET_CLOSE
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import math
 
 
@@ -23,6 +26,8 @@ def sanitize_json(obj):
 
 class StockService:
     """Wrapper around yfinance with caching and Indian stock support."""
+
+    _sentiment_analyzer = SentimentIntensityAnalyzer()
 
     def _is_market_open(self) -> bool:
         now = datetime.now(IST).time()
@@ -811,6 +816,20 @@ class StockService:
                 resolutions = thumbnail["resolutions"]
                 image_url = resolutions[-1].get("url") if resolutions else thumbnail.get("originalUrl")
 
+            # Score headline sentiment with VADER
+            headline = content.get("title", "")
+            summary_text = content.get("summary", "")
+            text_to_score = f"{headline}. {summary_text}" if summary_text else headline
+            scores = self._sentiment_analyzer.polarity_scores(text_to_score)
+            compound = scores["compound"]
+
+            if compound >= 0.15:
+                sentiment_label = "Bullish"
+            elif compound <= -0.15:
+                sentiment_label = "Bearish"
+            else:
+                sentiment_label = "Neutral"
+
             articles.append({
                 "title": content.get("title", ""),
                 "summary": content.get("summary", ""),
@@ -818,6 +837,8 @@ class StockService:
                 "published_at": content.get("pubDate", ""),
                 "source": content.get("provider", {}).get("displayName", "Yahoo Finance"),
                 "image": image_url,
+                "sentiment_score": round(compound, 3),
+                "sentiment_label": sentiment_label,
             })
         return articles
 
@@ -869,82 +890,6 @@ class StockService:
         cache_manager.set("news", cache_key, all_articles, ttl=900)
         return all_articles
 
-    def _calc_sma(self, prices, period):
-        """Simple Moving Average."""
-        if len(prices) < period:
-            return None
-        return round(float(np.mean(prices[-period:])), 2)
-
-    def _calc_ema(self, prices, period):
-        """Exponential Moving Average."""
-        if len(prices) < period:
-            return None
-        multiplier = 2 / (period + 1)
-        ema = prices[0]
-        for price in prices[1:]:
-            ema = (price - ema) * multiplier + ema
-        return round(float(ema), 2)
-
-    def _calc_rsi(self, prices, period=14):
-        """Relative Strength Index."""
-        if len(prices) < period + 1:
-            return None
-        deltas = np.diff(prices)
-        gains = np.where(deltas > 0, deltas, 0)
-        losses = np.where(deltas < 0, -deltas, 0)
-        avg_gain = np.mean(gains[:period])
-        avg_loss = np.mean(losses[:period])
-        for i in range(period, len(gains)):
-            avg_gain = (avg_gain * (period - 1) + gains[i]) / period
-            avg_loss = (avg_loss * (period - 1) + losses[i]) / period
-        if avg_loss == 0:
-            return 100.0
-        rs = avg_gain / avg_loss
-        return round(100 - (100 / (1 + rs)), 2)
-
-    def _calc_macd(self, prices):
-        """MACD (12, 26, 9)."""
-        if len(prices) < 26:
-            return None, None, None
-        ema12 = self._calc_ema(prices, 12)
-        ema26 = self._calc_ema(prices, 26)
-        macd_line = round(ema12 - ema26, 2)
-        # Signal line approximation using last 9 MACD values
-        macd_values = []
-        for i in range(max(0, len(prices) - 30), len(prices)):
-            subset = prices[:i + 1]
-            if len(subset) >= 26:
-                e12 = self._calc_ema(subset, 12)
-                e26 = self._calc_ema(subset, 26)
-                macd_values.append(e12 - e26)
-        signal = self._calc_ema(macd_values, 9) if len(macd_values) >= 9 else None
-        histogram = round(macd_line - signal, 2) if signal else None
-        return macd_line, signal, histogram
-
-    def _calc_bollinger(self, prices, period=20):
-        """Bollinger Bands."""
-        if len(prices) < period:
-            return None, None, None
-        sma = np.mean(prices[-period:])
-        std = np.std(prices[-period:])
-        return round(float(sma + 2 * std), 2), round(float(sma), 2), round(float(sma - 2 * std), 2)
-
-    def _calc_atr(self, highs, lows, closes, period=14):
-        """Average True Range."""
-        if len(closes) < period + 1:
-            return None
-        tr_values = []
-        for i in range(1, len(closes)):
-            tr = max(
-                highs[i] - lows[i],
-                abs(highs[i] - closes[i - 1]),
-                abs(lows[i] - closes[i - 1])
-            )
-            tr_values.append(tr)
-        if len(tr_values) < period:
-            return None
-        return round(float(np.mean(tr_values[-period:])), 2)
-
     def _find_support_resistance(self, prices, window=20):
         """Find support and resistance levels."""
         if len(prices) < window * 2:
@@ -975,28 +920,60 @@ class StockService:
                 return None
 
             closes = df["Close"].values.tolist()
-            highs = df["High"].values.tolist()
-            lows = df["Low"].values.tolist()
             current_price = closes[-1]
 
+            # --- Compute indicators with pandas-ta ---
+            df.ta.sma(length=20, append=True)
+            df.ta.sma(length=50, append=True)
+            df.ta.sma(length=200, append=True)
+            df.ta.ema(length=12, append=True)
+            df.ta.ema(length=26, append=True)
+            df.ta.ema(length=50, append=True)
+            df.ta.rsi(length=14, append=True)
+            df.ta.macd(fast=12, slow=26, signal=9, append=True)
+            df.ta.bbands(length=20, std=2, append=True)
+            df.ta.atr(length=14, append=True)
+            df.ta.stoch(append=True)
+            df.ta.adx(length=14, append=True)
+            df.ta.willr(length=14, append=True)
+
+            # Candlestick patterns
+            candle_df = df.ta.cdl_pattern(name="all")
+
+            # Helper to safely get last value from a column
+            def _last(col_name):
+                if col_name in df.columns and pd.notna(df[col_name].iloc[-1]):
+                    return round(float(df[col_name].iloc[-1]), 2)
+                return None
+
             # Moving Averages
-            sma_20 = self._calc_sma(closes, 20)
-            sma_50 = self._calc_sma(closes, 50)
-            sma_200 = self._calc_sma(closes, 200)
-            ema_12 = self._calc_ema(closes, 12)
-            ema_26 = self._calc_ema(closes, 26)
-            ema_50 = self._calc_ema(closes, 50)
+            sma_20 = _last("SMA_20")
+            sma_50 = _last("SMA_50")
+            sma_200 = _last("SMA_200")
+            ema_12 = _last("EMA_12")
+            ema_26 = _last("EMA_26")
+            ema_50 = _last("EMA_50")
 
             # Oscillators
-            rsi = self._calc_rsi(closes)
-            macd_line, macd_signal, macd_histogram = self._calc_macd(closes)
-            bb_upper, bb_middle, bb_lower = self._calc_bollinger(closes)
-            atr = self._calc_atr(highs, lows, closes)
+            rsi = _last("RSI_14")
+            macd_line = _last("MACD_12_26_9")
+            macd_signal = _last("MACDs_12_26_9")
+            macd_histogram = _last("MACDh_12_26_9")
+            bb_upper = _last("BBU_20_2.0")
+            bb_middle = _last("BBM_20_2.0")
+            bb_lower = _last("BBL_20_2.0")
+            atr = _last("ATRr_14")
+
+            # New indicators
+            stoch_k = _last("STOCHk_14_3_3")
+            stoch_d = _last("STOCHd_14_3_3")
+            adx_val = _last("ADX_14")
+            willr_val = _last("WILLR_14")
 
             # Support/Resistance
             supports, resistances = self._find_support_resistance(closes)
 
-            # Generate signals
+            # --- Generate signals (same logic as before) ---
             ma_signals = []
             ma_buy = 0
             ma_total = 0
@@ -1052,6 +1029,36 @@ class StockService:
                 elif sig == "Neutral":
                     osc_buy += 0.5
 
+            # Stochastic signal
+            if stoch_k is not None:
+                if stoch_k < 20:
+                    sig = "Buy"
+                elif stoch_k > 80:
+                    sig = "Sell"
+                else:
+                    sig = "Neutral"
+                osc_signals.append({"name": "Stochastic (14,3,3)", "value": stoch_k, "signal": sig})
+                osc_total += 1
+                if sig == "Buy":
+                    osc_buy += 1
+                elif sig == "Neutral":
+                    osc_buy += 0.5
+
+            # Williams %R signal
+            if willr_val is not None:
+                if willr_val < -80:
+                    sig = "Buy"
+                elif willr_val > -20:
+                    sig = "Sell"
+                else:
+                    sig = "Neutral"
+                osc_signals.append({"name": "Williams %R (14)", "value": willr_val, "signal": sig})
+                osc_total += 1
+                if sig == "Buy":
+                    osc_buy += 1
+                elif sig == "Neutral":
+                    osc_buy += 0.5
+
             # Overall signal
             total_buy = ma_buy + osc_buy
             total_indicators = ma_total + osc_total
@@ -1077,6 +1084,23 @@ class StockService:
             daily_returns = np.diff(closes) / closes[:-1]
             volatility = round(float(np.std(daily_returns) * np.sqrt(252) * 100), 2)
 
+            # Candlestick patterns detection
+            candlestick_patterns = []
+            if candle_df is not None and not candle_df.empty:
+                last_row = candle_df.iloc[-1]
+                for col in candle_df.columns:
+                    val = last_row[col]
+                    if pd.notna(val) and val != 0:
+                        # Column names are like CDL_DOJI, CDL_HAMMER etc.
+                        pattern_name = col.replace("CDL_", "").replace("_", " ").title()
+                        signal_type = "Bullish" if val > 0 else "Bearish"
+                        strength = "Strong" if abs(val) >= 100 else "Moderate"
+                        candlestick_patterns.append({
+                            "name": pattern_name,
+                            "signal": signal_type,
+                            "strength": strength,
+                        })
+
             result = {
                 "symbol": symbol,
                 "current_price": round(current_price, 2),
@@ -1095,6 +1119,10 @@ class StockService:
                     "bollinger": {"upper": bb_upper, "middle": bb_middle, "lower": bb_lower},
                     "summary": "Buy" if osc_buy > osc_total / 2 else "Sell" if osc_buy < osc_total / 2 else "Neutral",
                 },
+                "stochastic": {"k": stoch_k, "d": stoch_d},
+                "adx": adx_val,
+                "williams_r": willr_val,
+                "candlestick_patterns": candlestick_patterns,
                 "trend": {
                     "short_term": trend_short,
                     "medium_term": trend_medium,
@@ -1893,6 +1921,67 @@ class StockService:
             return result
         except Exception as e:
             print(f"SIP calculation error: {e}")
+            return None
+
+    def get_options(self, symbol: str) -> dict | None:
+        """Get options chain data using yfinance."""
+        cached = cache_manager.get("options", symbol)
+        if cached is not None:
+            return cached
+
+        try:
+            ticker = yf.Ticker(symbol)
+            expirations = ticker.options  # List of expiration dates
+            if not expirations:
+                return None
+
+            # Get chain for nearest expiration
+            nearest = expirations[0]
+            chain = ticker.option_chain(nearest)
+
+            def parse_options(df, option_type):
+                options = []
+                for _, row in df.iterrows():
+                    options.append({
+                        "strike": float(row.get("strike", 0)),
+                        "last_price": float(row.get("lastPrice", 0)),
+                        "bid": float(row.get("bid", 0)),
+                        "ask": float(row.get("ask", 0)),
+                        "volume": int(row.get("volume", 0)) if row.get("volume") == row.get("volume") else 0,
+                        "open_interest": int(row.get("openInterest", 0)) if row.get("openInterest") == row.get("openInterest") else 0,
+                        "implied_vol": round(float(row.get("impliedVolatility", 0)) * 100, 2),
+                        "in_the_money": bool(row.get("inTheMoney", False)),
+                        "type": option_type,
+                    })
+                return options
+
+            calls = parse_options(chain.calls, "call")
+            puts = parse_options(chain.puts, "put")
+
+            # Calculate PCR
+            total_call_oi = sum(c["open_interest"] for c in calls)
+            total_put_oi = sum(p["open_interest"] for p in puts)
+            pcr = round(total_put_oi / total_call_oi, 2) if total_call_oi > 0 else 0
+
+            info = self._get_ticker_info(symbol)
+            current_price = info.get("regularMarketPrice", 0) if info else 0
+
+            result = sanitize_json({
+                "symbol": symbol,
+                "current_price": current_price,
+                "expirations": list(expirations[:6]),
+                "selected_expiration": nearest,
+                "calls": calls,
+                "puts": puts,
+                "pcr": pcr,
+                "total_call_oi": total_call_oi,
+                "total_put_oi": total_put_oi,
+            })
+
+            cache_manager.set("options", symbol, result, ttl=600)
+            return result
+        except Exception as e:
+            print(f"Options error: {e}")
             return None
 
 

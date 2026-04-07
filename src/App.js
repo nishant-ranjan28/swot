@@ -11,6 +11,8 @@ import CalculatorPage from './components/CalculatorPage';
 import WatchlistPage from './components/WatchlistPage';
 import PortfolioPage from './components/PortfolioPage';
 import ComparePage from './components/ComparePage';
+import BacktestPage from './components/BacktestPage';
+import CryptoPage from './components/CryptoPage';
 import { useAlertNotifications } from './hooks/useAlertNotifications';
 
 function ScrollToTop() {
@@ -37,6 +39,8 @@ function App() {
         <Route path="/screener" element={<ScreenerPage />} />
         <Route path="/scanner" element={<ScannerPage />} />
         <Route path="/calculator" element={<CalculatorPage />} />
+        <Route path="/backtest" element={<BacktestPage />} />
+        <Route path="/crypto" element={<CryptoPage />} />
         <Route path="/news" element={<NewsPage />} />
       </Routes>
     </div>

@@ -128,6 +128,43 @@ const TechnicalTab = ({ symbol }) => {
         </div>
       </div>
 
+      {/* Additional Indicators */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-500">Stochastic %K / %D</div>
+          <div className={`text-lg font-bold ${
+            data.stochastic?.k < 20 ? 'text-green-600' : data.stochastic?.k > 80 ? 'text-red-600' : 'text-gray-900'
+          }`}>
+            {data.stochastic?.k != null ? data.stochastic.k : 'N/A'} / {data.stochastic?.d != null ? data.stochastic.d : 'N/A'}
+          </div>
+          <div className="text-[10px] text-gray-400">
+            {data.stochastic?.k < 20 ? 'Oversold' : data.stochastic?.k > 80 ? 'Overbought' : 'Normal'}
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-500">ADX (14)</div>
+          <div className={`text-lg font-bold ${
+            data.adx >= 25 ? 'text-blue-600' : 'text-gray-900'
+          }`}>
+            {data.adx != null ? data.adx : 'N/A'}
+          </div>
+          <div className="text-[10px] text-gray-400">
+            {data.adx >= 50 ? 'Very Strong Trend' : data.adx >= 25 ? 'Strong Trend' : data.adx != null ? 'Weak Trend' : ''}
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-500">Williams %R (14)</div>
+          <div className={`text-lg font-bold ${
+            data.williams_r < -80 ? 'text-green-600' : data.williams_r > -20 ? 'text-red-600' : 'text-gray-900'
+          }`}>
+            {data.williams_r != null ? data.williams_r : 'N/A'}
+          </div>
+          <div className="text-[10px] text-gray-400">
+            {data.williams_r < -80 ? 'Oversold' : data.williams_r > -20 ? 'Overbought' : data.williams_r != null ? 'Normal' : ''}
+          </div>
+        </div>
+      </div>
+
       {/* Moving Averages */}
       <div>
         <div className="flex justify-between items-center mb-3">
@@ -238,6 +275,28 @@ const TechnicalTab = ({ symbol }) => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Candlestick Patterns */}
+      {data.candlestick_patterns?.length > 0 && (
+        <div>
+          <h3 className="text-md font-semibold text-gray-800 mb-3">Candlestick Patterns</h3>
+          <div className="flex flex-wrap gap-2">
+            {data.candlestick_patterns.map((pattern, idx) => (
+              <div key={idx} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                pattern.signal === 'Bullish' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+              }`}>
+                <span className={`font-medium ${
+                  pattern.signal === 'Bullish' ? 'text-green-700' : 'text-red-700'
+                }`}>{pattern.name}</span>
+                <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
+                  pattern.signal === 'Bullish' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>{pattern.signal}</span>
+                <span className="text-xs text-gray-500">{pattern.strength}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

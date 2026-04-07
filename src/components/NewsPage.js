@@ -189,6 +189,13 @@ const NewsPage = () => {
                       {article.source}
                     </span>
                     <span className="text-xs text-gray-400">{formatDate(article.published_at)}</span>
+                    {article.sentiment_label && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                        article.sentiment_label === 'Bullish' ? 'bg-green-100 text-green-700' :
+                        article.sentiment_label === 'Bearish' ? 'bg-red-100 text-red-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>{article.sentiment_label}</span>
+                    )}
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
                     {article.title}
