@@ -135,11 +135,7 @@ function CryptoChart({ symbol, timeframe, limit }) {
       // Body
       const bodyTop = Math.min(openY, closeY);
       const bodyH = Math.max(Math.abs(closeY - openY), 1);
-      if (bullish) {
-        ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyH);
-      } else {
-        ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyH);
-      }
+      ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyH);
     });
 
     // X-axis date labels

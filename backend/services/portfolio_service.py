@@ -20,15 +20,45 @@ class PortfolioService:
             if df.empty:
                 return None
 
+            # Handle single stock edge case (returns Series not DataFrame)
+            if isinstance(df, pd.Series):
+                df = df.to_frame(name=symbols[0])
+
+            # Drop columns with too many NaN
+            df = df.dropna(axis=1, thresh=int(len(df) * 0.5))
+            df = df.dropna()
+
+            if df.shape[1] < 2:
+                return None
+
             # Calculate expected returns and covariance
             mu = expected_returns.mean_historical_return(df)
             S = risk_models.sample_cov(df)
 
-            # Max Sharpe optimization
+            # Try max_sharpe with decreasing risk-free rates
             ef = EfficientFrontier(mu, S)
-            ef.max_sharpe(risk_free_rate=0.05)
-            weights = ef.clean_weights()
-            perf = ef.portfolio_performance(verbose=False, risk_free_rate=0.05)
+            weights = None
+            risk_free = 0.05
+
+            for rf in [0.05, 0.02, 0.01, 0.0]:
+                try:
+                    ef_attempt = EfficientFrontier(mu, S)
+                    ef_attempt.max_sharpe(risk_free_rate=rf)
+                    weights = ef_attempt.clean_weights()
+                    risk_free = rf
+                    ef = ef_attempt
+                    break
+                except ValueError:
+                    continue
+
+            # Fallback to min volatility if max_sharpe fails at all rates
+            if weights is None:
+                ef = EfficientFrontier(mu, S)
+                ef.min_volatility()
+                weights = ef.clean_weights()
+                risk_free = 0.0
+
+            perf = ef.portfolio_performance(verbose=False, risk_free_rate=risk_free)
 
             # Discrete allocation
             latest_prices = get_latest_prices(df)
