@@ -6,7 +6,7 @@ const MarketContext = createContext(null);
 export function MarketProvider({ children }) {
   const [market, setMarket] = useLocalStorage('stockpulse_market', 'in');
 
-  const toggleMarket = () => setMarket(market === 'in' ? 'us' : 'in');
+  const toggleMarket = () => setMarket(prev => prev === 'in' ? 'us' : 'in');
   const currency = market === 'in' ? '₹' : '$';
   const marketLabel = market === 'in' ? 'India' : 'USA';
 

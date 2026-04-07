@@ -97,7 +97,7 @@ const StockSearch = ({
 
     async function fetchStocks() {
       try {
-        const response = await api.get(`/api/stocks/search?q=${input}&market=${market}`);
+        const response = await api.get(`/api/stocks/search?q=${encodeURIComponent(input)}&market=${market}`);
         const stocks = response.data.results || [];
         const limitedStocks = stocks.slice(0, 5);
 

@@ -52,6 +52,7 @@ const StockDetailPage = () => {
   };
 
   const quote = summary?.quote;
+  const stockCurrency = quote?.currency === 'USD' ? '$' : '₹';
   const changeColor = quote?.change >= 0 ? 'text-green-600' : 'text-red-600';
   const changeSign = quote?.change >= 0 ? '+' : '';
 
@@ -102,7 +103,7 @@ const StockDetailPage = () => {
               </div>
               <div className="text-right">
                 <div className="text-3xl font-bold text-gray-900">
-                  {currency}{quote.price?.toLocaleString(currency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}
+                  {stockCurrency}{quote.price?.toLocaleString(stockCurrency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}
                 </div>
                 <div className={`text-lg font-semibold ${changeColor}`}>
                   {changeSign}{quote.change?.toFixed(2)} ({changeSign}{quote.change_percent?.toFixed(2)}%)

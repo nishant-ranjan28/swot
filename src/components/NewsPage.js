@@ -22,7 +22,7 @@ const NewsPage = () => {
     try {
       const endpoint = symbol
         ? `/api/stocks/news/${symbol}`
-        : '/api/stocks/news';
+        : `/api/stocks/news?market=${market}`;
       const response = await api.get(endpoint);
       setArticles(response.data.articles || []);
     } catch (err) {

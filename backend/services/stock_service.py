@@ -86,7 +86,7 @@ class StockService:
 
         try:
             region = "IN" if market == "in" else "US"
-            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={query}&region={region}&quotesCount=10"
+            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={quote_plus(query)}&region={region}&quotesCount=10"
             headers = {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
             }

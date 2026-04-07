@@ -13,12 +13,18 @@ const InfoRow = ({ label, value, highlight }) => (
 
 const formatPercent = (val) => (val != null ? `${(val * 100).toFixed(2)}%` : 'N/A');
 const formatRatio = (val) => (val != null ? val.toFixed(2) : 'N/A');
-const formatCurrency = (num, currency = '₹') => {
+const formatCurrency = (num, cur = '₹') => {
   if (!num) return 'N/A';
-  const locale = currency === '$' ? 'en-US' : 'en-IN';
-  if (num >= 1e7) return `${currency}${(num / 1e7).toFixed(2)}Cr`;
-  if (num >= 1e5) return `${currency}${(num / 1e5).toFixed(2)}L`;
-  return `${currency}${num.toLocaleString(locale)}`;
+  if (cur === '$') {
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+    return `$${num.toLocaleString('en-US')}`;
+  }
+  if (num >= 1e12) return `₹${(num / 1e12).toFixed(2)}T`;
+  if (num >= 1e7) return `₹${(num / 1e7).toFixed(2)}Cr`;
+  if (num >= 1e5) return `₹${(num / 1e5).toFixed(2)}L`;
+  return `₹${num.toLocaleString('en-IN')}`;
 };
 
 const FinancialsTab = ({ symbol }) => {

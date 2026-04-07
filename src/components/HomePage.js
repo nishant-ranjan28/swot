@@ -25,45 +25,52 @@ const formatDate = (dateStr) => {
   return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
 };
 
+const MARKET_CONFIG = {
+  in: { timezone: 'Asia/Kolkata', label: 'IST', openH: 9, openM: 15, closeH: 15, closeM: 30 },
+  us: { timezone: 'America/New_York', label: 'ET', openH: 9, openM: 30, closeH: 16, closeM: 0 },
+};
+
 const MarketStatus = () => {
+  const { market } = useMarket();
   const [status, setStatus] = useState({ isOpen: false, text: '', time: '' });
 
   useEffect(() => {
     const checkStatus = () => {
+      const config = MARKET_CONFIG[market] || MARKET_CONFIG.in;
       const now = new Date();
-      const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const hours = ist.getHours();
-      const minutes = ist.getMinutes();
-      const day = ist.getDay();
+      const local = new Date(now.toLocaleString('en-US', { timeZone: config.timezone }));
+      const hours = local.getHours();
+      const minutes = local.getMinutes();
+      const day = local.getDay();
       const timeInMinutes = hours * 60 + minutes;
-      const marketOpen = 9 * 60 + 15;
-      const marketClose = 15 * 60 + 30;
+      const marketOpen = config.openH * 60 + config.openM;
+      const marketClose = config.closeH * 60 + config.closeM;
       const isWeekday = day >= 1 && day <= 5;
       const isOpen = isWeekday && timeInMinutes >= marketOpen && timeInMinutes <= marketClose;
 
-      const timeStr = ist.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+      const timeStr = local.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: config.timezone });
 
       if (!isWeekday) {
-        setStatus({ isOpen: false, text: 'Weekend - Market Closed', time: timeStr });
+        setStatus({ isOpen: false, text: 'Weekend - Market Closed', time: `${config.label} ${timeStr}` });
       } else if (timeInMinutes < marketOpen) {
         const minsToOpen = marketOpen - timeInMinutes;
         const h = Math.floor(minsToOpen / 60);
         const m = minsToOpen % 60;
-        setStatus({ isOpen: false, text: `Pre-market - Opens in ${h}h ${m}m`, time: timeStr });
+        setStatus({ isOpen: false, text: `Pre-market - Opens in ${h}h ${m}m`, time: `${config.label} ${timeStr}` });
       } else if (isOpen) {
         const minsToClose = marketClose - timeInMinutes;
         const h = Math.floor(minsToClose / 60);
         const m = minsToClose % 60;
-        setStatus({ isOpen: true, text: `Market Open - Closes in ${h}h ${m}m`, time: timeStr });
+        setStatus({ isOpen: true, text: `Market Open - Closes in ${h}h ${m}m`, time: `${config.label} ${timeStr}` });
       } else {
-        setStatus({ isOpen: false, text: 'Market Closed', time: timeStr });
+        setStatus({ isOpen: false, text: 'Market Closed', time: `${config.label} ${timeStr}` });
       }
     };
 
     checkStatus();
     const interval = setInterval(checkStatus, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [market]);
 
   return (
     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
@@ -91,15 +98,15 @@ const IndexCard = ({ index }) => {
   );
 };
 
-const PriceRangeBar = ({ low, high, current }) => {
+const PriceRangeBar = ({ low, high, current, currencySymbol = '₹' }) => {
   if (!low || !high || !current || high === low) return null;
   const position = Math.min(Math.max(((current - low) / (high - low)) * 100, 0), 100);
   return (
     <div className="mt-2">
       <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
-        <span>{low.toFixed(0)}</span>
+        <span>{currencySymbol}{low.toFixed(0)}</span>
         <span className="text-[10px] text-gray-300">52W Range</span>
-        <span>{high.toFixed(0)}</span>
+        <span>{currencySymbol}{high.toFixed(0)}</span>
       </div>
       <div className="relative h-1.5 bg-gray-200 rounded-full">
         <div
@@ -129,14 +136,14 @@ const StockCard = ({ stock }) => {
         </div>
         <div className="text-right ml-3">
           <div className="text-sm font-bold text-gray-900">
-            {stock.currency === 'USD' ? '$' : '₹'}{stock.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {stock.currency === 'USD' ? '$' : '₹'}{stock.price?.toLocaleString(stock.currency === 'USD' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div className={`text-xs font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
             {isPositive ? '+' : ''}{stock.change_percent?.toFixed(2)}%
           </div>
         </div>
       </div>
-      <PriceRangeBar low={stock.week52_low} high={stock.week52_high} current={stock.price} />
+      <PriceRangeBar low={stock.week52_low} high={stock.week52_high} current={stock.price} currencySymbol={stock.currency === 'USD' ? '$' : '₹'} />
       <div className="mt-2 flex justify-between text-xs text-gray-400">
         <span>Vol: {formatNumber(stock.volume)}</span>
         <span>MCap: {formatNumber(stock.market_cap)}</span>
@@ -238,7 +245,7 @@ const HomePage = () => {
       .catch((err) => console.error('Failed to load trending:', err))
       .finally(() => setLoadingStocks(false));
 
-    api.get('/api/stocks/news')
+    api.get(`/api/stocks/news?market=${market}`)
       .then((res) => setNews((res.data.articles || []).slice(0, 4)))
       .catch((err) => console.error('Failed to load news:', err))
       .finally(() => setLoadingNews(false));
