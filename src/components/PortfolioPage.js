@@ -689,9 +689,9 @@ const OptimizePortfolio = ({ symbols, totalInvested, holdings, liveData, totalCu
     setOptResult(null);
     try {
       const amount = Math.max(totalInvested, 10000);
-      const res = await api.get(
-        `/api/portfolio/optimize?symbols=${symbols.join(',')}&amount=${Math.round(amount)}`
-      );
+      const res = await api.get('/api/portfolio/optimize', {
+        params: { symbols: symbols.join(','), amount: Math.round(amount) },
+      });
       setOptResult(res.data);
     } catch (err) {
       setOptError(err.response?.data?.error || 'Optimization failed. Please try again.');

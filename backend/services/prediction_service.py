@@ -68,7 +68,10 @@ class PredictionService:
             X_scaled = scaler_X.fit_transform(X)
 
             # Train/test split — last 60 days for testing
-            split = -60
+            if len(df_feat) < 120:
+                split = -max(20, len(df_feat) // 4)
+            else:
+                split = -60
             X_train, X_test = X_scaled[:split], X_scaled[split:]
             y_train, y_test = y[:split], y[split:]
 

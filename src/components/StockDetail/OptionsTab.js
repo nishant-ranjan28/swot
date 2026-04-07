@@ -115,14 +115,15 @@ const OptionsTab = ({ symbol }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="text-xs text-gray-500 mb-1">Expiration Date</div>
+          {/* TODO: Backend needs expiry query param support before pills can switch expiration */}
           <div className="flex flex-wrap gap-2">
             {data.expirations?.map((exp) => (
               <span
                 key={exp}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                className={`px-3 py-1 rounded-full text-xs font-medium cursor-default ${
                   exp === data.selected_expiration
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600'
+                    : 'bg-gray-100 text-gray-400'
                 }`}
               >
                 {exp}

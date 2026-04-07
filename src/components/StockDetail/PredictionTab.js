@@ -28,6 +28,7 @@ const PredictionTab = ({ symbol }) => {
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(dpr, dpr);
     const W = rect.width;
     const H = rect.height;
@@ -94,7 +95,7 @@ const PredictionTab = ({ symbol }) => {
     ctx.fill();
 
     // Predicted prices (dashed line)
-    const predColor = data.direction === 'Bullish' ? '#16a34a' : '#dc2626';
+    const predColor = data.direction === 'Bullish' ? '#16a34a' : data.direction === 'Neutral' ? '#6b7280' : '#dc2626';
     ctx.strokeStyle = predColor;
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 4]);
@@ -151,7 +152,7 @@ const PredictionTab = ({ symbol }) => {
       </div>
     );
 
-  const dirColor = data.direction === 'Bullish' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300';
+  const dirColor = data.direction === 'Bullish' ? 'bg-green-100 text-green-800 border-green-300' : data.direction === 'Neutral' ? 'bg-gray-100 text-gray-800 border-gray-300' : 'bg-red-100 text-red-800 border-red-300';
   const changeSign = data.predicted_change_pct >= 0 ? '+' : '';
 
   return (
@@ -228,7 +229,7 @@ const PredictionTab = ({ symbol }) => {
             <span className="inline-block w-3 h-3 rounded-full bg-blue-500" /> Current Price
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block w-8 border-t-2 border-dashed" style={{ borderColor: data.direction === 'Bullish' ? '#16a34a' : '#dc2626' }} />
+            <span className="inline-block w-8 border-t-2 border-dashed" style={{ borderColor: data.direction === 'Bullish' ? '#16a34a' : data.direction === 'Neutral' ? '#6b7280' : '#dc2626' }} />
             Predicted ({data.direction})
           </span>
         </div>
