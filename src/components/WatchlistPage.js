@@ -49,6 +49,87 @@ const PriceRangeBar = ({ low, high, current }) => {
   );
 };
 
+const TechnicalSignals = ({ watchlist }) => {
+  const [techAlerts, setTechAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (watchlist.length === 0) {
+      setLoading(false);
+      return;
+    }
+    const fetchAlerts = async () => {
+      setLoading(true);
+      try {
+        const symbolsParam = watchlist.map((w) => w.symbol).join(',');
+        const res = await api.get(`/api/stocks/technical-alerts?symbols=${encodeURIComponent(symbolsParam)}`);
+        setTechAlerts(res.data.alerts || []);
+      } catch {
+        setTechAlerts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAlerts();
+  }, [watchlist]);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="h-4 bg-gray-200 rounded w-48 mb-3 animate-pulse"></div>
+        <div className="flex gap-3 overflow-hidden">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="animate-pulse bg-gray-100 rounded-lg h-24 w-64 flex-shrink-0"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <h3 className="text-sm font-semibold text-gray-800">Technical Signals</h3>
+      </div>
+      {techAlerts.length === 0 ? (
+        <p className="text-sm text-gray-500">No technical signals detected on your watchlist stocks.</p>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {techAlerts.map((alert, idx) => (
+            <Link
+              key={`${alert.symbol}-${alert.alert}-${idx}`}
+              to={`/stock/${alert.symbol}`}
+              className="flex-shrink-0 w-72 border rounded-lg p-3 hover:shadow-md transition-shadow"
+              style={{
+                borderColor: alert.type === 'bullish' ? '#bbf7d0' : '#fecaca',
+                backgroundColor: alert.type === 'bullish' ? '#f0fdf4' : '#fef2f2',
+              }}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-semibold text-gray-900 text-sm">{alert.name}</span>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide ${
+                    alert.type === 'bullish'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-700'
+                  }`}
+                >
+                  {alert.type}
+                </span>
+              </div>
+              <div className="text-xs font-medium text-gray-700 mb-1">{alert.alert}</div>
+              <div className="text-xs text-gray-500 leading-relaxed">{alert.description}</div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const WatchlistPage = () => {
   const [watchlist, setWatchlist] = useLocalStorage('stockpulse_watchlist', []);
   const [quotes, setQuotes] = useState({});
@@ -318,6 +399,9 @@ const WatchlistPage = () => {
             )}
           </div>
         </div>
+
+        {/* Technical Signals */}
+        {watchlist.length > 0 && <TechnicalSignals watchlist={watchlist} />}
 
         {/* Watchlist Table */}
         {watchlist.length === 0 ? (
