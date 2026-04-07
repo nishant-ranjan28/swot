@@ -652,18 +652,49 @@ class StockService:
         "us": {"vix": "^VIX", "index": "^GSPC"},
     }
 
+    def _yf_fallback_batch(self, symbols: list[str]) -> dict:
+        """Fallback: fetch quotes one-by-one via yfinance when yahooquery fails."""
+        results = {}
+        for sym in symbols[:20]:
+            try:
+                info = self._get_ticker_info(sym)
+                if not info:
+                    continue
+                price = info.get("regularMarketPrice", 0)
+                prev = info.get("previousClose", 0)
+                change = round(price - prev, 2) if price and prev else 0
+                change_pct = round((change / prev) * 100, 2) if prev else 0
+                results[sym] = {
+                    "symbol": sym,
+                    "name": info.get("shortName", ""),
+                    "price": price,
+                    "previous_close": prev,
+                    "change": change,
+                    "change_percent": change_pct,
+                    "volume": info.get("volume"),
+                    "market_cap": info.get("marketCap"),
+                    "day_high": info.get("dayHigh"),
+                    "day_low": info.get("dayLow"),
+                    "week52_high": info.get("fiftyTwoWeekHigh"),
+                    "week52_low": info.get("fiftyTwoWeekLow"),
+                    "currency": info.get("currency", "INR"),
+                }
+            except Exception:
+                continue
+        return results
+
     def get_batch_quotes(self, symbols: list[str]) -> dict:
-        """Fetch quotes for multiple symbols in one call using yahooquery."""
+        """Fetch quotes for multiple symbols using yahooquery, with yfinance fallback."""
         if not symbols:
             return {}
         cache_key = f"batch_{'_'.join(sorted(symbols[:20]))}"
         cached = cache_manager.get("batch_quote", cache_key)
         if cached is not None:
             return cached
+        results = {}
         try:
             tickers = YQTicker(symbols)
             prices = tickers.price
-            results = {}
             for sym, data in prices.items():
                 if isinstance(data, str):  # Error message
                     continue
@@ -686,11 +717,17 @@ class StockService:
                     "week52_low": data.get("fiftyTwoWeekLow"),
                     "currency": data.get("currency", "INR"),
                 }
-            cache_manager.set("batch_quote", cache_key, results, ttl=60)
-            return results
         except Exception as e:
-            print(f"Batch quote error: {e}")
-            return {}
+            print(f"Batch quote error (yahooquery): {e}")
+
+        # Fallback to yfinance if yahooquery returned nothing
+        if not results:
+            print(f"yahooquery returned empty, falling back to yfinance for {len(symbols)} symbols")
+            results = self._yf_fallback_batch(symbols)
+
+        if results:
+            cache_manager.set("batch_quote", cache_key, results, ttl=60)
+        return results
 
     def get_trending_stocks(self, market: str = "in") -> list[dict]:
         """Get quotes for popular stocks by market."""
@@ -703,7 +740,8 @@ class StockService:
         batch = self.get_batch_quotes(symbols)
         results = [batch[s] for s in symbols if s in batch and batch[s].get("price")]
 
-        cache_manager.set("trending", cache_key, results, ttl=300)
+        if results:  # Don't cache empty results from cold-start timeouts
+            cache_manager.set("trending", cache_key, results, ttl=300)
         return results
 
     def get_market_indices(self, market: str = "in") -> list[dict]:
@@ -733,7 +771,8 @@ class StockService:
             except Exception:
                 continue
 
-        cache_manager.set("trending", cache_key, results, ttl=300)
+        if results:
+            cache_manager.set("trending", cache_key, results, ttl=300)
         return results
 
     def get_market_sentiment(self, market: str = "in") -> dict:
@@ -2204,7 +2243,8 @@ class StockService:
             })
 
         results.sort(key=lambda x: x["market_cap"], reverse=True)
-        cache_manager.set("heatmap", cache_key, results, ttl=300)
+        if results:
+            cache_manager.set("heatmap", cache_key, results, ttl=300)
         return results
 
     # ── Technical Alerts Engine ──────────────────────────────────────

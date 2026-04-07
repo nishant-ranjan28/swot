@@ -200,14 +200,23 @@ const NewsCard = ({ article }) => (
   </a>
 );
 
-const SECTORS = ['All', 'Banking', 'IT', 'Energy', 'Auto', 'FMCG', 'Pharma', 'Metals'];
+const SECTORS_BY_MARKET = {
+  in: ['All', 'Banking', 'IT', 'Energy', 'Auto', 'FMCG', 'Pharma', 'Metals'],
+  us: ['All', 'Tech', 'Finance', 'Healthcare', 'Consumer', 'Energy', 'Industrial'],
+};
 
 const STOCK_SECTORS = {
+  // India
   'RELIANCE.NS': 'Energy', 'TCS.NS': 'IT', 'HDFCBANK.NS': 'Banking', 'INFY.NS': 'IT',
   'ICICIBANK.NS': 'Banking', 'HINDUNILVR.NS': 'FMCG', 'SBIN.NS': 'Banking', 'BHARTIARTL.NS': 'Telecom',
   'ITC.NS': 'FMCG', 'KOTAKBANK.NS': 'Banking', 'LT.NS': 'Infra', 'TMCV.NS': 'Auto',
   'AXISBANK.NS': 'Banking', 'BAJFINANCE.NS': 'Finance', 'MARUTI.NS': 'Auto', 'WIPRO.NS': 'IT',
   'ADANIENT.NS': 'Energy', 'TATAPOWER.NS': 'Energy', 'TATASTEEL.NS': 'Metals', 'HCLTECH.NS': 'IT',
+  // US
+  'AAPL': 'Tech', 'MSFT': 'Tech', 'GOOGL': 'Tech', 'AMZN': 'Consumer', 'NVDA': 'Tech',
+  'META': 'Tech', 'TSLA': 'Consumer', 'BRK-B': 'Finance', 'JPM': 'Finance', 'V': 'Finance',
+  'UNH': 'Healthcare', 'JNJ': 'Healthcare', 'WMT': 'Consumer', 'MA': 'Finance', 'PG': 'Consumer',
+  'HD': 'Consumer', 'DIS': 'Consumer', 'NFLX': 'Tech', 'CRM': 'Tech', 'AMD': 'Tech',
 };
 
 const HomePage = () => {
@@ -230,6 +239,7 @@ const HomePage = () => {
     setLoadingStocks(true);
     setLoadingNews(true);
     setSentiment(null);
+    setActiveSector('All');
 
     api.get(`/api/stocks/indices?market=${market}`)
       .then((res) => setIndices(res.data.indices || []))
@@ -515,7 +525,7 @@ const HomePage = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
             <h2 className="text-lg font-semibold text-gray-800">Popular Stocks</h2>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {SECTORS.map((sector) => (
+              {(SECTORS_BY_MARKET[market] || SECTORS_BY_MARKET.in).map((sector) => (
                 <button
                   key={sector}
                   onClick={() => setActiveSector(sector)}
