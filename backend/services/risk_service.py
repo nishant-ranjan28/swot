@@ -1,6 +1,5 @@
 # backend/services/risk_service.py
 import numpy as np
-from scipy import stats
 import yfinance as yf
 from utils.cache import cache_manager
 from services.stock_service import sanitize_json

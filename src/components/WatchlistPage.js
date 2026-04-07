@@ -69,20 +69,32 @@ const WatchlistPage = () => {
     const quoteResults = {};
     const sparkResults = {};
 
-    await Promise.all(
-      list.map(async (item) => {
-        const [quoteRes, histRes] = await Promise.all([
-          api.get(`/api/stocks/${item.symbol}/quote`).catch(() => ({ data: null })),
-          api.get(`/api/stocks/${item.symbol}/history?range=5d`).catch(() => ({ data: null })),
-        ]);
-        quoteResults[item.symbol] = quoteRes.data;
-        if (histRes.data && Array.isArray(histRes.data)) {
-          sparkResults[item.symbol] = histRes.data.map((d) => d.close).filter((v) => v != null);
-        } else if (histRes.data && Array.isArray(histRes.data.prices)) {
-          sparkResults[item.symbol] = histRes.data.prices.map((d) => d.close).filter((v) => v != null);
-        }
-      })
-    );
+    // Fetch all quotes in a single batch call
+    const symbolsParam = list.map((item) => item.symbol).join(',');
+    const [batchRes, ...histResponses] = await Promise.all([
+      api.get(`/api/stocks/batch?symbols=${encodeURIComponent(symbolsParam)}`).catch(() => ({ data: null })),
+      ...list.map((item) =>
+        api.get(`/api/stocks/${item.symbol}/history?range=5d`).catch(() => ({ data: null }))
+      ),
+    ]);
+
+    // Map batch quotes
+    if (batchRes.data && batchRes.data.quotes) {
+      Object.entries(batchRes.data.quotes).forEach(([sym, quote]) => {
+        quoteResults[sym] = quote;
+      });
+    }
+
+    // Map sparkline data
+    list.forEach((item, idx) => {
+      const histRes = histResponses[idx];
+      if (histRes.data && histRes.data.data && Array.isArray(histRes.data.data)) {
+        sparkResults[item.symbol] = histRes.data.data.map((d) => d.close).filter((v) => v != null);
+      } else if (histRes.data && Array.isArray(histRes.data.prices)) {
+        sparkResults[item.symbol] = histRes.data.prices.map((d) => d.close).filter((v) => v != null);
+      }
+    });
+
     setQuotes(quoteResults);
     setSparklineData(sparkResults);
     setLoadingQuotes(false);

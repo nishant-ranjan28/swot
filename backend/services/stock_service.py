@@ -647,6 +647,8 @@ class StockService:
 
     def get_batch_quotes(self, symbols: list[str]) -> dict:
         """Fetch quotes for multiple symbols in one call using yahooquery."""
+        if not symbols:
+            return {}
         cache_key = f"batch_{'_'.join(sorted(symbols[:20]))}"
         cached = cache_manager.get("batch_quote", cache_key)
         if cached is not None:

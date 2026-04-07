@@ -158,34 +158,42 @@ const PortfolioPage = () => {
       const watchlistSyms = (watchlistItems || []).map(w => w.symbol);
       const symbols = [...new Set([...holdingSymbols, ...watchlistSyms])];
       const sparkResults = {};
-      const results = await Promise.all(
-        symbols.map(async (sym) => {
-          try {
-            const [quoteRes, overviewRes, histRes] = await Promise.all([
-              api.get(`/api/stocks/${sym}/quote`),
-              api.get(`/api/stocks/${sym}/overview`).catch(() => ({ data: {} })),
-              api.get(`/api/stocks/${sym}/history?range=5d`).catch(() => ({ data: null })),
-            ]);
-            if (histRes.data && Array.isArray(histRes.data)) {
-              sparkResults[sym] = histRes.data.map((d) => d.close).filter((v) => v != null);
-            } else if (histRes.data && Array.isArray(histRes.data.prices)) {
-              sparkResults[sym] = histRes.data.prices.map((d) => d.close).filter((v) => v != null);
-            }
-            return { symbol: sym, data: { ...quoteRes.data, sector: overviewRes.data?.sector } };
-          } catch {
-            return { symbol: sym, data: null };
-          }
-        })
-      );
+
+      // Fetch batch quotes, individual overviews (for sector), and sparklines
+      const symbolsParam = symbols.join(',');
+      const [batchRes, ...perSymbolResults] = await Promise.all([
+        api.get(`/api/stocks/batch?symbols=${encodeURIComponent(symbolsParam)}`).catch(() => ({ data: null })),
+        ...symbols.flatMap((sym) => [
+          api.get(`/api/stocks/${sym}/overview`).catch(() => ({ data: {} })),
+          api.get(`/api/stocks/${sym}/history?range=5d`).catch(() => ({ data: null })),
+        ]),
+      ]);
+
+      const batchQuotes = batchRes.data?.quotes || {};
+
+      // Process per-symbol results (overview and history come in pairs)
+      const sectorMap = {};
+      symbols.forEach((sym, idx) => {
+        const overviewRes = perSymbolResults[idx * 2];
+        const histRes = perSymbolResults[idx * 2 + 1];
+        sectorMap[sym] = overviewRes.data?.sector || 'Other';
+        if (histRes.data && histRes.data.data && Array.isArray(histRes.data.data)) {
+          sparkResults[sym] = histRes.data.data.map((d) => d.close).filter((v) => v != null);
+        } else if (histRes.data && Array.isArray(histRes.data.prices)) {
+          sparkResults[sym] = histRes.data.prices.map((d) => d.close).filter((v) => v != null);
+        }
+      });
+
       const map = {};
-      results.forEach(({ symbol, data }) => {
-        if (data) {
-          map[symbol] = {
-            price: data.price || 0,
-            change: data.change || 0,
-            changePercent: data.change_percent || 0,
-            name: data.name || symbol,
-            sector: data.sector || 'Other',
+      symbols.forEach((sym) => {
+        const q = batchQuotes[sym];
+        if (q) {
+          map[sym] = {
+            price: q.price || 0,
+            change: q.change || 0,
+            changePercent: q.change_percent || 0,
+            name: q.name || sym,
+            sector: sectorMap[sym] || 'Other',
           };
         }
       });

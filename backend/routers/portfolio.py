@@ -27,7 +27,7 @@ async def optimize_portfolio(
 async def analyze_risk(
     symbols: Annotated[str, Query(description="Comma-separated stock symbols")],
 ):
-    symbol_list = [s.strip() for s in symbols.split(",") if s.strip()]
+    symbol_list = [s.strip() for s in symbols.split(",") if s.strip()][:20]
     if len(symbol_list) < 2:
         return JSONResponse(status_code=400, content={"error": "Need at least 2 symbols"})
     result = await asyncio.to_thread(risk_service.analyze, symbol_list)
