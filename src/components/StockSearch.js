@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import api from '../api';
+import { useMarket } from '../context/MarketContext';
 
 const StockSearch = ({
   updateSwotWidget,
@@ -12,6 +13,7 @@ const StockSearch = ({
   onSelect,
 }) => {
   const navigate = useNavigate();
+  const { market, currency } = useMarket();
   const params = new URLSearchParams(window.location.search);
   const [input, setInput] = useState(params.get('search') || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -95,7 +97,7 @@ const StockSearch = ({
 
     async function fetchStocks() {
       try {
-        const response = await api.get(`/api/stocks/search?q=${input}`);
+        const response = await api.get(`/api/stocks/search?q=${encodeURIComponent(input)}&market=${market}`);
         const stocks = response.data.results || [];
         const limitedStocks = stocks.slice(0, 5);
 
@@ -124,7 +126,7 @@ const StockSearch = ({
     return () => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
-  }, [input, userTyped]);
+  }, [input, userTyped, market]);
 
   // Clears the search field
   const clearSearch = () => {
@@ -177,7 +179,7 @@ const StockSearch = ({
           <input
             type="text"
             className="w-full border border-gray-300 rounded-lg p-3 pr-10 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            placeholder="Search for stocks (e.g., Reliance, TCS, HDFC)..."
+            placeholder={market === 'us' ? 'Search for stocks (e.g., Apple, MSFT, GOOGL)...' : 'Search for stocks (e.g., Reliance, TCS, HDFC)...'}
             value={input}
             onChange={handleInputChange}
             autoFocus={false}
@@ -213,7 +215,7 @@ const StockSearch = ({
                   <span className="text-sm text-gray-500">({stock.symbol})</span>
                 </div>
                 <span className="text-green-600 font-semibold whitespace-nowrap ml-2">
-                  ₹{stock.price}
+                  {currency}{stock.price}
                 </span>
               </button>
             ))}

@@ -1,6 +1,8 @@
 // src/components/StockDetail/FinancialsTab.js
 import React, { useState } from 'react';
 import { useStockData } from '../../hooks/useStockData';
+import { useMarket } from '../../context/MarketContext';
+import { formatCurrency, formatPercent, formatRatio } from '../../utils/formatters';
 import TabSkeleton from './TabSkeleton';
 
 const InfoRow = ({ label, value, highlight }) => (
@@ -10,18 +12,10 @@ const InfoRow = ({ label, value, highlight }) => (
   </div>
 );
 
-const formatPercent = (val) => (val != null ? `${(val * 100).toFixed(2)}%` : 'N/A');
-const formatRatio = (val) => (val != null ? val.toFixed(2) : 'N/A');
-const formatCurrency = (num) => {
-  if (!num) return 'N/A';
-  if (num >= 1e7) return `₹${(num / 1e7).toFixed(2)}Cr`;
-  if (num >= 1e5) return `₹${(num / 1e5).toFixed(2)}L`;
-  return `₹${num.toLocaleString('en-IN')}`;
-};
-
 const FinancialsTab = ({ symbol }) => {
   const { data: financials, loading, error } = useStockData(`/api/stocks/${symbol}/financials`);
   const { data: statements, loading: stLoading } = useStockData(`/api/stocks/${symbol}/statements`);
+  const { currency } = useMarket();
   const [statementType, setStatementType] = useState('income_statement');
 
   if (loading) return <TabSkeleton rows={10} />;
@@ -37,9 +31,9 @@ const FinancialsTab = ({ symbol }) => {
           <InfoRow label="Forward P/E" value={formatRatio(financials?.forward_pe)} />
           <InfoRow label="PEG Ratio" value={formatRatio(financials?.peg_ratio)} />
           <InfoRow label="Price/Book" value={formatRatio(financials?.price_to_book)} />
-          <InfoRow label="EPS (TTM)" value={financials?.eps ? `₹${financials.eps.toFixed(2)}` : 'N/A'} />
-          <InfoRow label="Forward EPS" value={financials?.forward_eps ? `₹${financials.forward_eps.toFixed(2)}` : 'N/A'} />
-          <InfoRow label="Book Value" value={financials?.book_value ? `₹${financials.book_value.toFixed(2)}` : 'N/A'} />
+          <InfoRow label="EPS (TTM)" value={financials?.eps ? `${currency}${financials.eps.toFixed(2)}` : 'N/A'} />
+          <InfoRow label="Forward EPS" value={financials?.forward_eps ? `${currency}${financials.forward_eps.toFixed(2)}` : 'N/A'} />
+          <InfoRow label="Book Value" value={financials?.book_value ? `${currency}${financials.book_value.toFixed(2)}` : 'N/A'} />
         </div>
 
         <div className="bg-gray-50 rounded-lg p-4">
@@ -49,7 +43,7 @@ const FinancialsTab = ({ symbol }) => {
           <InfoRow label="Gross Margin" value={formatPercent(financials?.gross_margin)} />
           <InfoRow label="ROE" value={formatPercent(financials?.return_on_equity)} />
           <InfoRow label="ROA" value={formatPercent(financials?.return_on_assets)} />
-          <InfoRow label="Revenue" value={formatCurrency(financials?.revenue)} />
+          <InfoRow label="Revenue" value={formatCurrency(financials?.revenue, currency)} />
           <InfoRow label="Revenue Growth" value={formatPercent(financials?.revenue_growth)} />
           <InfoRow label="Debt/Equity" value={formatRatio(financials?.debt_to_equity)} />
         </div>
@@ -99,7 +93,7 @@ const FinancialsTab = ({ symbol }) => {
                           <td className="p-2 text-gray-700">{key}</td>
                           {statements[statementType].map((col) => (
                             <td key={col.date} className="p-2 text-right text-gray-900">
-                              {col[key] != null ? formatCurrency(col[key]) : 'N/A'}
+                              {col[key] != null ? formatCurrency(col[key], currency) : 'N/A'}
                             </td>
                           ))}
                         </tr>

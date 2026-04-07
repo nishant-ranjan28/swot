@@ -1,16 +1,18 @@
 // src/components/StockDetail/DividendsTab.js
 import React from 'react';
 import { useStockData } from '../../hooks/useStockData';
+import { useMarket } from '../../context/MarketContext';
 import TabSkeleton from './TabSkeleton';
 
 const DividendsTab = ({ symbol }) => {
   const { data, loading, error, refetch } = useStockData(`/api/stocks/${symbol}/dividends`);
+  const { currency } = useMarket();
 
   if (loading) return <TabSkeleton rows={6} />;
   if (error) return <div className="text-red-600 text-center py-8">{error} <button onClick={refetch} className="text-blue-600 underline ml-2">Retry</button></div>;
   if (!data) return <div className="text-gray-500 text-center py-8">No dividend data available.</div>;
 
-  const formatPercent = (val) => (val != null ? `${(val * 100).toFixed(2)}%` : 'N/A');
+  const formatPercent = (val) => (val != null ? `${val.toFixed(2)}%` : 'N/A');
 
   return (
     <div className="space-y-6">
@@ -18,7 +20,7 @@ const DividendsTab = ({ symbol }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Dividend Yield', value: formatPercent(data.dividend_yield) },
-          { label: 'Dividend Rate', value: data.dividend_rate ? `₹${data.dividend_rate.toFixed(2)}` : 'N/A' },
+          { label: 'Dividend Rate', value: data.dividend_rate ? `${currency}${data.dividend_rate.toFixed(2)}` : 'N/A' },
           { label: 'Payout Ratio', value: formatPercent(data.payout_ratio) },
           { label: 'Ex-Dividend Date', value: data.ex_dividend_date || 'N/A' },
         ].map((item) => (
@@ -45,7 +47,7 @@ const DividendsTab = ({ symbol }) => {
                 {data.history.slice(-20).reverse().map((entry) => (
                   <tr key={entry.date} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="p-2 text-gray-700">{entry.date}</td>
-                    <td className="p-2 text-right text-green-600 font-medium">₹{entry.amount}</td>
+                    <td className="p-2 text-right text-green-600 font-medium">{currency}{entry.amount}</td>
                   </tr>
                 ))}
               </tbody>

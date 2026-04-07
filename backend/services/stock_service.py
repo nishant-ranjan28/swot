@@ -7,6 +7,18 @@ from datetime import datetime
 from urllib.parse import quote_plus
 from utils.cache import cache_manager
 from config import CACHE_TTL, IST, MARKET_OPEN, MARKET_CLOSE
+import math
+
+
+def sanitize_json(obj):
+    """Replace NaN/Inf floats with None recursively so JSON serialization doesn't fail."""
+    if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return None
+    if isinstance(obj, dict):
+        return {k: sanitize_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_json(v) for v in obj]
+    return obj
 
 
 class StockService:
@@ -40,11 +52,17 @@ class StockService:
             return None
 
     def resolve_indian_symbol(self, symbol: str) -> str:
-        """Ensure symbol has .NS or .BO suffix. Try .NS first, fallback to .BO."""
+        """Resolve symbol — for Indian stocks ensure .NS/.BO suffix, for US stocks use as-is."""
+        # Already has a suffix — return as-is
         if symbol.endswith(".NS") or symbol.endswith(".BO"):
             return symbol
 
-        # Try NSE first
+        # Try as US stock first (no suffix)
+        info = self._get_ticker_info(symbol)
+        if info:
+            return symbol
+
+        # Try NSE
         ns_symbol = f"{symbol}.NS"
         info = self._get_ticker_info(ns_symbol)
         if info:
@@ -59,15 +77,16 @@ class StockService:
         # Return .NS as default (will fail validation later)
         return ns_symbol
 
-    async def search(self, query: str) -> list[dict] | None:
+    async def search(self, query: str, market: str = "in") -> list[dict] | None:
         """Search stocks using Yahoo Finance search API (not yfinance)."""
-        cache_key = query.lower().strip()
+        cache_key = f"{market}_{query.lower().strip()}"
         cached = cache_manager.get("search", cache_key)
         if cached is not None:
             return cached
 
         try:
-            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={query}&region=IN&quotesCount=10"
+            region = "IN" if market == "in" else "US"
+            url = f"https://query1.finance.yahoo.com/v1/finance/search?q={quote_plus(query)}&region={region}&quotesCount=10"
             headers = {
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)"
             }
@@ -80,15 +99,23 @@ class StockService:
             for q in quotes:
                 symbol = q.get("symbol", "")
                 quote_type = q.get("quoteType", "")
-                if symbol.endswith(".NS") or symbol.endswith(".BO"):
-                    # Prefer longname for MFs (shortname is just the code)
-                    name = q.get("longname") or q.get("shortname") or symbol
-                    results.append({
-                        "name": name,
-                        "symbol": symbol,
-                        "exchange": q.get("exchange", ""),
-                        "type": quote_type,
-                    })
+
+                if market == "us":
+                    # US stocks: no suffix, exclude Indian/foreign stocks
+                    if "." not in symbol and quote_type == "EQUITY":
+                        name = q.get("longname") or q.get("shortname") or symbol
+                        results.append({
+                            "name": name, "symbol": symbol,
+                            "exchange": q.get("exchange", ""), "type": quote_type,
+                        })
+                else:
+                    # Indian stocks: .NS or .BO suffix
+                    if symbol.endswith(".NS") or symbol.endswith(".BO"):
+                        name = q.get("longname") or q.get("shortname") or symbol
+                        results.append({
+                            "name": name, "symbol": symbol,
+                            "exchange": q.get("exchange", ""), "type": quote_type,
+                        })
 
             cache_manager.set("search", cache_key, results)
             return results
@@ -250,7 +277,7 @@ class StockService:
                     "volume": int(row.get("Volume", 0)),
                 })
 
-            result = {"symbol": symbol, "data": data}
+            result = sanitize_json({"symbol": symbol, "data": data})
             cache_manager.set("history", cache_key, result)
             return result
         except Exception:
@@ -485,41 +512,65 @@ class StockService:
             return None
 
     # Popular Indian stocks for homepage
-    POPULAR_STOCKS = [
-        "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS",
-        "HINDUNILVR.NS", "SBIN.NS", "BHARTIARTL.NS", "ITC.NS", "KOTAKBANK.NS",
-        "LT.NS", "TATAMOTORS.NS", "AXISBANK.NS", "BAJFINANCE.NS", "MARUTI.NS",
-        "WIPRO.NS", "ADANIENT.NS", "TATAPOWER.NS", "TATASTEEL.NS", "HCLTECH.NS",
-    ]
+    POPULAR_STOCKS = {
+        "in": [
+            "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS",
+            "HINDUNILVR.NS", "SBIN.NS", "BHARTIARTL.NS", "ITC.NS", "KOTAKBANK.NS",
+            "LT.NS", "TMCV.NS", "AXISBANK.NS", "BAJFINANCE.NS", "MARUTI.NS",
+            "WIPRO.NS", "ADANIENT.NS", "TATAPOWER.NS", "TATASTEEL.NS", "HCLTECH.NS",
+        ],
+        "us": [
+            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
+            "META", "TSLA", "BRK-B", "JPM", "V",
+            "UNH", "JNJ", "WMT", "MA", "PG",
+            "HD", "DIS", "NFLX", "CRM", "AMD",
+        ],
+    }
 
-    def get_trending_stocks(self) -> list[dict]:
-        """Get quotes for popular Indian stocks."""
-        cached = cache_manager.get("trending", "popular")
-        if cached is not None:
-            return cached
-
-        results = []
-        for symbol in self.POPULAR_STOCKS:
-            quote = self.get_quote(symbol)
-            if quote and quote.get("price"):
-                results.append(quote)
-
-        cache_manager.set("trending", "popular", results, ttl=300)
-        return results
-
-    def get_market_indices(self) -> list[dict]:
-        """Get major Indian market indices."""
-        cached = cache_manager.get("trending", "indices")
-        if cached is not None:
-            return cached
-
-        indices = [
+    MARKET_INDICES = {
+        "in": [
             {"symbol": "^NSEI", "name": "NIFTY 50"},
             {"symbol": "^BSESN", "name": "SENSEX"},
             {"symbol": "^NSEBANK", "name": "NIFTY Bank"},
             {"symbol": "^CNXIT", "name": "NIFTY IT"},
-        ]
+        ],
+        "us": [
+            {"symbol": "^GSPC", "name": "S&P 500"},
+            {"symbol": "^IXIC", "name": "NASDAQ"},
+            {"symbol": "^DJI", "name": "Dow Jones"},
+            {"symbol": "^RUT", "name": "Russell 2000"},
+        ],
+    }
 
+    SENTIMENT_CONFIG = {
+        "in": {"vix": "^INDIAVIX", "index": "^NSEI"},
+        "us": {"vix": "^VIX", "index": "^GSPC"},
+    }
+
+    def get_trending_stocks(self, market: str = "in") -> list[dict]:
+        """Get quotes for popular stocks by market."""
+        cache_key = f"popular_{market}"
+        cached = cache_manager.get("trending", cache_key)
+        if cached is not None:
+            return cached
+
+        results = []
+        for symbol in self.POPULAR_STOCKS.get(market, self.POPULAR_STOCKS["in"]):
+            quote = self.get_quote(symbol)
+            if quote and quote.get("price"):
+                results.append(quote)
+
+        cache_manager.set("trending", cache_key, results, ttl=300)
+        return results
+
+    def get_market_indices(self, market: str = "in") -> list[dict]:
+        """Get major market indices by market."""
+        cache_key = f"indices_{market}"
+        cached = cache_manager.get("trending", cache_key)
+        if cached is not None:
+            return cached
+
+        indices = self.MARKET_INDICES.get(market, self.MARKET_INDICES["in"])
         results = []
         for idx in indices:
             try:
@@ -539,57 +590,65 @@ class StockService:
             except Exception:
                 continue
 
-        cache_manager.set("trending", "indices", results, ttl=300)
+        cache_manager.set("trending", cache_key, results, ttl=300)
         return results
 
-    def get_market_sentiment(self) -> dict:
-        """Get market sentiment indicators."""
-        cached = cache_manager.get("trending", "sentiment")
+    def get_market_sentiment(self, market: str = "in") -> dict:
+        """Get market sentiment indicators by market."""
+        cache_key = f"sentiment_{market}"
+        cached = cache_manager.get("trending", cache_key)
         if cached is not None:
             return cached
 
+        config = self.SENTIMENT_CONFIG.get(market, self.SENTIMENT_CONFIG["in"])
+
         try:
-            # India VIX (fear gauge)
-            vix = yf.Ticker("^INDIAVIX")
+            # VIX (fear gauge)
+            vix = yf.Ticker(config["vix"])
             vix_info = vix.info
             vix_price = vix_info.get("regularMarketPrice", 0)
             vix_prev = vix_info.get("previousClose", 0)
             vix_change = round(vix_price - vix_prev, 2) if vix_price and vix_prev else 0
 
-            if vix_price < 13:
-                vix_signal = "Extreme Greed"
-            elif vix_price < 17:
-                vix_signal = "Greed"
-            elif vix_price < 22:
-                vix_signal = "Neutral"
-            elif vix_price < 30:
-                vix_signal = "Fear"
+            # VIX thresholds differ by market
+            if market == "us":
+                if vix_price < 12: vix_signal = "Extreme Greed"
+                elif vix_price < 16: vix_signal = "Greed"
+                elif vix_price < 20: vix_signal = "Neutral"
+                elif vix_price < 30: vix_signal = "Fear"
+                else: vix_signal = "Extreme Fear"
             else:
-                vix_signal = "Extreme Fear"
+                if vix_price < 13: vix_signal = "Extreme Greed"
+                elif vix_price < 17: vix_signal = "Greed"
+                elif vix_price < 22: vix_signal = "Neutral"
+                elif vix_price < 30: vix_signal = "Fear"
+                else: vix_signal = "Extreme Fear"
 
-            # NIFTY position analysis
-            nifty = yf.Ticker("^NSEI")
-            nifty_info = nifty.info
-            nifty_price = nifty_info.get("regularMarketPrice", 0)
-            nifty_50dma = nifty_info.get("fiftyDayAverage", 0)
-            nifty_200dma = nifty_info.get("twoHundredDayAverage", 0)
-            nifty_52h = nifty_info.get("fiftyTwoWeekHigh", 0)
-            nifty_52l = nifty_info.get("fiftyTwoWeekLow", 0)
+            vix_label = "VIX" if market == "us" else "India VIX"
 
-            # Trend signals
-            above_50dma = nifty_price > nifty_50dma if nifty_50dma else None
-            above_200dma = nifty_price > nifty_200dma if nifty_200dma else None
-            pct_from_high = round(((nifty_52h - nifty_price) / nifty_52h) * 100, 2) if nifty_52h else 0
-            pct_from_low = round(((nifty_price - nifty_52l) / nifty_52l) * 100, 2) if nifty_52l else 0
+            # Index position analysis
+            index_ticker = yf.Ticker(config["index"])
+            idx_info = index_ticker.info
+            idx_price = idx_info.get("regularMarketPrice", 0)
+            idx_50dma = idx_info.get("fiftyDayAverage", 0)
+            idx_200dma = idx_info.get("twoHundredDayAverage", 0)
+            idx_52h = idx_info.get("fiftyTwoWeekHigh", 0)
+            idx_52l = idx_info.get("fiftyTwoWeekLow", 0)
+            idx_name = "S&P 500" if market == "us" else "NIFTY"
 
-            # Analyze trending stocks for breadth
-            trending = self.get_trending_stocks()
+            above_50dma = idx_price > idx_50dma if idx_50dma else None
+            above_200dma = idx_price > idx_200dma if idx_200dma else None
+            pct_from_high = round(((idx_52h - idx_price) / idx_52h) * 100, 2) if idx_52h else 0
+            pct_from_low = round(((idx_price - idx_52l) / idx_52l) * 100, 2) if idx_52l else 0
+
+            # Breadth from trending stocks
+            trending = self.get_trending_stocks(market)
             gainers = sum(1 for s in trending if (s.get("change_percent") or 0) > 0)
             losers = sum(1 for s in trending if (s.get("change_percent") or 0) < 0)
             total = len(trending)
             breadth_pct = round((gainers / total) * 100) if total > 0 else 50
 
-            # Overall sentiment score (0-100, 50=neutral)
+            # Sentiment score
             score = 50
             if vix_price < 15: score += 15
             elif vix_price < 20: score += 5
@@ -598,38 +657,34 @@ class StockService:
 
             if above_50dma: score += 10
             else: score -= 10
-
             if above_200dma: score += 10
             else: score -= 10
-
             if breadth_pct > 60: score += 10
             elif breadth_pct < 40: score -= 10
 
             score = max(0, min(100, score))
 
-            if score >= 75:
-                overall = "Bullish"
-            elif score >= 55:
-                overall = "Mildly Bullish"
-            elif score >= 45:
-                overall = "Neutral"
-            elif score >= 25:
-                overall = "Mildly Bearish"
-            else:
-                overall = "Bearish"
+            if score >= 75: overall = "Bullish"
+            elif score >= 55: overall = "Mildly Bullish"
+            elif score >= 45: overall = "Neutral"
+            elif score >= 25: overall = "Mildly Bearish"
+            else: overall = "Bearish"
 
             result = {
+                "market": market,
                 "overall": overall,
                 "score": score,
                 "vix": {
+                    "name": vix_label,
                     "value": vix_price,
                     "change": vix_change,
                     "signal": vix_signal,
                 },
-                "nifty": {
-                    "price": nifty_price,
-                    "50dma": round(nifty_50dma, 2) if nifty_50dma else None,
-                    "200dma": round(nifty_200dma, 2) if nifty_200dma else None,
+                "index": {
+                    "name": idx_name,
+                    "price": idx_price,
+                    "50dma": round(idx_50dma, 2) if idx_50dma else None,
+                    "200dma": round(idx_200dma, 2) if idx_200dma else None,
                     "above_50dma": above_50dma,
                     "above_200dma": above_200dma,
                     "pct_from_52w_high": pct_from_high,
@@ -643,10 +698,10 @@ class StockService:
                 },
             }
 
-            cache_manager.set("trending", "sentiment", result, ttl=300)
+            cache_manager.set("trending", cache_key, result, ttl=300)
             return result
         except Exception as e:
-            print(f"Sentiment error: {e}")
+            print(f"Sentiment error for {market}: {e}")
             return None
 
     def _parse_news(self, news_items: list) -> list[dict]:
@@ -689,15 +744,21 @@ class StockService:
         except Exception:
             return []
 
-    def get_market_news(self) -> list[dict]:
+    def get_market_news(self, market: str = "in") -> list[dict]:
         """Get general market news by aggregating news from indices and popular stocks."""
-        cached = cache_manager.get("news", "market")
+        cache_key = f"market_{market}"
+        cached = cache_manager.get("news", cache_key)
         if cached is not None:
             return cached
 
-        # Fetch news from multiple sources for variety
-        news_sources = ["^NSEI", "^BSESN", "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS",
-                        "INFY.NS", "ICICIBANK.NS", "SBIN.NS"]
+        # Fetch news from market-specific sources
+        if market == "us":
+            news_sources = ["^GSPC", "^IXIC", "AAPL", "MSFT", "GOOGL",
+                            "AMZN", "NVDA", "META"]
+        else:
+            news_sources = ["^NSEI", "^BSESN", "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS",
+                            "INFY.NS", "ICICIBANK.NS", "SBIN.NS"]
+
         all_articles = []
         seen_titles = set()
 
@@ -706,16 +767,14 @@ class StockService:
                 ticker = yf.Ticker(sym)
                 news = ticker.news or []
                 for article in self._parse_news(news):
-                    # Deduplicate by title
                     if article["title"] not in seen_titles:
                         seen_titles.add(article["title"])
                         all_articles.append(article)
             except Exception:
                 continue
 
-        # Sort by date, newest first
         all_articles.sort(key=lambda x: x.get("published_at", ""), reverse=True)
-        cache_manager.set("news", "market", all_articles, ttl=900)
+        cache_manager.set("news", cache_key, all_articles, ttl=900)
         return all_articles
 
     def _calc_sma(self, prices, period):
@@ -955,6 +1014,7 @@ class StockService:
                 "resistance_levels": resistances,
             }
 
+            result = sanitize_json(result)
             cache_manager.set("technical", symbol, result, ttl=3600)
             return result
         except Exception as e:
@@ -1244,6 +1304,7 @@ class StockService:
                 },
             }
 
+            result = sanitize_json(result)
             cache_manager.set("fundamental", symbol, result, ttl=86400)
             return result
         except Exception as e:
@@ -1266,7 +1327,7 @@ class StockService:
         }
 
     # Expanded stock list for screener/scanner
-    SCREENER_STOCKS = POPULAR_STOCKS + [
+    SCREENER_STOCKS = POPULAR_STOCKS["in"] + [
         # Large Cap
         "SUNPHARMA.NS", "BAJAJFINSV.NS", "TITAN.NS", "ASIANPAINT.NS",
         "ULTRACEMCO.NS", "NESTLEIND.NS", "POWERGRID.NS", "NTPC.NS",
@@ -1376,7 +1437,8 @@ class StockService:
 
         # Build operands from filter params
         # Region filter always applies (AND)
-        region_filter = {"operator": "eq", "operands": ["region", "in"]}
+        region = params.get("market", "in")
+        region_filter = {"operator": "eq", "operands": ["region", region]}
         user_operands = []
 
         filter_keys = {
@@ -1621,13 +1683,17 @@ class StockService:
         cache_manager.set("screener", cache_key, results, ttl=900)
         return results
 
-    def get_52week_scanner(self) -> dict:
+    def get_52week_scanner(self, market: str = "in") -> dict:
         """Get stocks near 52-week high and low."""
-        cached = cache_manager.get("scanner", "52week")
+        cache_key = f"52week_{market}"
+        cached = cache_manager.get("scanner", cache_key)
         if cached is not None:
             return cached
 
-        screener_data = self.get_screener_data()
+        stock_list = self.POPULAR_STOCKS.get(market, self.POPULAR_STOCKS["in"]) + (self.SCREENER_STOCKS if market == "in" else self.POPULAR_STOCKS.get("us", []))
+        # Dedupe
+        stock_list = list(dict.fromkeys(stock_list))
+        screener_data = self.get_screener_data(stock_list)
         near_high = []
         near_low = []
 
@@ -1659,7 +1725,7 @@ class StockService:
         near_low.sort(key=lambda x: x["pct_from_low"])
 
         result = {"near_high": near_high, "near_low": near_low}
-        cache_manager.set("scanner", "52week", result, ttl=900)
+        cache_manager.set("scanner", cache_key, result, ttl=900)
         return result
 
     def calculate_sip_returns(self, symbol: str, monthly_amount: float = 5000, years: int = 5) -> dict | None:

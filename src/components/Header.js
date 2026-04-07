@@ -1,6 +1,7 @@
 // src/components/Header.js
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useMarket } from '../context/MarketContext';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Home' },
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
 function Header() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { market, setMarket } = useMarket();
 
   const isActive = (path) =>
     location.pathname === path ||
@@ -25,10 +27,31 @@ function Header() {
     <header className="bg-gray-800 text-white shadow-md sticky top-0 z-50">
       <nav className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          {/* Logo */}
-          <Link to="/" className="text-xl font-bold hover:text-gray-300 transition-colors">
-            StockPulse
-          </Link>
+          {/* Logo + Market Toggle */}
+          <div className="flex items-center gap-3">
+            <Link to="/" className="text-xl font-bold hover:text-gray-300 transition-colors">
+              StockPulse
+            </Link>
+            {/* Market Toggle */}
+            <div className="flex items-center bg-gray-700 rounded-full p-0.5">
+              <button
+                onClick={() => setMarket('in')}
+                className={`px-2 py-1 rounded-full text-[11px] font-semibold transition-colors focus:outline-none ${
+                  market === 'in' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                IN
+              </button>
+              <button
+                onClick={() => setMarket('us')}
+                className={`px-2 py-1 rounded-full text-[11px] font-semibold transition-colors focus:outline-none ${
+                  market === 'us' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                US
+              </button>
+            </div>
+          </div>
 
           {/* Desktop nav */}
           <div className="hidden lg:flex gap-1 overflow-x-auto">
