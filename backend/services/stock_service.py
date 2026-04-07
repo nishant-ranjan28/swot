@@ -1,5 +1,6 @@
 # backend/services/stock_service.py
 import yfinance as yf
+from yahooquery import Ticker as YQTicker
 import httpx
 import hashlib
 import numpy as np
@@ -644,6 +645,46 @@ class StockService:
         "us": {"vix": "^VIX", "index": "^GSPC"},
     }
 
+    def get_batch_quotes(self, symbols: list[str]) -> dict:
+        """Fetch quotes for multiple symbols in one call using yahooquery."""
+        if not symbols:
+            return {}
+        cache_key = f"batch_{'_'.join(sorted(symbols[:20]))}"
+        cached = cache_manager.get("batch_quote", cache_key)
+        if cached is not None:
+            return cached
+        try:
+            tickers = YQTicker(symbols)
+            prices = tickers.price
+            results = {}
+            for sym, data in prices.items():
+                if isinstance(data, str):  # Error message
+                    continue
+                price = data.get("regularMarketPrice", 0)
+                prev = data.get("regularMarketPreviousClose", 0)
+                change = round(price - prev, 2) if price and prev else 0
+                change_pct = round((change / prev) * 100, 2) if prev else 0
+                results[sym] = {
+                    "symbol": sym,
+                    "name": data.get("shortName", ""),
+                    "price": price,
+                    "previous_close": prev,
+                    "change": change,
+                    "change_percent": change_pct,
+                    "volume": data.get("regularMarketVolume"),
+                    "market_cap": data.get("marketCap"),
+                    "day_high": data.get("regularMarketDayHigh"),
+                    "day_low": data.get("regularMarketDayLow"),
+                    "week52_high": data.get("fiftyTwoWeekHigh"),
+                    "week52_low": data.get("fiftyTwoWeekLow"),
+                    "currency": data.get("currency", "INR"),
+                }
+            cache_manager.set("batch_quote", cache_key, results, ttl=60)
+            return results
+        except Exception as e:
+            print(f"Batch quote error: {e}")
+            return {}
+
     def get_trending_stocks(self, market: str = "in") -> list[dict]:
         """Get quotes for popular stocks by market."""
         cache_key = f"popular_{market}"
@@ -651,11 +692,9 @@ class StockService:
         if cached is not None:
             return cached
 
-        results = []
-        for symbol in self.POPULAR_STOCKS.get(market, self.POPULAR_STOCKS["in"]):
-            quote = self.get_quote(symbol)
-            if quote and quote.get("price"):
-                results.append(quote)
+        symbols = self.POPULAR_STOCKS.get(market, self.POPULAR_STOCKS["in"])
+        batch = self.get_batch_quotes(symbols)
+        results = [batch[s] for s in symbols if s in batch and batch[s].get("price")]
 
         cache_manager.set("trending", cache_key, results, ttl=300)
         return results
