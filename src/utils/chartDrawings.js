@@ -19,7 +19,10 @@ export function saveDrawings(symbol, drawings) {
 
 export function addDrawing(symbol, drawing) {
   const drawings = getDrawings(symbol);
-  drawings.push({ ...drawing, id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, createdAt: Date.now() });
+  const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+  drawings.push({ ...drawing, id, createdAt: Date.now() });
   saveDrawings(symbol, drawings);
   return drawings;
 }
