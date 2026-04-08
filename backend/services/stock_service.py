@@ -943,25 +943,72 @@ class StockService:
         except Exception:
             return []
 
+    def _fetch_google_news(self, query: str, region: str = "IN") -> list[dict]:
+        """Fetch news from Google News RSS (free, no auth, always fresh)."""
+        try:
+            hl = "en-IN" if region == "IN" else "en-US"
+            gl = region
+            ceid = f"{region}:en"
+            url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl={hl}&gl={gl}&ceid={ceid}"
+            resp = httpx.get(url, timeout=10)
+            from xml.etree import ElementTree
+            root = ElementTree.fromstring(resp.content)
+            items = root.findall(".//item")
+
+            articles = []
+            for item in items[:20]:
+                title = item.find("title").text if item.find("title") is not None else ""
+                link = item.find("link").text if item.find("link") is not None else ""
+                source = item.find("source").text if item.find("source") is not None else "Google News"
+                pub_date = item.find("pubDate").text if item.find("pubDate") is not None else ""
+
+                # VADER sentiment
+                scores = self._sentiment_analyzer.polarity_scores(title)
+                compound = scores["compound"]
+                sentiment_label = "Bullish" if compound >= 0.15 else "Bearish" if compound <= -0.15 else "Neutral"
+
+                articles.append({
+                    "title": title,
+                    "summary": "",
+                    "url": link,
+                    "published_at": pub_date,
+                    "source": source,
+                    "image": None,
+                    "sentiment_score": round(compound, 3),
+                    "sentiment_label": sentiment_label,
+                })
+            return articles
+        except Exception:
+            return []
+
     def get_market_news(self, market: str = "in") -> list[dict]:
-        """Get general market news by aggregating news from indices and popular stocks."""
+        """Get market news from Google News RSS + yfinance."""
         cache_key = f"market_{market}"
         cached = cache_manager.get("news", cache_key)
         if cached is not None:
             return cached
 
-        # Fetch news from market-specific sources
-        if market == "us":
-            news_sources = ["^GSPC", "^IXIC", "AAPL", "MSFT", "GOOGL",
-                            "AMZN", "NVDA", "META"]
-        else:
-            news_sources = ["^NSEI", "^BSESN", "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS",
-                            "INFY.NS", "ICICIBANK.NS", "SBIN.NS"]
-
         all_articles = []
         seen_titles = set()
 
-        for sym in news_sources:
+        # Primary: Google News RSS (fresh, reliable)
+        if market == "in":
+            google_articles = self._fetch_google_news("indian stock market NSE BSE", "IN")
+        else:
+            google_articles = self._fetch_google_news("US stock market Wall Street", "US")
+
+        for article in google_articles:
+            if article["title"] not in seen_titles:
+                seen_titles.add(article["title"])
+                all_articles.append(article)
+
+        # Supplementary: yfinance (has images, may have different articles)
+        if market == "us":
+            news_sources = ["^GSPC", "AAPL", "MSFT", "NVDA"]
+        else:
+            news_sources = ["^NSEI", "RELIANCE.NS", "TCS.NS"]
+
+        for sym in news_sources[:3]:
             try:
                 ticker = yf.Ticker(sym)
                 news = ticker.news or []
@@ -973,7 +1020,7 @@ class StockService:
                 continue
 
         all_articles.sort(key=lambda x: x.get("published_at", ""), reverse=True)
-        cache_manager.set("news", cache_key, all_articles, ttl=900)
+        cache_manager.set("news", cache_key, all_articles, ttl=600)
         return all_articles
 
     def _find_support_resistance(self, prices, window=20):
