@@ -43,8 +43,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Analyze with SonarCloud
-        uses: SonarSource/sonarcloud-github-action@v1
+        uses: SonarSource/sonarcloud-github-action@v5
         with:
           args: >
             -Dsonar.projectKey=nishant-ranjan28_swot
