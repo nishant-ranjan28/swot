@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export function exportToCSV(data, columns, filename) {
   const header = columns.map(c => c.label).join(',');
@@ -41,7 +41,7 @@ export function generateStockReport(quote, overview, financials, currency = '₹
   // Overview table
   doc.setFontSize(14);
   doc.text('Company Overview', 14, 55);
-  doc.autoTable({
+  autoTable(doc, {
     startY: 60,
     head: [['Metric', 'Value']],
     body: [
@@ -60,7 +60,7 @@ export function generateStockReport(quote, overview, financials, currency = '₹
   const y = doc.lastAutoTable.finalY + 10;
   doc.setFontSize(14);
   doc.text('Key Financials', 14, y);
-  doc.autoTable({
+  autoTable(doc, {
     startY: y + 5,
     head: [['Metric', 'Value']],
     body: [

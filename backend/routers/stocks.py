@@ -8,6 +8,7 @@ from slowapi.util import get_remote_address
 
 from config import SEARCH_RATE_LIMIT
 from services.stock_service import stock_service
+from services.social_service import social_service
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -149,6 +150,30 @@ async def get_technical_alerts(symbols: Annotated[str, Query()]):
     return {"alerts": data}
 
 
+@router.get("/etfs")
+async def get_etf_list(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
+    data = await asyncio.to_thread(stock_service.get_etf_list, market)
+    return {"etfs": data}
+
+
+@router.get("/etf/overlap")
+async def get_etf_overlap(symbols: Annotated[str, Query()]):
+    syms = [s.strip() for s in symbols.split(",") if s.strip()][:2]
+    if len(syms) != 2:
+        return JSONResponse(status_code=400, content={"error": "Provide exactly 2 ETF symbols"})
+    result = await asyncio.to_thread(stock_service.get_etf_overlap, syms[0], syms[1])
+    return result
+
+
+@router.get("/etf/{symbol}/holdings")
+async def get_etf_holdings(symbol: str):
+    resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
+    result = await asyncio.to_thread(stock_service.get_etf_holdings, resolved)
+    if not result:
+        return _not_found(symbol)
+    return result
+
+
 @router.get("/{symbol}/technical")
 async def get_technical(symbol: str):
     resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
@@ -189,6 +214,7 @@ async def get_prediction(symbol: str, days: Annotated[int, Query(ge=1, le=30)] =
 @router.get("/{symbol}/quote")
 async def get_quote(symbol: str):
     resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
+    social_service.record_view(symbol)
     result = await asyncio.to_thread(stock_service.get_quote, resolved)
     if not result:
         return _not_found(symbol)

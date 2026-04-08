@@ -20,7 +20,9 @@ const MORE_ITEMS = [
   { to: '/scanner', label: '52W Scanner' },
   { to: '/sector-heatmap', label: 'Sector Heatmap' },
   { to: '/backtest', label: 'Backtest Strategy' },
-  // Markets
+  // Markets & Funds
+  { to: '/mutual-funds', label: 'Mutual Funds' },
+  { to: '/etf', label: 'ETF Screener' },
   { to: '/crypto', label: 'Crypto' },
   { to: '/commodities', label: 'Commodities' },
   { to: '/forex', label: 'Forex' },
@@ -30,6 +32,7 @@ const MORE_ITEMS = [
   { to: '/economic-calendar', label: 'Economic Calendar' },
   { to: '/ipo', label: 'IPO Tracker' },
   // Market Intelligence
+  { to: '/trending', label: 'Trending & Sentiment' },
   { to: '/fii-dii', label: 'FII/DII Flows' },
   { to: '/deals', label: 'Insider Deals' },
   // Tools
