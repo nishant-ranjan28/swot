@@ -1,16 +1,27 @@
 # backend/services/crypto_service.py
-import ccxt
+import yfinance as yf
+from datetime import datetime
 from utils.cache import cache_manager
+from services.stock_service import sanitize_json
 
 
 class CryptoService:
-    def __init__(self):
-        self.exchange = ccxt.binance({"enableRateLimit": True})
-
     TOP_CRYPTOS = [
-        "BTC/USDT", "ETH/USDT", "BNB/USDT", "SOL/USDT", "XRP/USDT",
-        "ADA/USDT", "DOGE/USDT", "AVAX/USDT", "DOT/USDT", "MATIC/USDT",
-        "LINK/USDT", "UNI/USDT", "ATOM/USDT", "LTC/USDT", "FIL/USDT",
+        {"symbol": "BTC-USD", "name": "Bitcoin"},
+        {"symbol": "ETH-USD", "name": "Ethereum"},
+        {"symbol": "BNB-USD", "name": "BNB"},
+        {"symbol": "SOL-USD", "name": "Solana"},
+        {"symbol": "XRP-USD", "name": "XRP"},
+        {"symbol": "ADA-USD", "name": "Cardano"},
+        {"symbol": "DOGE-USD", "name": "Dogecoin"},
+        {"symbol": "AVAX-USD", "name": "Avalanche"},
+        {"symbol": "DOT-USD", "name": "Polkadot"},
+        {"symbol": "MATIC-USD", "name": "Polygon"},
+        {"symbol": "LINK-USD", "name": "Chainlink"},
+        {"symbol": "UNI-USD", "name": "Uniswap"},
+        {"symbol": "ATOM-USD", "name": "Cosmos"},
+        {"symbol": "LTC-USD", "name": "Litecoin"},
+        {"symbol": "FIL-USD", "name": "Filecoin"},
     ]
 
     def get_crypto_prices(self) -> list[dict]:
@@ -19,22 +30,39 @@ class CryptoService:
             return cached
 
         try:
-            tickers = self.exchange.fetch_tickers(self.TOP_CRYPTOS)
+            symbols = [c["symbol"] for c in self.TOP_CRYPTOS]
+            name_map = {c["symbol"]: c["name"] for c in self.TOP_CRYPTOS}
+
             results = []
-            for symbol, data in tickers.items():
-                base = symbol.split("/")[0]
-                results.append({
-                    "symbol": symbol,
-                    "name": base,
-                    "price": data.get("last"),
-                    "change_24h": data.get("change"),
-                    "change_pct_24h": data.get("percentage"),
-                    "volume_24h": data.get("quoteVolume"),
-                    "high_24h": data.get("high"),
-                    "low_24h": data.get("low"),
-                })
-            results.sort(key=lambda x: x.get("volume_24h") or 0, reverse=True)
-            cache_manager.set("crypto", "prices", results, ttl=60)
+            for sym in symbols:
+                try:
+                    ticker = yf.Ticker(sym)
+                    info = ticker.info
+                    if not info or not info.get("regularMarketPrice"):
+                        continue
+                    price = info.get("regularMarketPrice", 0)
+                    prev = info.get("previousClose", 0)
+                    change = round(price - prev, 2) if price and prev else 0
+                    change_pct = round((change / prev) * 100, 2) if prev else 0
+
+                    results.append({
+                        "symbol": sym.replace("-USD", "/USDT"),
+                        "name": name_map.get(sym, sym),
+                        "price": price,
+                        "change_24h": change,
+                        "change_pct_24h": change_pct,
+                        "volume_24h": info.get("volume24Hr") or info.get("volume"),
+                        "high_24h": info.get("dayHigh"),
+                        "low_24h": info.get("dayLow"),
+                        "market_cap": info.get("marketCap"),
+                    })
+                except Exception:
+                    continue
+
+            results.sort(key=lambda x: x.get("market_cap") or 0, reverse=True)
+            results = sanitize_json(results)
+            if results:
+                cache_manager.set("crypto", "prices", results, ttl=120)
             return results
         except Exception as e:
             print(f"Crypto error: {e}")
@@ -47,19 +75,36 @@ class CryptoService:
             return cached
 
         try:
-            ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
+            # Convert symbol format: BTC/USDT → BTC-USD
+            yf_symbol = symbol.replace("/USDT", "-USD").replace("/USD", "-USD")
+            if not yf_symbol.endswith("-USD"):
+                yf_symbol = f"{yf_symbol}-USD"
+
+            period_map = {"1h": "5d", "4h": "1mo", "1d": "3mo", "1w": "1y"}
+            period = period_map.get(timeframe, "3mo")
+
+            ticker = yf.Ticker(yf_symbol)
+            df = ticker.history(period=period)
+            df = df.dropna(subset=["Close"])
+
+            if df.empty:
+                return []
+
             data = []
-            for candle in ohlcv:
+            for date, row in df.iterrows():
                 data.append({
-                    "timestamp": candle[0],
-                    "date": self.exchange.iso8601(candle[0])[:10],
-                    "open": candle[1],
-                    "high": candle[2],
-                    "low": candle[3],
-                    "close": candle[4],
-                    "volume": candle[5],
+                    "timestamp": int(date.timestamp() * 1000),
+                    "date": date.strftime("%Y-%m-%d"),
+                    "open": round(row.get("Open", 0), 2),
+                    "high": round(row.get("High", 0), 2),
+                    "low": round(row.get("Low", 0), 2),
+                    "close": round(row.get("Close", 0), 2),
+                    "volume": int(row.get("Volume", 0)),
                 })
-            cache_manager.set("crypto", cache_key, data, ttl=300)
+
+            data = sanitize_json(data)
+            if data:
+                cache_manager.set("crypto", cache_key, data, ttl=300)
             return data
         except Exception as e:
             print(f"Crypto chart error: {e}")
