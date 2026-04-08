@@ -24,6 +24,9 @@ import IpoPage from './components/IpoPage';
 import DealsPage from './components/DealsPage';
 import FiiDiiPage from './components/FiiDiiPage';
 import MacroPage from './components/MacroPage';
+import MutualFundPage from './components/MutualFundPage';
+import EtfPage from './components/EtfPage';
+import TrendingPage from './components/TrendingPage';
 import { useAlertNotifications } from './hooks/useAlertNotifications';
 
 function ScrollToTop() {
@@ -63,6 +66,9 @@ function App() {
         <Route path="/deals" element={<DealsPage />} />
         <Route path="/fii-dii" element={<FiiDiiPage />} />
         <Route path="/macro" element={<MacroPage />} />
+        <Route path="/mutual-funds" element={<MutualFundPage />} />
+        <Route path="/etf" element={<EtfPage />} />
+        <Route path="/trending" element={<TrendingPage />} />
         <Route path="/news" element={<NewsPage />} />
       </Routes>
     </div>

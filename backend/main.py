@@ -50,8 +50,12 @@ from routers.stocks import router as stocks_router
 from routers.backtest import router as backtest_router
 from routers.crypto import router as crypto_router
 from routers.portfolio import router as portfolio_router
+from routers.mf import router as mf_router
+from routers.social import router as social_router
 
 app.include_router(stocks_router, prefix="/api/stocks")
 app.include_router(backtest_router, prefix="/api/backtest")
 app.include_router(crypto_router, prefix="/api/crypto")
 app.include_router(portfolio_router, prefix="/api/portfolio")
+app.include_router(mf_router, prefix="/api/mf")
+app.include_router(social_router, prefix="/api/social")

@@ -215,6 +215,7 @@ const PortfolioPage = () => {
 
   // Search autocomplete
   useEffect(() => {
+    if (selectedStock) return;
     if (searchQuery.trim().length === 0) {
       setSearchResults([]);
       setShowDropdown(false);
@@ -234,7 +235,7 @@ const PortfolioPage = () => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [searchQuery, market]);
+  }, [searchQuery, market, selectedStock]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -251,6 +252,7 @@ const PortfolioPage = () => {
     setSelectedStock(stock);
     setSearchQuery(stock.name || stock.symbol);
     setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const handleAddHolding = () => {

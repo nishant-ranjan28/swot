@@ -2402,6 +2402,168 @@ class StockService:
             print(f"FII/DII fetch error: {e}")
             return None
 
+    ETF_LIST = {
+        "in": [
+            {"symbol": "NIFTYBEES.NS", "name": "Nippon India Nifty 50 BeES", "category": "Index"},
+            {"symbol": "BANKBEES.NS", "name": "Nippon India Bank BeES", "category": "Banking"},
+            {"symbol": "GOLDBEES.NS", "name": "Nippon India Gold BeES", "category": "Gold"},
+            {"symbol": "JUNIORBEES.NS", "name": "Nippon India Nifty Next 50 BeES", "category": "Index"},
+            {"symbol": "ITBEES.NS", "name": "Nippon India IT BeES", "category": "IT"},
+            {"symbol": "SETFNIF50.NS", "name": "SBI Nifty 50 ETF", "category": "Index"},
+            {"symbol": "SETFNIFBK.NS", "name": "SBI Nifty Bank ETF", "category": "Banking"},
+            {"symbol": "LIQUIDBEES.NS", "name": "Nippon India Liquid BeES", "category": "Liquid"},
+            {"symbol": "SILVERBEES.NS", "name": "Nippon India Silver BeES", "category": "Silver"},
+            {"symbol": "MIDCPBEES.NS", "name": "Nippon India Nifty Midcap 150 BeES", "category": "Mid Cap"},
+        ],
+        "us": [
+            {"symbol": "SPY", "name": "SPDR S&P 500 ETF", "category": "Index"},
+            {"symbol": "QQQ", "name": "Invesco QQQ (Nasdaq-100)", "category": "Tech"},
+            {"symbol": "VTI", "name": "Vanguard Total Stock Market", "category": "Broad Market"},
+            {"symbol": "VOO", "name": "Vanguard S&P 500", "category": "Index"},
+            {"symbol": "IWM", "name": "iShares Russell 2000", "category": "Small Cap"},
+            {"symbol": "DIA", "name": "SPDR Dow Jones", "category": "Index"},
+            {"symbol": "ARKK", "name": "ARK Innovation ETF", "category": "Innovation"},
+            {"symbol": "XLF", "name": "Financial Select SPDR", "category": "Finance"},
+            {"symbol": "XLK", "name": "Technology Select SPDR", "category": "Tech"},
+            {"symbol": "GLD", "name": "SPDR Gold Shares", "category": "Gold"},
+        ],
+    }
+
+    def get_etf_list(self, market: str = "in") -> list[dict]:
+        """Get list of ETFs with live quote data for a given market."""
+        cache_key = f"etf_list_{market}"
+        cached = cache_manager.get("etf_list", cache_key)
+        if cached is not None:
+            return cached
+
+        etfs = self.ETF_LIST.get(market, [])
+        result = []
+        for etf in etfs:
+            quote = self.get_quote(etf["symbol"])
+            entry = {
+                "symbol": etf["symbol"],
+                "name": etf["name"],
+                "category": etf["category"],
+                "price": quote.get("price") if quote else None,
+                "change": quote.get("change") if quote else None,
+                "change_percent": quote.get("change_percent") if quote else None,
+                "volume": quote.get("volume") if quote else None,
+                "market_cap": quote.get("market_cap") if quote else None,
+            }
+            result.append(entry)
+
+        result = sanitize_json(result)
+        cache_manager.set("etf_list", cache_key, result, ttl=300)
+        return result
+
+    def get_etf_holdings(self, symbol: str) -> dict | None:
+        """Get ETF holdings and fund overview using funds_data API."""
+        cached = cache_manager.get("etf_holdings", symbol)
+        if cached is not None:
+            return cached
+
+        try:
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+            if not info:
+                return None
+
+            top_holdings = []
+            expense_ratio = None
+            ytd_return = None
+            three_year_return = None
+
+            # Try funds_data API (works for US ETFs)
+            try:
+                fd = ticker.funds_data
+                if fd:
+                    th = fd.top_holdings
+                    if th is not None and not th.empty:
+                        for idx, row in th.iterrows():
+                            top_holdings.append({
+                                "symbol": str(idx),
+                                "name": row.get("Name", str(idx)),
+                                "weight": round(float(row.get("Holding Percent", 0)) * 100, 2),
+                            })
+                    # Fund operations for expense ratio
+                    try:
+                        ops = fd.fund_operations
+                        if ops is not None and isinstance(ops, dict):
+                            expense_ratio = ops.get("annualReportExpenseRatio")
+                    except Exception:
+                        pass
+                    # Fund performance
+                    try:
+                        perf = fd.fund_overview
+                        if perf and isinstance(perf, dict):
+                            ytd_return = perf.get("ytdReturn")
+                            three_year_return = perf.get("threeYearAverageReturn")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # Fallback: use info fields
+            if expense_ratio is None:
+                expense_ratio = info.get("annualReportExpenseRatio") or info.get("netExpenseRatio")
+
+            result = {
+                "symbol": symbol,
+                "name": info.get("shortName") or info.get("longName"),
+                "total_assets": info.get("totalAssets") or info.get("netAssets"),
+                "expense_ratio": expense_ratio,
+                "ytd_return": ytd_return,
+                "three_year_return": three_year_return,
+                "top_holdings": top_holdings,
+            }
+
+            result = sanitize_json(result)
+            cache_manager.set("etf_holdings", symbol, result, ttl=21600)
+            return result
+        except Exception:
+            return None
+
+    def get_etf_overlap(self, sym1: str, sym2: str) -> dict:
+        """Compare two ETFs and find common holdings."""
+        cache_key = f"{sym1}_{sym2}"
+        cached = cache_manager.get("etf_overlap", cache_key)
+        if cached is not None:
+            return cached
+
+        h1 = self.get_etf_holdings(sym1)
+        h2 = self.get_etf_holdings(sym2)
+
+        holdings1 = h1.get("top_holdings", []) if h1 else []
+        holdings2 = h2.get("top_holdings", []) if h2 else []
+
+        # Build symbol/name sets for overlap detection
+        names1 = set()
+        for h in holdings1:
+            sym = h.get("symbol", "")
+            if sym:
+                names1.add(sym.strip().upper())
+
+        names2 = set()
+        for h in holdings2:
+            sym = h.get("symbol", "")
+            if sym:
+                names2.add(sym.strip().upper())
+
+        common_names = names1 & names2
+        common_holdings = sorted(common_names)
+
+        result = {
+            "etf1": {"symbol": sym1, "name": h1.get("name") if h1 else sym1},
+            "etf2": {"symbol": sym2, "name": h2.get("name") if h2 else sym2},
+            "common_holdings": sorted(common_holdings),
+            "overlap_count": len(common_holdings),
+            "etf1_total": len(holdings1),
+            "etf2_total": len(holdings2),
+        }
+
+        cache_manager.set("etf_overlap", cache_key, result, ttl=21600)
+        return result
+
     def get_insider_transactions(self, symbol: str) -> list:
         """Get insider transactions for a stock."""
         cached = cache_manager.get("insider", symbol)
