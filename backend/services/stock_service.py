@@ -57,10 +57,28 @@ class StockService:
         except Exception:
             return None
 
+    # Known US stock symbols to skip .NS/.BO resolution
+    US_SYMBOLS = {
+        "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "BRK-B",
+        "JPM", "V", "UNH", "JNJ", "WMT", "MA", "PG", "HD", "DIS", "NFLX",
+        "CRM", "AMD", "INTC", "CSCO", "PEP", "KO", "ABBV", "MRK", "PFE",
+        "XOM", "CVX", "COP", "BAC", "GS", "MS", "CAT", "HON", "GE", "BA",
+        "LLY", "AVGO", "COST", "ADBE", "ORCL", "ACN", "IBM", "QCOM",
+        "SPY", "QQQ", "VTI", "VOO", "IWM", "DIA", "ARKK", "XLF", "XLK", "GLD",
+    }
+
     def resolve_indian_symbol(self, symbol: str) -> str:
         """Resolve symbol — for Indian stocks ensure .NS/.BO suffix, for US stocks use as-is."""
         # Already has a suffix — return as-is
         if symbol.endswith(".NS") or symbol.endswith(".BO"):
+            return symbol
+
+        # Known US symbols — skip validation (avoid yfinance calls that may fail on cloud)
+        if symbol.upper() in self.US_SYMBOLS:
+            return symbol
+
+        # Contains special chars like = (forex) or - (BRK-B, crypto BTC-USD) — return as-is
+        if "=" in symbol or "-" in symbol:
             return symbol
 
         # Try as US stock first (no suffix)
