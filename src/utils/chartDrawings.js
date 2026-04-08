@@ -10,12 +10,16 @@ export function getDrawings(symbol) {
 }
 
 export function saveDrawings(symbol, drawings) {
-  localStorage.setItem(`${STORAGE_PREFIX}${symbol}`, JSON.stringify(drawings));
+  try {
+    localStorage.setItem(`${STORAGE_PREFIX}${symbol}`, JSON.stringify(drawings));
+  } catch {
+    // localStorage may be full or unavailable
+  }
 }
 
 export function addDrawing(symbol, drawing) {
   const drawings = getDrawings(symbol);
-  drawings.push({ ...drawing, id: crypto.randomUUID(), createdAt: Date.now() });
+  drawings.push({ ...drawing, id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, createdAt: Date.now() });
   saveDrawings(symbol, drawings);
   return drawings;
 }

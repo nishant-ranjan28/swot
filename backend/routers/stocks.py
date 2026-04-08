@@ -214,10 +214,10 @@ async def get_prediction(symbol: str, days: Annotated[int, Query(ge=1, le=30)] =
 @router.get("/{symbol}/quote")
 async def get_quote(symbol: str):
     resolved = await asyncio.to_thread(stock_service.resolve_indian_symbol, symbol)
-    social_service.record_view(symbol)
     result = await asyncio.to_thread(stock_service.get_quote, resolved)
     if not result:
         return _not_found(symbol)
+    social_service.record_view(resolved)
     return result
 
 

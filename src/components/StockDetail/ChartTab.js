@@ -68,7 +68,7 @@ const DrawingToolbar = ({ activeTool, setActiveTool, drawingColor, setDrawingCol
   </div>
 );
 
-const StockChart = ({ data, height = 400, symbol, activeTool, drawingColor, drawings, onAddDrawing, fibState, setFibState }) => {
+const StockChart = ({ data, height = 400, activeTool, drawingColor, drawings, onAddDrawing, fibState, setFibState }) => {
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const drawingSeriesRef = useRef([]);
@@ -286,6 +286,12 @@ const ChartTab = ({ symbol }) => {
   const { currency } = useMarket();
   const { data, loading, error, refetch } = useStockData(`/api/stocks/${symbol}/history?range=${range}`);
 
+  useEffect(() => {
+    setDrawings(getDrawings(symbol));
+    setFibState(null);
+    setActiveTool(null);
+  }, [symbol]);
+
   const handleAddDrawing = useCallback((drawing) => {
     const updated = addDrawing(symbol, drawing);
     setDrawings([...updated]);
@@ -302,8 +308,10 @@ const ChartTab = ({ symbol }) => {
   const last = historyData[historyData.length - 1];
   const overallChange = first && last ? last.close - first.close : 0;
   const overallChangePct = first ? ((overallChange / first.close) * 100) : 0;
-  const highest = historyData.length > 0 ? Math.max(...historyData.filter(d => d.high != null).map(d => d.high)) : 0;
-  const lowest = historyData.length > 0 ? Math.min(...historyData.filter(d => d.low != null).map(d => d.low)) : 0;
+  const highValues = historyData.filter(d => d.high != null).map(d => d.high);
+  const lowValues = historyData.filter(d => d.low != null).map(d => d.low);
+  const highest = highValues.length > 0 ? Math.max(...highValues) : 0;
+  const lowest = lowValues.length > 0 ? Math.min(...lowValues) : 0;
   const avgVolume = historyData.length > 0 ? Math.round(historyData.reduce((sum, d) => sum + (d.volume || 0), 0) / historyData.length) : 0;
 
   return (
@@ -388,7 +396,6 @@ const ChartTab = ({ symbol }) => {
               )}
               <StockChart
                 data={historyData}
-                symbol={symbol}
                 activeTool={activeTool}
                 drawingColor={drawingColor}
                 drawings={drawings}

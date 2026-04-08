@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
-import PriceChart from './PriceChart';
 
 const CATEGORIES = ['All', 'Equity Large Cap', 'Equity Mid Cap', 'Equity Small Cap', 'ELSS', 'Debt', 'Hybrid', 'Index'];
 
@@ -11,7 +10,7 @@ const PERIODS = [
   { value: 'max', label: 'Max' },
 ];
 
-function NavChart({ schemeCode, schemeName, period }) {
+function NavChart({ schemeCode, period }) {
   const canvasRef = useRef(null);
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -150,7 +149,8 @@ function MFOverlapTool() {
 
   const searchFunds = (query, setResults, setShow) => {
     if (query.trim().length < 2) { setResults([]); setShow(false); return; }
-    clearTimeout(db1.current);
+    const ref = setResults === setResults1 ? db1 : db2;
+    clearTimeout(ref.current);
     const timer = setTimeout(async () => {
       try {
         const res = await api.get(`/api/mf/search?q=${encodeURIComponent(query)}`);
@@ -158,8 +158,7 @@ function MFOverlapTool() {
         setShow(true);
       } catch { setResults([]); }
     }, 400);
-    if (setResults === setResults1) db1.current = timer;
-    else db2.current = timer;
+    ref.current = timer;
   };
 
   const checkOverlap = async () => {
@@ -412,6 +411,7 @@ function MutualFundPage() {
           schemeName={selectedFund.scheme_name}
           period={navPeriod}
           setPeriod={setNavPeriod}
+          onBack={() => { setSelectedFund(null); setSearchQuery(''); }}
         />
       )}
 
@@ -479,7 +479,7 @@ function MutualFundPage() {
   );
 }
 
-function FundDetail({ schemeCode, schemeName, period, setPeriod }) {
+function FundDetail({ schemeCode, schemeName, period, setPeriod, onBack }) {
   const [nav, setNav] = useState(null);
   const [loading, setLoading] = useState(true);
   const [holdings, setHoldings] = useState(null);
@@ -578,7 +578,7 @@ function FundDetail({ schemeCode, schemeName, period, setPeriod }) {
             ))}
           </div>
         </div>
-        <NavChart schemeCode={schemeCode} schemeName={schemeName} period={period} />
+        <NavChart schemeCode={schemeCode} period={period} />
       </div>
 
       {/* Holdings */}
@@ -647,7 +647,7 @@ function FundDetail({ schemeCode, schemeName, period, setPeriod }) {
 
       {/* Back button */}
       <button
-        onClick={() => window.location.reload()}
+        onClick={onBack}
         className="text-sm text-blue-600 hover:text-blue-800 font-medium"
       >
         &larr; Back to all funds

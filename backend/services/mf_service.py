@@ -1,5 +1,4 @@
 # backend/services/mf_service.py
-from mftool import Mftool
 from datetime import datetime, timedelta
 import httpx
 from utils.cache import cache_manager
@@ -9,7 +8,7 @@ MFDATA_BASE = "https://mfdata.in/api/v1"
 
 
 class MFService:
-    """Mutual Fund analytics service using mftool."""
+    """Mutual Fund analytics service using mfdata.in and mfapi.in APIs."""
 
     # Search queries per category to find popular funds dynamically
     CATEGORY_SEARCHES = {
@@ -21,24 +20,6 @@ class MFService:
         "Hybrid": ["SBI equity hybrid direct growth", "HDFC balanced advantage direct growth", "ICICI equity debt direct growth"],
         "Index": ["UTI nifty 50 index direct growth", "HDFC index nifty 50 direct growth", "Motilal nifty next 50 direct growth"],
     }
-
-    def __init__(self):
-        self._mf = None
-        self._mf_failed = False
-
-    def _get_mf(self):
-        """Lazy-initialize Mftool to avoid startup crashes."""
-        if self._mf is not None:
-            return self._mf
-        if self._mf_failed:
-            return None
-        try:
-            self._mf = Mftool()
-        except Exception as e:
-            print(f"mftool init error: {e}")
-            self._mf_failed = True
-            return None
-        return self._mf
 
     def search(self, query: str) -> list[dict]:
         """Search mutual fund schemes using mfdata.in API."""

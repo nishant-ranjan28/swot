@@ -33,7 +33,7 @@ function TrendingPage() {
   useEffect(() => {
     setLoadingReddit(true);
     api.get(`/api/social/reddit?sub=${activeSub}`)
-      .then(res => setRedditData(res.data.mentions || []))
+      .then(res => setRedditData(res.data.results || []))
       .catch(() => setRedditData([]))
       .finally(() => setLoadingReddit(false));
   }, [activeSub]);
@@ -42,7 +42,7 @@ function TrendingPage() {
   useEffect(() => {
     setLoadingLocal(true);
     api.get('/api/social/trending')
-      .then(res => setTrendingLocal(res.data.trending || []))
+      .then(res => setTrendingLocal(res.data.results || []))
       .catch(() => setTrendingLocal([]))
       .finally(() => setLoadingLocal(false));
   }, []);

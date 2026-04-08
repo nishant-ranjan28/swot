@@ -16,18 +16,9 @@ def _not_found(scheme_code: str):
     )
 
 
-def _server_error():
-    return JSONResponse(
-        status_code=502,
-        content={"error": "Failed to fetch data from mftool", "code": "UPSTREAM_ERROR"},
-    )
-
-
 @router.get("/search")
 async def search_funds(q: Annotated[str, Query(min_length=1, max_length=100)]):
     results = await asyncio.to_thread(mf_service.search, q.strip())
-    if results is None:
-        return _server_error()
     return {"results": results}
 
 
