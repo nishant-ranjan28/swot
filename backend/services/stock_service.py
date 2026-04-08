@@ -2077,7 +2077,7 @@ class StockService:
         if cached is not None:
             return cached
 
-        symbols = self.POPULAR_STOCKS.get(market, self.POPULAR_STOCKS["in"])[:20]
+        symbols = self.POPULAR_STOCKS.get(market, self.POPULAR_STOCKS["in"])[:10]
         results = []
 
         for symbol in symbols:
@@ -2087,7 +2087,9 @@ class StockService:
                 if earnings_dates is None or earnings_dates.empty:
                     continue
 
-                # Filter upcoming earnings (where Reported EPS is NaN = not yet reported)
+                # Use symbol as name to avoid extra ticker.info call (slow on prod)
+                name = symbol.replace(".NS", "").replace(".BO", "")
+
                 for idx, row in earnings_dates.iterrows():
                     reported_eps = row.get("Reported EPS")
                     if pd.isna(reported_eps):
@@ -2097,9 +2099,6 @@ class StockService:
                             date_str = date_val.strftime("%Y-%m-%d")
                         else:
                             date_str = str(date_val)[:10]
-
-                        info = ticker.info or {}
-                        name = info.get("shortName") or info.get("longName") or symbol.replace(".NS", "").replace(".BO", "")
 
                         results.append({
                             "symbol": symbol,
@@ -2113,7 +2112,8 @@ class StockService:
 
         # Sort by date
         results.sort(key=lambda x: x["date"])
-        cache_manager.set("earnings_calendar", cache_key, results, ttl=3600)
+        if results:
+            cache_manager.set("earnings_calendar", cache_key, results, ttl=3600)
         return results
 
     # ── Sector Performance (Heatmap) ────────────────────────────────
