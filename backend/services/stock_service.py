@@ -984,7 +984,7 @@ class StockService:
             hl = "en-IN" if region == "IN" else "en-US"
             gl = region
             ceid = f"{region}:en"
-            url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl={hl}&gl={gl}&ceid={ceid}"
+            url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl={hl}&gl={gl}&ceid={ceid}&when=3d"
             resp = httpx.get(url, timeout=10)
             from xml.etree import ElementTree
             root = ElementTree.fromstring(resp.content)
@@ -1028,9 +1028,9 @@ class StockService:
 
         # Primary: Google News RSS (fresh, reliable)
         if market == "in":
-            google_articles = self._fetch_google_news("indian stock market NSE BSE", "IN")
+            google_articles = self._fetch_google_news("stock market today india Sensex Nifty", "IN")
         else:
-            google_articles = self._fetch_google_news("US stock market Wall Street", "US")
+            google_articles = self._fetch_google_news("stock market today Wall Street S&P 500", "US")
 
         for article in google_articles:
             if article["title"] not in seen_titles:
@@ -1055,7 +1055,8 @@ class StockService:
                 continue
 
         all_articles.sort(key=lambda x: x.get("published_at", ""), reverse=True)
-        cache_manager.set("news", cache_key, all_articles, ttl=600)
+        if all_articles:
+            cache_manager.set("news", cache_key, all_articles, ttl=300)
         return all_articles
 
     def _find_support_resistance(self, prices, window=20):
