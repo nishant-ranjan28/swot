@@ -947,19 +947,36 @@ class StockService:
         return articles
 
     def get_stock_news(self, symbol: str) -> list[dict]:
-        """Get news for a specific stock."""
+        """Get news for a specific stock using Google News + yfinance."""
         cached = cache_manager.get("news", symbol)
         if cached is not None:
             return cached
 
+        all_articles = []
+        seen_titles = set()
+
+        # Google News for the stock name/symbol
+        clean_sym = symbol.replace(".NS", "").replace(".BO", "")
+        google_articles = self._fetch_google_news(f"{clean_sym} stock", "IN" if ".NS" in symbol or ".BO" in symbol else "US")
+        for article in google_articles:
+            if article["title"] not in seen_titles:
+                seen_titles.add(article["title"])
+                all_articles.append(article)
+
+        # Supplement with yfinance
         try:
             ticker = yf.Ticker(symbol)
             news = ticker.news or []
-            articles = self._parse_news(news)
-            cache_manager.set("news", symbol, articles, ttl=900)
-            return articles
+            for article in self._parse_news(news):
+                if article["title"] not in seen_titles:
+                    seen_titles.add(article["title"])
+                    all_articles.append(article)
         except Exception:
-            return []
+            pass
+
+        all_articles.sort(key=lambda x: x.get("published_at", ""), reverse=True)
+        cache_manager.set("news", symbol, all_articles, ttl=600)
+        return all_articles
 
     def _fetch_google_news(self, query: str, region: str = "IN") -> list[dict]:
         """Fetch news from Google News RSS (free, no auth, always fresh)."""
