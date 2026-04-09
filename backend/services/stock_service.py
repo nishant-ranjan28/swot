@@ -14,6 +14,21 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import math
 
 
+def _parse_date_for_sort(date_str: str) -> str:
+    """Normalize various date formats to ISO for consistent sorting."""
+    if not date_str:
+        return "1970-01-01T00:00:00"
+    from email.utils import parsedate_to_datetime
+    try:
+        # Try RFC 2822 (Google News): "Wed, 09 Apr 2026 10:59:43 GMT"
+        dt = parsedate_to_datetime(date_str)
+        return dt.strftime("%Y-%m-%dT%H:%M:%S")
+    except Exception:
+        pass
+    # Already ISO or other format - return as-is (works for lexicographic sort)
+    return date_str
+
+
 def sanitize_json(obj):
     """Replace NaN/Inf floats with None recursively so JSON serialization doesn't fail."""
     if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
@@ -974,7 +989,7 @@ class StockService:
         except Exception:
             pass
 
-        all_articles.sort(key=lambda x: x.get("published_at", ""), reverse=True)
+        all_articles.sort(key=lambda x: _parse_date_for_sort(x.get("published_at", "")), reverse=True)
         cache_manager.set("news", symbol, all_articles, ttl=600)
         return all_articles
 
@@ -1054,7 +1069,7 @@ class StockService:
             except Exception:
                 continue
 
-        all_articles.sort(key=lambda x: x.get("published_at", ""), reverse=True)
+        all_articles.sort(key=lambda x: _parse_date_for_sort(x.get("published_at", "")), reverse=True)
         if all_articles:
             cache_manager.set("news", cache_key, all_articles, ttl=300)
         return all_articles
