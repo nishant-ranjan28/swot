@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
+import GeneratedSwot from './GeneratedSwot';
 
 const SwotTab = ({ symbol }) => {
-  // Extract clean symbol (remove .NS / .BO suffix)
   const cleanSymbol = symbol?.split('.')[0] || '';
+  const isIndian = symbol?.endsWith('.NS') || symbol?.endsWith('.BO');
 
-  // Load Trendlyne widget script
+  // Load Trendlyne widget script for Indian stocks
   useEffect(() => {
+    if (!isIndian) return;
     const existingScript = document.getElementById('trendlyne-widgets-script');
     if (!existingScript) {
       const script = document.createElement('script');
@@ -16,8 +18,24 @@ const SwotTab = ({ symbol }) => {
     } else if (window.tl_widgets && typeof window.tl_widgets.render === 'function') {
       setTimeout(() => window.tl_widgets.render(), 200);
     }
-  }, [cleanSymbol]);
+  }, [cleanSymbol, isIndian]);
 
+  // US stocks or non-Indian → use generated SWOT
+  if (!isIndian) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-md font-semibold text-gray-800 mb-1">SWOT Analysis</h3>
+          <p className="text-xs text-gray-500 mb-4">
+            AI-generated from fundamentals, technicals, and analyst data
+          </p>
+        </div>
+        <GeneratedSwot symbol={symbol} />
+      </div>
+    );
+  }
+
+  // Indian stocks → use Trendlyne widgets
   const widgetBase = `posCol=00A25B&primaryCol=006AFF&negCol=EB3B00&neuCol=F7941E`;
 
   return (

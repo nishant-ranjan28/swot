@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './App.css';
+import { useMarket } from './context/MarketContext';
 import NewsPage from './components/NewsPage';
 import Header from './components/Header';
 import HomePage from './components/HomePage';
@@ -37,6 +38,43 @@ function ScrollToTop() {
   return null;
 }
 
+function MarketSwitcher() {
+  const { setMarket } = useMarket();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const match = location.pathname.match(/^\/(in|us)$/i);
+    const m = match?.[1]?.toLowerCase();
+    if (m === 'in' || m === 'us') {
+      setMarket(m);
+      showToast(`Switched to ${m === 'in' ? 'Indian' : 'US'} market`);
+      navigate('/', { replace: true });
+    }
+  }, [location.pathname, setMarket, navigate]);
+
+  return null;
+}
+
+let toastTimeout = null;
+function showToast(message) {
+  // Remove existing toast
+  const existing = document.getElementById('market-toast');
+  if (existing) existing.remove();
+  if (toastTimeout) clearTimeout(toastTimeout);
+
+  const toast = document.createElement('div');
+  toast.id = 'market-toast';
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:500;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s;';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  toastTimeout = setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
 function App() {
   useAlertNotifications();
 
@@ -45,6 +83,8 @@ function App() {
       <ScrollToTop />
       <Header />
       <Routes>
+        <Route path="/in" element={<MarketSwitcher />} />
+        <Route path="/us" element={<MarketSwitcher />} />
         <Route path="/" element={<HomePage />} />
         <Route path="/stock/:symbol" element={<StockDetailPage />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
