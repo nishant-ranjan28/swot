@@ -86,7 +86,7 @@ function Header() {
             {/* Market Toggle */}
             <div className="flex items-center bg-gray-700 rounded-full p-0.5">
               <button
-                onClick={() => { if (market !== 'in') navigate('/in'); }}
+                onClick={() => navigate('/in')}
                 className={`px-2 py-1 rounded-full text-[11px] font-semibold transition-colors focus:outline-none ${
                   market === 'in' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'
                 }`}
@@ -94,7 +94,7 @@ function Header() {
                 IN
               </button>
               <button
-                onClick={() => { if (market !== 'us') navigate('/us'); }}
+                onClick={() => navigate('/us')}
                 className={`px-2 py-1 rounded-full text-[11px] font-semibold transition-colors focus:outline-none ${
                   market === 'us' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'
                 }`}

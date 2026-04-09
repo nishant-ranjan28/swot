@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import { useMarket } from './context/MarketContext';
 import NewsPage from './components/NewsPage';
@@ -38,9 +38,8 @@ function ScrollToTop() {
   return null;
 }
 
-function MarketSwitcher() {
+function MarketHomePage() {
   const { setMarket } = useMarket();
-  const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
@@ -49,11 +48,10 @@ function MarketSwitcher() {
     if (m === 'in' || m === 'us') {
       setMarket(m);
       showToast(`Switched to ${m === 'in' ? 'Indian' : 'US'} market`);
-      navigate('/', { replace: true });
     }
-  }, [location.pathname, setMarket, navigate]);
+  }, [location.pathname, setMarket]);
 
-  return null;
+  return <HomePage />;
 }
 
 let toastTimeout = null;
@@ -83,8 +81,8 @@ function App() {
       <ScrollToTop />
       <Header />
       <Routes>
-        <Route path="/in" element={<MarketSwitcher />} />
-        <Route path="/us" element={<MarketSwitcher />} />
+        <Route path="/in" element={<MarketHomePage />} />
+        <Route path="/us" element={<MarketHomePage />} />
         <Route path="/" element={<HomePage />} />
         <Route path="/stock/:symbol" element={<StockDetailPage />} />
         <Route path="/watchlist" element={<WatchlistPage />} />
