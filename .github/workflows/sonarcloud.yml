@@ -55,7 +55,7 @@ jobs:
 
       # SonarCloud scan
       - name: Analyze with SonarCloud
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         with:
           args: >
             -Dsonar.projectKey=nishant-ranjan28_swot
