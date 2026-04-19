@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
+import api from './api';
 import { useMarket } from './context/MarketContext';
 import NewsPage from './components/NewsPage';
 import Header from './components/Header';
@@ -75,6 +76,10 @@ function showToast(message) {
 
 function App() {
   useAlertNotifications();
+
+  useEffect(() => {
+    api.get('/api/health', { timeout: 90000 }).catch(() => {});
+  }, []);
 
   return (
     <div>

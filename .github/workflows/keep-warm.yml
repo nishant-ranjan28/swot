@@ -1,0 +1,22 @@
+name: keep-warm
+
+on:
+  schedule:
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: |
+          if [ -z "${BACKEND_URL}" ]; then
+            echo "BACKEND_URL secret not set"; exit 1
+          fi
+          code=$(curl -s -o /tmp/body -w "%{http_code}" --max-time 90 "${BACKEND_URL%/}/api/health")
+          echo "HTTP $code"
+          cat /tmp/body || true
+          [ "$code" = "200" ]
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
