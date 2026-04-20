@@ -16,7 +16,9 @@ jobs:
           if [ -z "${BACKEND_URL}" ]; then
             echo "BACKEND_URL secret not set"; exit 1
           fi
-          code=$(curl -s -o /tmp/body -w "%{http_code}" --max-time 90 "${BACKEND_URL}")
+          code=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 120 --retry 2 --retry-delay 15 --retry-connrefused --retry-all-errors \
+            "${BACKEND_URL}")
           echo "HTTP $code"
           cat /tmp/body || true
           [ "$code" = "200" ]
