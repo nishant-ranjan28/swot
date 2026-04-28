@@ -11,7 +11,7 @@
     "lightweight-charts": "^5.1.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.5",
-    "react-router-dom": "^7.13.0",
+    "react-router-dom": "^7.14.2",
     "react-scripts": "^5.0.1",
     "uplot": "^1.6.32",
     "web-vitals": "^5.0.3"
