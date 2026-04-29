@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import './App.css';
 import api from './api';
 import { useMarket } from './context/MarketContext';
@@ -114,6 +115,7 @@ function App() {
         <Route path="/trending" element={<TrendingPage />} />
         <Route path="/news" element={<NewsPage />} />
       </Routes>
+      <Analytics />
     </div>
   );
 }
