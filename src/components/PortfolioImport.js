@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import Papa from 'papaparse';
 import api from '../api';
 
@@ -48,11 +49,11 @@ const parseDate = (raw) => {
 };
 
 const parseNumber = (raw) => {
-  if (raw == null) return NaN;
+  if (raw == null) return Number.NaN;
   const s = String(raw).trim().replace(/,/g, '');
-  if (!s) return NaN;
+  if (!s) return Number.NaN;
   const n = Number(s);
-  return Number.isFinite(n) ? n : NaN;
+  return Number.isFinite(n) ? n : Number.NaN;
 };
 
 const normalizeHeaders = (headerRow) => {
@@ -105,9 +106,16 @@ export const validateRow = (row, headerMap, existingHoldings, importedSoFar) => 
   return { status: 'pending', row: { symbol, name, quantity: qty, buyPrice, buyDate } };
 };
 
+const REQUIRED_LABELS = {
+  symbol: 'Symbol',
+  quantity: 'Quantity',
+  buyPrice: 'Buy Price',
+  buyDate: 'Buy Date',
+};
+
 export const parseCsvText = (text, existingHoldings) => {
   const result = Papa.parse(text.replace(/^﻿/, ''), { skipEmptyLines: true });
-  if (result.errors && result.errors.length) {
+  if (result.errors?.length) {
     const fatal = result.errors.find((e) => e.code !== 'TooFewFields' && e.code !== 'TooManyFields');
     if (fatal) return { fatal: `CSV parse error: ${fatal.message}` };
   }
@@ -119,11 +127,8 @@ export const parseCsvText = (text, existingHoldings) => {
   const headerMap = normalizeHeaders(headerRow);
   const missing = REQUIRED.filter((k) => headerMap[k] == null);
   if (missing.length) {
-    return {
-      fatal: `Missing required column(s): ${missing
-        .map((k) => (k === 'buyPrice' ? 'Buy Price' : k === 'buyDate' ? 'Buy Date' : k))
-        .join(', ')}`,
-    };
+    const labels = missing.map((k) => REQUIRED_LABELS[k] || k).join(', ');
+    return { fatal: `Missing required column(s): ${labels}` };
   }
 
   const rows = data.slice(1);
@@ -189,10 +194,19 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
-  const close = () => {
+  const close = useCallback(() => {
     reset();
     onClose();
-  };
+  }, [reset, onClose]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, close]);
 
   const handleFile = async (file) => {
     setErrorMsg('');
@@ -224,7 +238,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
       const final = parsed.map((c) => {
         if (c.status !== 'pending') return c;
         const quote = lookup[c.row.symbol];
-        if (!quote || !quote.price) {
+        if (!quote?.price) {
           return { ...c, status: 'rejected', reason: 'symbol not found' };
         }
         return {
@@ -268,14 +282,22 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={close}>
-      <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="portfolio-import-title"
+    >
+      <button
+        type="button"
+        aria-label="Close import dialog"
+        onClick={close}
+        className="absolute inset-0 bg-black/40 cursor-default focus:outline-none"
+      />
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           <div>
-            <h3 className="text-base font-semibold text-gray-900">Import Portfolio CSV</h3>
+            <h3 id="portfolio-import-title" className="text-base font-semibold text-gray-900">Import Portfolio CSV</h3>
             <p className="text-xs text-gray-500 mt-0.5">
               Importing into <span className="font-medium">{market === 'us' ? 'US' : 'Indian'}</span> market — switch markets to import there.
             </p>
@@ -426,6 +448,25 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
       </div>
     </div>
   );
+};
+
+StatusPill.propTypes = {
+  status: PropTypes.oneOf(['valid', 'duplicate', 'rejected', 'pending']).isRequired,
+};
+
+PortfolioImport.propTypes = {
+  open: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  market: PropTypes.string.isRequired,
+  holdings: PropTypes.arrayOf(
+    PropTypes.shape({
+      symbol: PropTypes.string,
+      quantity: PropTypes.number,
+      buyPrice: PropTypes.number,
+      buyDate: PropTypes.string,
+    }),
+  ).isRequired,
+  onImport: PropTypes.func.isRequired,
 };
 
 export default PortfolioImport;
