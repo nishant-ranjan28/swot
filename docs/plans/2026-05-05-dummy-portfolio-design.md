@@ -1,7 +1,7 @@
 # Dummy Portfolio for First-Time Visitors — Design
 
 **Date:** 2026-05-05
-**Status:** Design validated; implementation pending.
+**Status:** Implemented in PR #213.
 
 ## Goal
 
