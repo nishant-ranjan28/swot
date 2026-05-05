@@ -5,6 +5,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useMarket } from '../context/MarketContext';
 import Sparkline from './Sparkline';
 import { exportPortfolio } from '../utils/exportUtils';
+import PortfolioImport from './PortfolioImport';
 
 const formatNumber = (num) => {
   if (num == null || isNaN(num)) return '-';
@@ -148,6 +149,7 @@ const PortfolioPage = () => {
 
   // Sort
   const [sortBy, setSortBy] = useState('value');
+  const [importOpen, setImportOpen] = useState(false);
 
   const debounceRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -212,6 +214,18 @@ const PortfolioPage = () => {
   useEffect(() => {
     fetchLivePrices(holdings, watchlist);
   }, [holdings, watchlist, fetchLivePrices]);
+
+  useEffect(() => {
+    setImportOpen(false);
+  }, [market]);
+
+  const handleImport = useCallback((newRows, mode) => {
+    if (mode === 'replace') {
+      setHoldings(newRows);
+    } else {
+      setHoldings((prev) => [...prev, ...newRows]);
+    }
+  }, [setHoldings]);
 
   // Search autocomplete
   useEffect(() => {
@@ -485,6 +499,16 @@ const PortfolioPage = () => {
                 <h2 className="text-sm font-semibold text-gray-700">Holdings ({holdings.length})</h2>
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => setImportOpen(true)}
+                    className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium transition-colors focus:outline-none flex items-center gap-1"
+                    title="Import holdings from CSV"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
+                    </svg>
+                    Import CSV
+                  </button>
+                  <button
                     onClick={() => exportPortfolio(holdings, liveData)}
                     className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-none flex items-center gap-1"
                     title="Export holdings to CSV"
@@ -731,6 +755,14 @@ const PortfolioPage = () => {
       {holdings.length > 0 && !loading && Object.keys(liveData).length > 0 && (
         <PortfolioInsights holdings={holdings} liveData={liveData} watchlist={watchlist} />
       )}
+
+      <PortfolioImport
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        market={market}
+        holdings={holdings}
+        onImport={handleImport}
+      />
     </div>
   );
 };
