@@ -114,7 +114,7 @@ const REQUIRED_LABELS = {
 };
 
 export const parseCsvText = (text, existingHoldings) => {
-  const result = Papa.parse(text.replace(/^﻿/, ''), { skipEmptyLines: true });
+  const result = Papa.parse(text.replaceAll('﻿', ''), { skipEmptyLines: true });
   if (result.errors?.length) {
     const fatal = result.errors.find((e) => e.code !== 'TooFewFields' && e.code !== 'TooManyFields');
     if (fatal) return { fatal: `CSV parse error: ${fatal.message}` };
@@ -390,8 +390,8 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {classified.map((c, i) => (
-                        <tr key={i} className="border-t border-gray-100">
+                      {classified.map((c) => (
+                        <tr key={c.lineNumber} className="border-t border-gray-100">
                           <td className="px-2 py-1.5 text-gray-400">{c.lineNumber}</td>
                           <td className="px-2 py-1.5"><StatusPill status={c.status} /></td>
                           <td className="px-2 py-1.5 font-mono">{c.row?.symbol || '-'}</td>
@@ -418,7 +418,14 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
               Back
             </button>
             <div className="flex items-center gap-2">
-              {!confirmingReplace ? (
+              {confirmingReplace ? (
+                <button
+                  onClick={handleReplace}
+                  className="text-sm px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium focus:outline-none"
+                >
+                  Yes, replace {holdings.length} existing holding{holdings.length === 1 ? '' : 's'}
+                </button>
+              ) : (
                 <button
                   onClick={() => setConfirmingReplace(true)}
                   className="text-sm px-3 py-1.5 rounded-md bg-red-50 text-red-700 hover:bg-red-100 font-medium focus:outline-none disabled:opacity-50"
@@ -426,13 +433,6 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
                   title="Replace all current holdings with these"
                 >
                   Replace all
-                </button>
-              ) : (
-                <button
-                  onClick={handleReplace}
-                  className="text-sm px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium focus:outline-none"
-                >
-                  Yes, replace {holdings.length} existing holding{holdings.length === 1 ? '' : 's'}
                 </button>
               )}
               <button
