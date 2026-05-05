@@ -114,7 +114,7 @@ const REQUIRED_LABELS = {
 };
 
 export const parseCsvText = (text, existingHoldings) => {
-  const result = Papa.parse(text.replaceAll('﻿', ''), { skipEmptyLines: true });
+  const result = Papa.parse(text.replaceAll('﻿', ''), { skipEmptyLines: 'greedy' });
   if (result.errors?.length) {
     const fatal = result.errors.find((e) => e.code !== 'TooFewFields' && e.code !== 'TooManyFields');
     if (fatal) return { fatal: `CSV parse error: ${fatal.message}` };
