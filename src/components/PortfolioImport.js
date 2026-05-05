@@ -23,10 +23,14 @@ const HEADER_ALIASES = {
 
 const REQUIRED = ['symbol', 'quantity', 'buyPrice', 'buyDate'];
 
-const todayISO = () => {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().split('T')[0];
+const formatLocalISO = (dt) => {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
+
+const todayISO = () => formatLocalISO(new Date());
 
 const parseDate = (raw) => {
   if (!raw) return null;
@@ -42,8 +46,7 @@ const parseDate = (raw) => {
   }
   const ts = Date.parse(s);
   if (!Number.isNaN(ts)) {
-    const dt = new Date(ts);
-    return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).toISOString().split('T')[0];
+    return formatLocalISO(new Date(ts));
   }
   return null;
 };
@@ -66,7 +69,10 @@ const normalizeHeaders = (headerRow) => {
   return map;
 };
 
-export const validateRow = (row, headerMap, existingHoldings, importedSoFar) => {
+const dedupeKey = (symbol, quantity, buyPrice, buyDate) =>
+  `${String(symbol).toUpperCase()}|${quantity}|${buyPrice}|${buyDate}`;
+
+export const validateRow = (row, headerMap, seenKeys) => {
   const get = (key) => {
     const idx = headerMap[key];
     return idx == null ? '' : (row[idx] ?? '');
@@ -90,20 +96,13 @@ export const validateRow = (row, headerMap, existingHoldings, importedSoFar) => 
   if (buyDate > todayISO()) return { status: 'rejected', reason: 'buy date is in the future' };
 
   const name = String(get('name') || '').trim();
+  const rowData = { symbol, name, quantity: qty, buyPrice, buyDate };
 
-  const isDup = (list) =>
-    list.some(
-      (h) =>
-        String(h.symbol).toUpperCase() === symbol &&
-        Number(h.quantity) === qty &&
-        Number(h.buyPrice) === buyPrice &&
-        h.buyDate === buyDate,
-    );
-  if (isDup(existingHoldings) || isDup(importedSoFar)) {
-    return { status: 'duplicate', reason: 'already in portfolio', row: { symbol, name, quantity: qty, buyPrice, buyDate } };
+  if (seenKeys.has(dedupeKey(symbol, qty, buyPrice, buyDate))) {
+    return { status: 'duplicate', reason: 'already in portfolio', row: rowData };
   }
 
-  return { status: 'pending', row: { symbol, name, quantity: qty, buyPrice, buyDate } };
+  return { status: 'pending', row: rowData };
 };
 
 const REQUIRED_LABELS = {
@@ -114,7 +113,7 @@ const REQUIRED_LABELS = {
 };
 
 export const parseCsvText = (text, existingHoldings) => {
-  const result = Papa.parse(text.replaceAll('﻿', ''), { skipEmptyLines: 'greedy' });
+  const result = Papa.parse(text.replace(/﻿/g, ''), { skipEmptyLines: 'greedy' });
   if (result.errors?.length) {
     const fatal = result.errors.find((e) => e.code !== 'TooFewFields' && e.code !== 'TooManyFields');
     if (fatal) return { fatal: `CSV parse error: ${fatal.message}` };
@@ -135,11 +134,17 @@ export const parseCsvText = (text, existingHoldings) => {
   if (rows.length === 0) return { fatal: 'File has a header but no data rows.' };
   if (rows.length > MAX_ROWS) return { fatal: `Too many rows (${rows.length}). Max ${MAX_ROWS}. Split into batches.` };
 
-  const classified = [];
-  rows.forEach((rawRow, idx) => {
-    const importedSoFar = classified.filter((c) => c.status === 'pending').map((c) => c.row);
-    const v = validateRow(rawRow, headerMap, existingHoldings, importedSoFar);
-    classified.push({ lineNumber: idx + 2, ...v });
+  const seenKeys = new Set(
+    (existingHoldings || []).map((h) => dedupeKey(h.symbol, h.quantity, h.buyPrice, h.buyDate)),
+  );
+
+  const classified = rows.map((rawRow, idx) => {
+    const v = validateRow(rawRow, headerMap, seenKeys);
+    if (v.status === 'pending') {
+      const { symbol, quantity, buyPrice, buyDate } = v.row;
+      seenKeys.add(dedupeKey(symbol, quantity, buyPrice, buyDate));
+    }
+    return { lineNumber: idx + 2, ...v };
   });
 
   return { fatal: null, classified };
@@ -158,8 +163,7 @@ const fetchBatchLookup = async (symbols) => {
     chunks.map((c) =>
       api
         .get(`/api/stocks/batch?symbols=${encodeURIComponent(c.join(','))}`)
-        .then((res) => res.data?.quotes || {})
-        .catch(() => ({})),
+        .then((res) => res.data?.quotes || {}),
     ),
   );
   return Object.assign({}, ...results);
@@ -182,6 +186,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
   const [classified, setClassified] = useState([]);
   const [loading, setLoading] = useState(false);
   const [confirmingReplace, setConfirmingReplace] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
   const reset = useCallback(() => {
@@ -191,6 +196,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
     setClassified([]);
     setLoading(false);
     setConfirmingReplace(false);
+    setDragActive(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
@@ -208,15 +214,25 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
     return () => document.removeEventListener('keydown', onKey);
   }, [open, close]);
 
+  useEffect(() => {
+    if (!open) reset();
+  }, [open, reset]);
+
+  const failUpload = (msg) => {
+    setErrorMsg(msg);
+    setLoading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleFile = async (file) => {
     setErrorMsg('');
     if (!file) return;
     if (!/\.csv$/i.test(file.name)) {
-      setErrorMsg('Please choose a .csv file.');
+      failUpload('Please choose a .csv file.');
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setErrorMsg(`File too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Max 1 MB.`);
+      failUpload(`File too large (${(file.size / 1024 / 1024).toFixed(2)} MB). Max 1 MB.`);
       return;
     }
     setFileName(file.name);
@@ -225,22 +241,30 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
       const text = await file.text();
       const { fatal, classified: parsed } = parseCsvText(text, holdings);
       if (fatal) {
-        setErrorMsg(fatal);
-        setLoading(false);
+        failUpload(fatal);
         return;
       }
 
       const symbolsToLookup = [
         ...new Set(parsed.filter((c) => c.status === 'pending').map((c) => c.row.symbol)),
       ];
-      const lookup = await fetchBatchLookup(symbolsToLookup);
+
+      let lookup;
+      try {
+        lookup = await fetchBatchLookup(symbolsToLookup);
+      } catch (lookupErr) {
+        failUpload(
+          `Symbol lookup failed (${lookupErr.message || 'network error'}). Please retry.`,
+        );
+        return;
+      }
 
       const final = parsed.map((c) => {
         if (c.status !== 'pending') return c;
-        const quote = lookup[c.row.symbol];
-        if (!quote?.price) {
+        if (!(c.row.symbol in lookup)) {
           return { ...c, status: 'rejected', reason: 'symbol not found' };
         }
+        const quote = lookup[c.row.symbol];
         return {
           ...c,
           status: 'valid',
@@ -251,7 +275,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
       setClassified(final);
       setStep('preview');
     } catch (err) {
-      setErrorMsg(`Failed to read file: ${err.message || 'unknown error'}`);
+      failUpload(`Failed to read file: ${err.message || 'unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -316,7 +340,19 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
         <div className="flex-1 overflow-auto px-5 py-4">
           {step === 'upload' && (
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                }`}
+                onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+                onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragActive(false);
+                  handleFile(e.dataTransfer.files?.[0]);
+                }}
+              >
                 <svg className="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>

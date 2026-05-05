@@ -2,7 +2,7 @@
 
 **Issue:** [#193 Add portfolio import feature](https://github.com/nishant-ranjan28/swot/issues/193)
 **Date:** 2026-05-04
-**Status:** Design validated; implementation plan pending.
+**Status:** Implemented in PR #212.
 
 ## Goal
 
