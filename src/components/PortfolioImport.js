@@ -250,7 +250,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
   const handleAppend = () => {
     const newRows = valid.map((c) => ({
       ...c.row,
-      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id: crypto.randomUUID(),
     }));
     onImport(newRows, 'append');
     close();
@@ -259,7 +259,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
   const handleReplace = () => {
     const newRows = valid.map((c) => ({
       ...c.row,
-      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id: crypto.randomUUID(),
     }));
     onImport(newRows, 'replace');
     close();
