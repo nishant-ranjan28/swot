@@ -6,6 +6,7 @@ import { useMarket } from '../context/MarketContext';
 import Sparkline from './Sparkline';
 import { exportPortfolio } from '../utils/exportUtils';
 import PortfolioImport from './PortfolioImport';
+import { getSampleHoldings, SEEN_FLAG_KEY } from '../data/samplePortfolio';
 
 const formatNumber = (num) => {
   if (num == null || isNaN(num)) return '-';
@@ -132,7 +133,13 @@ const PieLegend = ({ holdings, liveData }) => {
 const PortfolioPage = () => {
   const { market } = useMarket();
   const [holdings, setHoldings] = useLocalStorage(`stockpulse_portfolio_${market}`, []);
+  const [seen, setSeen] = useLocalStorage(SEEN_FLAG_KEY(market), false);
   const [watchlist] = useLocalStorage(`stockpulse_watchlist_${market}`, []);
+  const isDemoMode = holdings.length === 0 && !seen;
+  const displayHoldings = useMemo(
+    () => (isDemoMode ? getSampleHoldings(market) : holdings),
+    [isDemoMode, market, holdings],
+  );
   const [liveData, setLiveData] = useState({});
   const [sparklineData, setSparklineData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -212,8 +219,8 @@ const PortfolioPage = () => {
   }, []);
 
   useEffect(() => {
-    fetchLivePrices(holdings, watchlist);
-  }, [holdings, watchlist, fetchLivePrices]);
+    fetchLivePrices(displayHoldings, watchlist);
+  }, [displayHoldings, watchlist, fetchLivePrices]);
 
   useEffect(() => {
     setImportOpen(false);
@@ -225,7 +232,8 @@ const PortfolioPage = () => {
     } else {
       setHoldings((prev) => [...prev, ...newRows]);
     }
-  }, [setHoldings]);
+    if (newRows.length > 0) setSeen(true);
+  }, [setHoldings, setSeen]);
 
   // Search autocomplete
   useEffect(() => {
@@ -294,6 +302,7 @@ const PortfolioPage = () => {
       id: crypto.randomUUID(),
     };
     setHoldings((prev) => [...prev, newHolding]);
+    setSeen(true);
     setSelectedStock(null);
     setSearchQuery('');
     setBuyPrice('');
@@ -306,20 +315,20 @@ const PortfolioPage = () => {
   };
 
   // Summaries
-  const totalInvested = holdings.reduce((s, h) => s + h.buyPrice * h.quantity, 0);
-  const totalCurrent = holdings.reduce((s, h) => {
+  const totalInvested = displayHoldings.reduce((s, h) => s + h.buyPrice * h.quantity, 0);
+  const totalCurrent = displayHoldings.reduce((s, h) => {
     const price = liveData[h.symbol]?.price || h.buyPrice;
     return s + price * h.quantity;
   }, 0);
   const totalPL = totalCurrent - totalInvested;
   const totalPLPercent = totalInvested > 0 ? (totalPL / totalInvested) * 100 : 0;
-  const dayPL = holdings.reduce((s, h) => {
+  const dayPL = displayHoldings.reduce((s, h) => {
     const change = liveData[h.symbol]?.change || 0;
     return s + change * h.quantity;
   }, 0);
 
   // Sorted holdings
-  const sortedHoldings = [...holdings].sort((a, b) => {
+  const sortedHoldings = [...displayHoldings].sort((a, b) => {
     const priceA = liveData[a.symbol]?.price || a.buyPrice;
     const priceB = liveData[b.symbol]?.price || b.buyPrice;
     const valA = priceA * a.quantity;
@@ -440,7 +449,7 @@ const PortfolioPage = () => {
       </div>
 
       {/* Empty state */}
-      {holdings.length === 0 && (
+      {displayHoldings.length === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
           <div className="text-gray-300 text-5xl mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -452,7 +461,7 @@ const PortfolioPage = () => {
         </div>
       )}
 
-      {holdings.length > 0 && (
+      {displayHoldings.length > 0 && (
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
@@ -489,14 +498,20 @@ const PortfolioPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm lg:col-span-1">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Allocation</h2>
-              <PieChart holdings={holdings} liveData={liveData} />
-              <PieLegend holdings={holdings} liveData={liveData} />
+              <PieChart holdings={displayHoldings} liveData={liveData} />
+              <PieLegend holdings={displayHoldings} liveData={liveData} />
             </div>
 
             {/* Sort + Holdings Table */}
             <div className="lg:col-span-2">
+              {isDemoMode && (
+                <div className="text-xs px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-md mb-3 leading-relaxed">
+                  <span className="font-semibold">Sample portfolio for preview only.</span>{' '}
+                  Add your first holding (or import a CSV) and this sample disappears — only your own holdings will be tracked from then on.
+                </div>
+              )}
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-gray-700">Holdings ({holdings.length})</h2>
+                <h2 className="text-sm font-semibold text-gray-700">Holdings ({displayHoldings.length})</h2>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setImportOpen(true)}
@@ -508,16 +523,18 @@ const PortfolioPage = () => {
                     </svg>
                     Import CSV
                   </button>
-                  <button
-                    onClick={() => exportPortfolio(holdings, liveData)}
-                    className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-none flex items-center gap-1"
-                    title="Export holdings to CSV"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Export CSV
-                  </button>
+                  {!isDemoMode && (
+                    <button
+                      onClick={() => exportPortfolio(holdings, liveData)}
+                      className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-none flex items-center gap-1"
+                      title="Export holdings to CSV"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Export CSV
+                    </button>
+                  )}
                   <span className="text-xs text-gray-400">Sort:</span>
                   {[
                     { key: 'name', label: 'Name' },
@@ -618,15 +635,17 @@ const PortfolioPage = () => {
                               {alloc.toFixed(1)}%
                             </td>
                             <td className="px-3 py-3">
-                              <button
-                                onClick={() => handleDelete(h.id)}
-                                className="text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
-                                title="Remove holding"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
+                              {!h.isDemo && (
+                                <button
+                                  onClick={() => handleDelete(h.id)}
+                                  className="text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
+                                  title="Remove holding"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -660,15 +679,17 @@ const PortfolioPage = () => {
                           </Link>
                           <div className="text-xs text-gray-400">{h.symbol}</div>
                         </div>
-                        <button
-                          onClick={() => handleDelete(h.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
-                          title="Remove holding"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        {!h.isDemo && (
+                          <button
+                            onClick={() => handleDelete(h.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
+                            title="Remove holding"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                       {/* Sparkline */}
                       <div className="mb-3">
@@ -731,13 +752,13 @@ const PortfolioPage = () => {
 
       {/* ===== OPTIMIZE PORTFOLIO SECTION ===== */}
       {(() => {
-        const uniqueSymbols = [...new Set(holdings.map(h => h.symbol))];
+        const uniqueSymbols = [...new Set(displayHoldings.map(h => h.symbol))];
         if (uniqueSymbols.length < 2) return null;
         return (
           <OptimizePortfolio
             symbols={uniqueSymbols}
             totalInvested={totalInvested}
-            holdings={holdings}
+            holdings={displayHoldings}
             liveData={liveData}
             totalCurrent={totalCurrent}
           />
@@ -746,14 +767,14 @@ const PortfolioPage = () => {
 
       {/* ===== RISK ANALYSIS SECTION ===== */}
       {(() => {
-        const uniqueSymbols = [...new Set(holdings.map(h => h.symbol))];
+        const uniqueSymbols = [...new Set(displayHoldings.map(h => h.symbol))];
         if (uniqueSymbols.length < 2) return null;
         return <RiskAnalysis symbols={uniqueSymbols} />;
       })()}
 
       {/* ===== INSIGHTS SECTION (only when portfolio has data and prices loaded) ===== */}
-      {holdings.length > 0 && !loading && Object.keys(liveData).length > 0 && (
-        <PortfolioInsights holdings={holdings} liveData={liveData} watchlist={watchlist} />
+      {displayHoldings.length > 0 && !loading && Object.keys(liveData).length > 0 && (
+        <PortfolioInsights holdings={displayHoldings} liveData={liveData} watchlist={watchlist} />
       )}
 
       <PortfolioImport
