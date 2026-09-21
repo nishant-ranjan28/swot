@@ -42,16 +42,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install frontend dependencies
         run: npm install --legacy-peer-deps
 
       - name: Run frontend tests with coverage
-        run: npx react-scripts test --coverage --watchAll=false --ci || true
-        env:
-          CI: true
+        run: npm run coverage || true
 
       # SonarCloud scan
       - name: Analyze with SonarCloud

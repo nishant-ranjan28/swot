@@ -5,7 +5,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from config import CORS_ORIGINS
+from config import CORS_ORIGINS, CORS_ORIGIN_REGEX
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -16,6 +16,7 @@ app.state.limiter = limiter
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["GET"],
     allow_headers=["*"],
@@ -52,6 +53,7 @@ from routers.crypto import router as crypto_router
 from routers.portfolio import router as portfolio_router
 from routers.mf import router as mf_router
 from routers.social import router as social_router
+from routers.jobs import router as jobs_router
 
 app.include_router(stocks_router, prefix="/api/stocks")
 app.include_router(backtest_router, prefix="/api/backtest")
@@ -59,3 +61,4 @@ app.include_router(crypto_router, prefix="/api/crypto")
 app.include_router(portfolio_router, prefix="/api/portfolio")
 app.include_router(mf_router, prefix="/api/mf")
 app.include_router(social_router, prefix="/api/social")
+app.include_router(jobs_router, prefix="/api/jobs")

@@ -1,0 +1,47 @@
+name: price-alerts
+
+on:
+  schedule:
+    - cron: '*/15 3-21 * * 1-5'   # UTC; covers IN 09:15–15:30 IST and US 09:30–16:00 ET (both DST states)
+  workflow_dispatch:
+    inputs:
+      market: { description: 'in | us | both', default: 'both' }
+      force: { description: 'bypass market-hours check', default: 'false' }
+
+permissions: {}
+
+# Never run two checks at once; a queued run waits for the current one (the backend is
+# also safe to re-run: event claims + atomic fire_alert prevent duplicate emails).
+concurrency:
+  group: price-alerts
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check alerts
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          JOB_SECRET: ${{ secrets.JOB_SECRET }}
+          MARKET_INPUT: ${{ github.event.inputs.market || 'both' }}
+          FORCE_INPUT: ${{ github.event.inputs.force || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${API_BASE_URL}" ] || [ -z "${JOB_SECRET}" ]; then echo "API_BASE_URL/JOB_SECRET not set"; exit 1; fi
+          case "$MARKET_INPUT" in both) markets="in us";; in|us) markets="$MARKET_INPUT";; *) echo "bad market"; exit 1;; esac
+          case "$FORCE_INPUT" in true|false) ;; *) echo "bad force"; exit 1;; esac
+          body="$RUNNER_TEMP/body"
+          status=0
+          # Anything but 200 fails the step, including 207 (the run finished with errors).
+          for m in $markets; do
+            rm -f "$body"
+            code=$(curl -s -o "$body" -w "%{http_code}" -X POST \
+              --max-time 120 --retry 2 --retry-connrefused --retry-delay 15 \
+              -H "X-Job-Secret: ${JOB_SECRET}" \
+              "${API_BASE_URL%/}/api/jobs/check-alerts?market=${m}&force=${FORCE_INPUT}") || true
+            echo "market=$m HTTP $code"; cat "$body" 2>/dev/null || true; echo
+            [ "$code" = "200" ] || status=1
+          done
+          exit $status

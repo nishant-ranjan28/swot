@@ -1,3 +1,4 @@
+import os
 from datetime import time, timezone, timedelta
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -34,6 +35,26 @@ CORS_ORIGINS = [
     "https://swot-analyse.vercel.app",
     "https://swot.iamnishant.in",
 ]
+# Vercel preview deployments of this project only (per-commit and per-branch URLs),
+# e.g. https://swot-analyse-<hash>-nishants-projects-b0da7be3.vercel.app
+CORS_ORIGIN_REGEX = r"^https://swot-analyse-[a-z0-9-]+-nishants-projects-b0da7be3\.vercel\.app$"
 
 # Rate limiting
 SEARCH_RATE_LIMIT = "30/minute"
+
+
+# ---- Background jobs (price-alert emails) ------------------------------------
+# Read at call time (not import time) so tests can monkeypatch the environment.
+# Secrets come only from environment variables; never log or echo these values.
+
+
+def job_settings() -> dict:
+    return {
+        "supabase_url": (os.environ.get("SUPABASE_URL") or "").rstrip("/"),
+        "service_role_key": os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "",
+        "brevo_api_key": os.environ.get("BREVO_API_KEY") or "",
+        "mail_from": os.environ.get("MAIL_FROM") or "",
+        "mail_from_name": os.environ.get("MAIL_FROM_NAME") or "StockPulse",
+        "job_secret": os.environ.get("JOB_SECRET") or "",
+        "app_url": (os.environ.get("APP_URL") or "https://swot.iamnishant.in").rstrip("/"),
+    }

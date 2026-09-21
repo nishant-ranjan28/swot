@@ -88,14 +88,15 @@ A comprehensive stock research and analysis platform covering Indian (NSE/BSE) a
 ## Getting Started
 
 ### Prerequisites
-- Node.js 20+
+- Node.js 22.12+
 - Python 3.13+
 
 ### Frontend
 ```bash
 npm install
-npm start
+npm run dev
 ```
+The app runs at http://localhost:3000 and proxies `/api` to the backend on `:8000`.
 
 ### Backend
 ```bash

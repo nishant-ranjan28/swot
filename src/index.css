@@ -1,3 +1,288 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------- Custom config (migrated from tailwind.config.js) ---------- */
+@theme {
+  --breakpoint-xs: 475px;
+  --breakpoint-3xl: 1600px;
+
+  --min-height-0: 0;
+  --min-height-96: 24rem;
+  --min-height-1\/4: 25%;
+  --min-height-1\/2: 50%;
+  --min-height-3\/4: 75%;
+  --min-height-full: 100%;
+  --min-height-screen: 100vh;
+
+  --container-8xl: 88rem;
+  --container-9xl: 96rem;
+
+  --animate-fade-in: fadeIn 0.5s ease-in-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes slideUp {
+    0% {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+/* ---------- shadcn token → utility mapping ---------- */
+@theme inline {
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-gain: var(--gain);
+  --color-loss: var(--loss);
+  --color-warning: var(--warning);
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------- Theme tokens ---------- */
+:root {
+  --radius: 0.625rem;
+  --background: #fafafa;
+  --foreground: #0b0b0c;
+  --card: #ffffff;
+  --card-foreground: #0b0b0c;
+  --popover: #ffffff;
+  --popover-foreground: #0b0b0c;
+  --primary: #eab308;
+  --primary-foreground: #0b0b0c;
+  --secondary: #f2f2f3;
+  --secondary-foreground: #18181b;
+  --muted: #f2f2f3;
+  --muted-foreground: #6b6b73;
+  --accent: #f2f2f3;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #eab308;
+  --gain: #15803d;
+  --loss: #dc2626;
+  --warning: #a16207;
+  --chart-1: #eab308;
+  --chart-2: #0ea5e9;
+  --chart-3: #8b5cf6;
+  --chart-4: #f97316;
+  --chart-5: #14b8a6;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #3f3f46;
+  --sidebar-primary: #eab308;
+  --sidebar-primary-foreground: #0b0b0c;
+  --sidebar-accent: #f2f2f3;
+  --sidebar-accent-foreground: #0b0b0c;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #eab308;
+}
+
+.dark {
+  --background: #0b0b0c;
+  --foreground: #ededee;
+  --card: #141416;
+  --card-foreground: #ededee;
+  --popover: #141416;
+  --popover-foreground: #ededee;
+  --primary: #fdd458;
+  --primary-foreground: #0b0b0c;
+  --secondary: #1c1c1f;
+  --secondary-foreground: #ededee;
+  --muted: #1c1c1f;
+  --muted-foreground: #9a9aa3;
+  --accent: #1f1f23;
+  --accent-foreground: #ededee;
+  --destructive: #ef4444;
+  --border: #26262b;
+  --input: #26262b;
+  --ring: #fdd458;
+  --gain: #22c55e;
+  --loss: #ef4444;
+  --warning: #facc15;
+  --chart-1: #fdd458;
+  --chart-2: #38bdf8;
+  --chart-3: #a78bfa;
+  --chart-4: #fb923c;
+  --chart-5: #2dd4bf;
+  --sidebar: #0f0f11;
+  --sidebar-foreground: #a1a1aa;
+  --sidebar-primary: #fdd458;
+  --sidebar-primary-foreground: #0b0b0c;
+  --sidebar-accent: #1c1c1f;
+  --sidebar-accent-foreground: #ededee;
+  --sidebar-border: #1f1f23;
+  --sidebar-ring: #fdd458;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    overflow-x: clip;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    overflow-x: clip;
+  }
+  iframe {
+    max-width: 100%;
+    height: auto;
+    border: none;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Restore Tailwind 3 preflight behaviour */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  /* Ensure touch targets are large enough on mobile (legacy buttons only) */
+  @media (max-width: 768px) {
+    button:not([data-slot]),
+    .touch-target {
+      min-height: 44px;
+    }
+  }
+}
+
+/* ---------- Legacy global styles (from App.css) ---------- */
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Responsive utilities */
+.container-responsive {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    padding: 0 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding: 0 3rem;
+  }
+}
+
+/* Loading states */
+.loading-skeleton {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Hide scrollbar for horizontal scroll areas */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  /* Reduce padding on mobile */
+  .mobile-padding {
+    padding: 0.75rem;
+  }
+
+  /* Stack widgets vertically on mobile */
+  .mobile-stack {
+    flex-direction: column;
+  }
+
+  /* Adjust font sizes for mobile */
+  .mobile-text {
+    font-size: 0.875rem;
+  }
+}
