@@ -61,9 +61,9 @@ def job_settings() -> dict:
         # over time; verify them on each provider's model list.
         "groq_api_key": os.environ.get("GROQ_API_KEY") or "",
         "openrouter_api_key": os.environ.get("OPENROUTER_API_KEY") or "",
-        "llm_model_groq": os.environ.get("LLM_MODEL_GROQ") or "llama-3.3-70b-versatile",
+        "llm_model_groq": os.environ.get("LLM_MODEL_GROQ") or "openai/gpt-oss-120b",
         "llm_model_openrouter": (os.environ.get("LLM_MODEL_OPENROUTER")
-                                 or "meta-llama/llama-3.3-70b-instruct:free"),
+                                 or "google/gemma-4-31b-it:free"),
         "llm_max_calls": _non_negative_int(os.environ.get("LLM_MAX_CALLS_PER_RUN"), 60),
     }
 

@@ -107,8 +107,8 @@ grant select on public.digest_sends to authenticated;
 **Settings to add:**
 - `groq_api_key` ← `GROQ_API_KEY`
 - `openrouter_api_key` ← `OPENROUTER_API_KEY`
-- `llm_model_groq` ← `LLM_MODEL_GROQ`, default `"llama-3.3-70b-versatile"`
-- `llm_model_openrouter` ← `LLM_MODEL_OPENROUTER`, default `"meta-llama/llama-3.3-70b-instruct:free"`
+- `llm_model_groq` ← `LLM_MODEL_GROQ`, default `"openai/gpt-oss-120b"` (was `llama-3.3-70b-versatile`, retired 2026-08-16)
+- `llm_model_openrouter` ← `LLM_MODEL_OPENROUTER`, default `"google/gemma-4-31b-it:free"` (the llama `:free` model was removed)
 - `llm_max_calls` ← `LLM_MAX_CALLS_PER_RUN`, default `60`
 
 Note in the docs that model ids change over time and must be verified on each provider's model list.
