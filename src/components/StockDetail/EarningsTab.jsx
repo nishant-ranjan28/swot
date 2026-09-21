@@ -165,12 +165,12 @@ const EarningsTab = ({ symbol }) => {
             </h3>
             <div className="flex gap-1.5">
               <button onClick={() => setShowAnnual(false)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium focus:outline-none ${!showAnnual ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                className={`px-3 py-1 rounded-lg text-xs font-medium focus:outline-hidden ${!showAnnual ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
                 Quarterly
               </button>
               {data.annual?.length > 0 && (
                 <button onClick={() => setShowAnnual(true)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium focus:outline-none ${showAnnual ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  className={`px-3 py-1 rounded-lg text-xs font-medium focus:outline-hidden ${showAnnual ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
                   Annual
                 </button>
               )}

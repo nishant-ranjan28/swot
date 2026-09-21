@@ -333,13 +333,13 @@ const SectorHeatmapPage = () => {
         {/* Sector vs Stocks Tab */}
         <div className="flex gap-2">
           <button onClick={() => setHeatmapTab('sector')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-hidden ${
               heatmapTab === 'sector' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
             Sectors
           </button>
           <button onClick={() => setHeatmapTab('stocks')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-hidden ${
               heatmapTab === 'stocks' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}>
             {market === 'in' ? 'NIFTY 50' : 'S&P 500'} Stocks
@@ -350,12 +350,12 @@ const SectorHeatmapPage = () => {
         {heatmapTab === 'stocks' && (
           <div>
             {loadingIndex ? (
-              <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+              <div className="bg-white rounded-xl shadow-xs p-8 text-center">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
                 <p className="text-gray-500 text-sm">Loading stock data...</p>
               </div>
             ) : indexStocks.length > 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
                 <div style={{ width: '100%', height: 500 }}>
                   <canvas ref={indexCanvasRef} style={{ width: '100%', height: '100%' }} />
                 </div>
@@ -378,7 +378,7 @@ const SectorHeatmapPage = () => {
 
         {/* Heatmap View */}
         {heatmapTab === 'sector' && !loading && !error && viewMode === 'heatmap' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
             <canvas
               ref={canvasRef}
               className="w-full"
@@ -387,27 +387,27 @@ const SectorHeatmapPage = () => {
             {/* Legend */}
             <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-gray-100">
               <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: 'rgba(185, 28, 28, 0.85)' }}></div>
+                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(185, 28, 28, 0.85)' }}></div>
                 <span className="text-xs text-gray-500">&lt; -3%</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: 'rgba(239, 68, 68, 0.85)' }}></div>
+                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.85)' }}></div>
                 <span className="text-xs text-gray-500">-3% to -1.5%</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: 'rgba(252, 165, 165, 0.85)' }}></div>
+                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(252, 165, 165, 0.85)' }}></div>
                 <span className="text-xs text-gray-500">-1.5% to 0%</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: 'rgba(134, 239, 172, 0.85)' }}></div>
+                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(134, 239, 172, 0.85)' }}></div>
                 <span className="text-xs text-gray-500">0% to 1.5%</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: 'rgba(34, 197, 94, 0.85)' }}></div>
+                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(34, 197, 94, 0.85)' }}></div>
                 <span className="text-xs text-gray-500">1.5% to 3%</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded" style={{ backgroundColor: 'rgba(22, 163, 74, 0.85)' }}></div>
+                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(22, 163, 74, 0.85)' }}></div>
                 <span className="text-xs text-gray-500">&gt; 3%</span>
               </div>
             </div>
@@ -416,7 +416,7 @@ const SectorHeatmapPage = () => {
 
         {/* Table View */}
         {heatmapTab === 'sector' && !loading && !error && viewMode === 'table' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -435,7 +435,7 @@ const SectorHeatmapPage = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            className="w-3 h-3 rounded-full shrink-0"
                             style={{ backgroundColor: getChangeColor(sector.avg_change_percent) }}
                           ></div>
                           <span className="font-semibold text-gray-900">{sector.sector}</span>
@@ -488,7 +488,7 @@ const SectorHeatmapPage = () => {
 
         {/* Empty state */}
         {heatmapTab === 'sector' && !loading && !error && sectors.length === 0 && (
-          <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
+          <div className="bg-white rounded-xl p-12 shadow-xs border border-gray-100 text-center">
             <p className="text-gray-500">No sector data available.</p>
           </div>
         )}

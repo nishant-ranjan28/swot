@@ -29,6 +29,7 @@ function renderAt(path) {
 test('renders app shell with brand name', () => {
   renderAt('/');
   expect(screen.getAllByText(/StockPulse/i).length).toBeGreaterThan(0);
+  expect(screen.getByRole('navigation', { name: /main/i })).toBeInTheDocument();
 });
 
 test('renders glossary route', async () => {

@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import path from 'node:path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
   // Keep REACT_APP_ so existing Vercel env vars keep working; VITE_ for new ones.
   envPrefix: ['VITE_', 'REACT_APP_'],
   server: {

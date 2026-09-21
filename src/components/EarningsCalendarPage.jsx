@@ -54,9 +54,9 @@ function formatDate(dateStr) {
 
 const SkeletonCard = () => (
   <div className="animate-pulse bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
-    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-sm w-3/4 mb-2"></div>
+    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-sm w-1/2 mb-2"></div>
+    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-sm w-1/4"></div>
   </div>
 );
 
@@ -152,7 +152,7 @@ const EarningsCalendarPage = () => {
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">{group}</h2>
             <div className="space-y-2">
               {items.map((e, i) => (
-                <div key={`${e.symbol}-${i}`} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between hover:shadow-sm transition-shadow">
+                <div key={`${e.symbol}-${i}`} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between hover:shadow-xs transition-shadow">
                   <div className="flex-1 min-w-0">
                     <Link
                       to={`/stock/${e.symbol}`}
@@ -162,7 +162,7 @@ const EarningsCalendarPage = () => {
                     </Link>
                     <span className="text-xs text-gray-500 dark:text-gray-400">{e.symbol}</span>
                   </div>
-                  <div className="text-right ml-4 flex-shrink-0">
+                  <div className="text-right ml-4 shrink-0">
                     <div className="text-sm text-gray-700 dark:text-gray-300">{formatDate(e.date)}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {e.eps_estimate != null ? `EPS Est: ${e.eps_estimate}` : 'EPS Est: N/A'}

@@ -16,14 +16,14 @@ const SORT_OPTIONS = [
 
 const SkeletonRow = () => (
   <tr className="animate-pulse">
-    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-28"></div><div className="h-3 bg-gray-200 rounded w-16 mt-1"></div></td>
-    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
-    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
-    <td className="px-4 py-3"><div className="h-[30px] bg-gray-200 rounded w-[80px]"></div></td>
+    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-sm w-28"></div><div className="h-3 bg-gray-200 rounded-sm w-16 mt-1"></div></td>
+    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-sm w-20"></div></td>
+    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-sm w-24"></div></td>
+    <td className="px-4 py-3"><div className="h-[30px] bg-gray-200 rounded-sm w-[80px]"></div></td>
     <td className="px-4 py-3"><div className="h-1.5 bg-gray-200 rounded-full w-28"></div></td>
-    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
-    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-8"></div></td>
-    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-8"></div></td>
+    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-sm w-16"></div></td>
+    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-sm w-8"></div></td>
+    <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-sm w-8"></div></td>
   </tr>
 );
 
@@ -38,11 +38,11 @@ const PriceRangeBar = ({ low, high, current }) => {
       </div>
       <div className="relative h-1.5 bg-gray-200 rounded-full">
         <div
-          className="absolute h-1.5 bg-gradient-to-r from-red-400 via-yellow-400 to-green-400 rounded-full"
+          className="absolute h-1.5 bg-linear-to-r from-red-400 via-yellow-400 to-green-400 rounded-full"
           style={{ width: '100%' }}
         ></div>
         <div
-          className="absolute w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-full -top-0.5 shadow-sm"
+          className="absolute w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-full -top-0.5 shadow-xs"
           style={{ left: `calc(${position}% - 5px)` }}
         ></div>
       </div>
@@ -76,11 +76,11 @@ const TechnicalSignals = ({ watchlist }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="h-4 bg-gray-200 rounded w-48 mb-3 animate-pulse"></div>
+      <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
+        <div className="h-4 bg-gray-200 rounded-sm w-48 mb-3 animate-pulse"></div>
         <div className="flex gap-3 overflow-hidden">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-100 rounded-lg h-24 w-64 flex-shrink-0"></div>
+            <div key={i} className="animate-pulse bg-gray-100 rounded-lg h-24 w-64 shrink-0"></div>
           ))}
         </div>
       </div>
@@ -88,7 +88,7 @@ const TechnicalSignals = ({ watchlist }) => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
       <div className="flex items-center gap-2 mb-3">
         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -103,7 +103,7 @@ const TechnicalSignals = ({ watchlist }) => {
             <Link
               key={`${alert.symbol}-${alert.alert}-${idx}`}
               to={`/stock/${alert.symbol}`}
-              className="flex-shrink-0 w-72 border rounded-lg p-3 hover:shadow-md transition-shadow"
+              className="shrink-0 w-72 border rounded-lg p-3 hover:shadow-md transition-shadow"
               style={{
                 borderColor: alert.type === 'bullish' ? '#bbf7d0' : '#fecaca',
                 backgroundColor: alert.type === 'bullish' ? '#f0fdf4' : '#fef2f2',
@@ -298,7 +298,7 @@ const WatchlistPage = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.key} value={opt.key}>{opt.label}</option>
@@ -311,7 +311,7 @@ const WatchlistPage = () => {
         {alerts.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <div className="flex items-start gap-2">
-              <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div>
@@ -324,7 +324,7 @@ const WatchlistPage = () => {
               </div>
               <button
                 onClick={() => setAlerts([])}
-                className="ml-auto text-amber-400 hover:text-amber-600 focus:outline-none"
+                className="ml-auto text-amber-400 hover:text-amber-600 focus:outline-hidden"
                 aria-label="Dismiss alerts"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -336,7 +336,7 @@ const WatchlistPage = () => {
         )}
 
         {/* Add Stock Section */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-4 shadow-xs border border-gray-100">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Add Stock to Watchlist</h2>
           <div className="relative" ref={dropdownRef}>
             <div className="relative">
@@ -356,7 +356,7 @@ const WatchlistPage = () => {
                 <button
                   type="button"
                   onClick={() => { setSearchInput(''); setSearchResults([]); setShowDropdown(false); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-hidden"
                   aria-label="Clear search"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -377,7 +377,7 @@ const WatchlistPage = () => {
                     <li key={stock.symbol} className="list-none">
                       <button
                         disabled={exists}
-                        className={`p-3 flex justify-between items-center w-full text-left border-b border-gray-100 last:border-b-0 transition-colors focus:outline-none ${
+                        className={`p-3 flex justify-between items-center w-full text-left border-b border-gray-100 last:border-b-0 transition-colors focus:outline-hidden ${
                           exists ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:bg-gray-50'
                         }`}
                         onClick={() => !exists && addToWatchlist(stock)}
@@ -389,7 +389,7 @@ const WatchlistPage = () => {
                         {exists ? (
                           <span className="text-xs text-gray-400 font-medium ml-2">Added</span>
                         ) : (
-                          <svg className="w-5 h-5 text-blue-500 ml-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 text-blue-500 ml-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                           </svg>
                         )}
@@ -407,14 +407,14 @@ const WatchlistPage = () => {
 
         {/* Watchlist Table */}
         {watchlist.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
+          <div className="bg-white rounded-xl p-12 shadow-xs border border-gray-100 text-center">
             <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <p className="text-gray-500 text-base">Your watchlist is empty. Search and add stocks above.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -479,7 +479,7 @@ const WatchlistPage = () => {
                                 {sparklineData[item.symbol] && sparklineData[item.symbol].length >= 2 ? (
                                   <Sparkline data={sparklineData[item.symbol]} />
                                 ) : (
-                                  <div className="w-[80px] h-[30px] bg-gray-100 rounded animate-pulse" />
+                                  <div className="w-[80px] h-[30px] bg-gray-100 rounded-sm animate-pulse" />
                                 )}
                               </div>
                             </td>
@@ -495,12 +495,12 @@ const WatchlistPage = () => {
                                   value={item.alertHigh ?? ''}
                                   onChange={(e) => updateAlert(item.symbol, 'alertHigh', e.target.value)}
                                   placeholder="--"
-                                  className={`w-20 text-xs text-center border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                  className={`w-20 text-xs text-center border rounded-md px-2 py-1 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
                                     highTriggered ? 'border-amber-400 bg-amber-50' : 'border-gray-300'
                                   }`}
                                 />
                                 {highTriggered && (
-                                  <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <svg className="w-4 h-4 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                   </svg>
                                 )}
@@ -513,12 +513,12 @@ const WatchlistPage = () => {
                                   value={item.alertLow ?? ''}
                                   onChange={(e) => updateAlert(item.symbol, 'alertLow', e.target.value)}
                                   placeholder="--"
-                                  className={`w-20 text-xs text-center border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                  className={`w-20 text-xs text-center border rounded-md px-2 py-1 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
                                     lowTriggered ? 'border-amber-400 bg-amber-50' : 'border-gray-300'
                                   }`}
                                 />
                                 {lowTriggered && (
-                                  <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <svg className="w-4 h-4 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                   </svg>
                                 )}
@@ -527,7 +527,7 @@ const WatchlistPage = () => {
                             <td className="px-4 py-3 text-center">
                               <button
                                 onClick={() => removeFromWatchlist(item.symbol)}
-                                className="text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
+                                className="text-gray-400 hover:text-red-500 transition-colors focus:outline-hidden"
                                 aria-label={`Remove ${item.name}`}
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -597,15 +597,15 @@ const WatchlistNews = ({ watchlist }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mt-6">
-        <div className="h-4 bg-gray-200 rounded w-48 mb-4 animate-pulse"></div>
+      <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4 mt-6">
+        <div className="h-4 bg-gray-200 rounded-sm w-48 mb-4 animate-pulse"></div>
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="flex gap-3 animate-pulse">
-              <div className="w-16 h-12 bg-gray-200 rounded flex-shrink-0"></div>
+              <div className="w-16 h-12 bg-gray-200 rounded-sm shrink-0"></div>
               <div className="flex-1">
-                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-2 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-3 bg-gray-200 rounded-sm w-full mb-2"></div>
+                <div className="h-2 bg-gray-200 rounded-sm w-1/3"></div>
               </div>
             </div>
           ))}
@@ -617,7 +617,7 @@ const WatchlistNews = ({ watchlist }) => {
   if (news.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mt-6">
+    <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4 mt-6">
       <div className="flex justify-between items-center mb-3">
         <h3 className="text-sm font-semibold text-gray-800">News for Your Watchlist</h3>
         <Link to="/news" className="text-xs text-blue-600 hover:text-blue-800 font-medium">All news</Link>
@@ -627,12 +627,12 @@ const WatchlistNews = ({ watchlist }) => {
           <a key={idx} href={article.url} target="_blank" rel="noopener noreferrer"
             className="flex gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors group">
             {article.image ? (
-              <div className="w-16 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+              <div className="w-16 h-12 shrink-0 rounded-sm overflow-hidden bg-gray-100">
                 <img src={article.image} alt="" className="w-full h-full object-cover"
                   onError={(e) => { e.target.style.display = 'none'; }} />
               </div>
             ) : (
-              <div className="w-16 h-12 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center">
+              <div className="w-16 h-12 shrink-0 rounded-sm bg-gray-100 flex items-center justify-center">
                 <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
                     d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2" />
@@ -644,14 +644,14 @@ const WatchlistNews = ({ watchlist }) => {
                 {article.title}
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">
+                <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-sm font-medium">
                   {article.forStock}
                 </span>
                 <span className="text-[10px] text-gray-400">
                   {article.source} · {formatDate(article.published_at)}
                 </span>
                 {article.sentiment_label && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-medium ${
                     article.sentiment_label === 'Bullish' ? 'bg-green-100 text-green-700' :
                     article.sentiment_label === 'Bearish' ? 'bg-red-100 text-red-700' :
                     'bg-gray-100 text-gray-600'

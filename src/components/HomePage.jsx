@@ -86,7 +86,7 @@ const MarketStatus = () => {
 const IndexCard = ({ index }) => {
   const isPositive = index.change >= 0;
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl p-4 shadow-xs border border-gray-100 hover:shadow-md transition-shadow">
       <div className="text-sm text-gray-500 font-medium">{index.name}</div>
       <div className="text-xl font-bold text-gray-900 mt-1">
         {index.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -110,11 +110,11 @@ const PriceRangeBar = ({ low, high, current, currencySymbol = '₹' }) => {
       </div>
       <div className="relative h-1.5 bg-gray-200 rounded-full">
         <div
-          className="absolute h-1.5 bg-gradient-to-r from-red-400 via-yellow-400 to-green-400 rounded-full"
+          className="absolute h-1.5 bg-linear-to-r from-red-400 via-yellow-400 to-green-400 rounded-full"
           style={{ width: '100%' }}
         ></div>
         <div
-          className="absolute w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-full -top-0.5 shadow-sm"
+          className="absolute w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-full -top-0.5 shadow-xs"
           style={{ left: `calc(${position}% - 5px)` }}
         ></div>
       </div>
@@ -127,7 +127,7 @@ const StockCard = ({ stock }) => {
   return (
     <Link
       to={`/stock/${stock.symbol}`}
-      className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 block"
+      className="bg-white rounded-xl p-4 shadow-xs border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 block"
     >
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
@@ -153,21 +153,21 @@ const StockCard = ({ stock }) => {
 };
 
 const SkeletonCard = () => (
-  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 animate-pulse">
+  <div className="bg-white rounded-xl p-4 shadow-xs border border-gray-100 animate-pulse">
     <div className="flex justify-between">
       <div>
-        <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-16"></div>
+        <div className="h-4 bg-gray-200 rounded-sm w-24 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded-sm w-16"></div>
       </div>
       <div className="text-right">
-        <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-12 ml-auto"></div>
+        <div className="h-4 bg-gray-200 rounded-sm w-20 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded-sm w-12 ml-auto"></div>
       </div>
     </div>
     <div className="mt-3 h-1.5 bg-gray-200 rounded-full"></div>
     <div className="mt-2 flex justify-between">
-      <div className="h-3 bg-gray-200 rounded w-16"></div>
-      <div className="h-3 bg-gray-200 rounded w-20"></div>
+      <div className="h-3 bg-gray-200 rounded-sm w-16"></div>
+      <div className="h-3 bg-gray-200 rounded-sm w-20"></div>
     </div>
   </div>
 );
@@ -177,14 +177,14 @@ const NewsCard = ({ article }) => (
     href={article.url}
     target="_blank"
     rel="noopener noreferrer"
-    className="flex gap-3 bg-white rounded-lg p-3 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group"
+    className="flex gap-3 bg-white rounded-lg p-3 shadow-xs border border-gray-100 hover:shadow-md transition-shadow group"
   >
     {article.image ? (
-      <div className="w-20 h-16 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
+      <div className="w-20 h-16 shrink-0 rounded-md overflow-hidden bg-gray-100">
         <img src={article.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
       </div>
     ) : (
-      <div className="w-20 h-16 flex-shrink-0 rounded-md bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="w-20 h-16 shrink-0 rounded-md bg-linear-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
         <svg className="w-6 h-6 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2" />
         </svg>
@@ -303,10 +303,10 @@ const HomePage = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {loadingIndices
               ? [...Array(4)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl p-4 shadow-sm animate-pulse">
-                    <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
-                    <div className="h-5 bg-gray-200 rounded w-28 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                  <div key={i} className="bg-white rounded-xl p-4 shadow-xs animate-pulse">
+                    <div className="h-3 bg-gray-200 rounded-sm w-20 mb-2"></div>
+                    <div className="h-5 bg-gray-200 rounded-sm w-28 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded-sm w-24"></div>
                   </div>
                 ))
               : indices.map((idx) => <IndexCard key={idx.symbol} index={idx} />)
@@ -316,7 +316,7 @@ const HomePage = () => {
 
         {/* Market Sentiment */}
         {sentiment && (
-          <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <section className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Market Sentiment</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Sentiment Gauge */}
@@ -415,10 +415,10 @@ const HomePage = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {loadingGlobal
               ? [...Array(5)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl p-4 shadow-sm animate-pulse">
-                    <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
-                    <div className="h-5 bg-gray-200 rounded w-28 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                  <div key={i} className="bg-white rounded-xl p-4 shadow-xs animate-pulse">
+                    <div className="h-3 bg-gray-200 rounded-sm w-20 mb-2"></div>
+                    <div className="h-5 bg-gray-200 rounded-sm w-28 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded-sm w-24"></div>
                   </div>
                 ))
               : globalIndices.map((idx) => <IndexCard key={idx.symbol} index={idx} />)
@@ -443,7 +443,7 @@ const HomePage = () => {
                         <Link
                           key={stock.symbol}
                           to={`/stock/${stock.symbol}`}
-                          className="flex justify-between items-center bg-white rounded-lg p-3 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                          className="flex justify-between items-center bg-white rounded-lg p-3 shadow-xs border border-gray-100 hover:shadow-md transition-shadow"
                         >
                           <div>
                             <div className="text-sm font-semibold text-gray-900">{stock.name}</div>
@@ -470,7 +470,7 @@ const HomePage = () => {
                         <Link
                           key={stock.symbol}
                           to={`/stock/${stock.symbol}`}
-                          className="flex justify-between items-center bg-white rounded-lg p-3 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                          className="flex justify-between items-center bg-white rounded-lg p-3 shadow-xs border border-gray-100 hover:shadow-md transition-shadow"
                         >
                           <div>
                             <div className="text-sm font-semibold text-gray-900">{stock.name}</div>
@@ -500,12 +500,12 @@ const HomePage = () => {
             {loadingNews ? (
               <div className="space-y-3">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex gap-3 bg-white rounded-lg p-3 shadow-sm animate-pulse">
-                    <div className="w-20 h-16 bg-gray-200 rounded-md flex-shrink-0"></div>
+                  <div key={i} className="flex gap-3 bg-white rounded-lg p-3 shadow-xs animate-pulse">
+                    <div className="w-20 h-16 bg-gray-200 rounded-md shrink-0"></div>
                     <div className="flex-1">
-                      <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-2 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-3 bg-gray-200 rounded-sm w-full mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded-sm w-3/4 mb-2"></div>
+                      <div className="h-2 bg-gray-200 rounded-sm w-1/3"></div>
                     </div>
                   </div>
                 ))}
@@ -556,7 +556,7 @@ const HomePage = () => {
 
         {/* Quick Links */}
         <section className="pb-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <div className="bg-white rounded-xl p-6 shadow-xs border border-gray-100">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Explore</h2>
             <div className="flex flex-wrap gap-2">
               {(market === 'us'

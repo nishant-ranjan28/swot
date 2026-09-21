@@ -34,11 +34,11 @@ const PriceRangeBar = ({ low, high, current, theme, locale = 'en-IN', currencyCo
       </div>
       <div className="relative h-1.5 bg-gray-200 rounded-full">
         <div
-          className={`absolute h-1.5 bg-gradient-to-r ${gradientClass} rounded-full`}
+          className={`absolute h-1.5 bg-linear-to-r ${gradientClass} rounded-full`}
           style={{ width: '100%' }}
         ></div>
         <div
-          className={`absolute w-2.5 h-2.5 bg-white border-2 ${markerClass} rounded-full -top-0.5 shadow-sm`}
+          className={`absolute w-2.5 h-2.5 bg-white border-2 ${markerClass} rounded-full -top-0.5 shadow-xs`}
           style={{ left: `calc(${position}% - 5px)` }}
         ></div>
       </div>
@@ -66,7 +66,7 @@ const StockCard = ({ stock, type, locale = 'en-IN', currencyCode = 'INR', market
   return (
     <Link
       to={`/stock/${stock.symbol}`}
-      className={`bg-white rounded-xl p-4 shadow-sm border border-gray-100 ${borderHoverClass} hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 block`}
+      className={`bg-white rounded-xl p-4 shadow-xs border border-gray-100 ${borderHoverClass} hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 block`}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
@@ -99,21 +99,21 @@ const StockCard = ({ stock, type, locale = 'en-IN', currencyCode = 'INR', market
 };
 
 const SkeletonCard = () => (
-  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 animate-pulse">
+  <div className="bg-white rounded-xl p-4 shadow-xs border border-gray-100 animate-pulse">
     <div className="flex justify-between">
       <div>
-        <div className="h-4 bg-gray-200 rounded w-28 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
-        <div className="h-2 bg-gray-200 rounded w-12"></div>
+        <div className="h-4 bg-gray-200 rounded-sm w-28 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded-sm w-16 mb-1"></div>
+        <div className="h-2 bg-gray-200 rounded-sm w-12"></div>
       </div>
       <div className="text-right">
-        <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-12 ml-auto"></div>
+        <div className="h-4 bg-gray-200 rounded-sm w-20 mb-2"></div>
+        <div className="h-3 bg-gray-200 rounded-sm w-12 ml-auto"></div>
       </div>
     </div>
     <div className="mt-3 h-1.5 bg-gray-200 rounded-full"></div>
     <div className="mt-2 flex justify-between">
-      <div className="h-3 bg-gray-200 rounded w-20"></div>
+      <div className="h-3 bg-gray-200 rounded-sm w-20"></div>
       <div className="h-4 bg-gray-200 rounded-full w-28"></div>
     </div>
   </div>
@@ -165,7 +165,7 @@ const ScannerPage = () => {
               onClick={() => setActiveTab('high')}
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                 activeTab === 'high'
-                  ? 'bg-green-600 text-white shadow-sm'
+                  ? 'bg-green-600 text-white shadow-xs'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -185,7 +185,7 @@ const ScannerPage = () => {
               onClick={() => setActiveTab('low')}
               className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                 activeTab === 'low'
-                  ? 'bg-red-600 text-white shadow-sm'
+                  ? 'bg-red-600 text-white shadow-xs'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >

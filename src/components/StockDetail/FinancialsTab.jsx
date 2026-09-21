@@ -6,7 +6,7 @@ import { formatCurrency, formatPercent, formatRatio } from '../../utils/formatte
 import TabSkeleton from './TabSkeleton';
 
 const InfoRow = ({ label, value, highlight }) => (
-  <div className={`flex justify-between items-center py-2 border-b border-gray-100 last:border-0 ${highlight ? 'bg-blue-50/50 px-2 rounded' : ''}`}>
+  <div className={`flex justify-between items-center py-2 border-b border-gray-100 last:border-0 ${highlight ? 'bg-blue-50/50 px-2 rounded-sm' : ''}`}>
     <span className="text-gray-600 text-sm">{label}</span>
     <span className="font-medium text-gray-900 text-sm">{value ?? 'N/A'}</span>
   </div>

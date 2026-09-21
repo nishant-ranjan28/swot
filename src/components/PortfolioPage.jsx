@@ -119,7 +119,7 @@ const PieLegend = ({ holdings, liveData }) => {
       {slices.map((s, i) => (
         <div key={s.symbol} className="flex items-center gap-1.5 text-xs text-gray-700">
           <span
-            className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+            className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
             style={{ backgroundColor: COLORS[i % COLORS.length] }}
           />
           <span className="truncate max-w-[90px]">{s.name}</span>
@@ -364,7 +364,7 @@ const PortfolioPage = () => {
       </div>
 
       {/* Add Holding Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mb-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mb-6 shadow-xs">
         <h2 className="text-sm font-semibold text-gray-700 mb-4">Add Holding</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
           {/* Stock search */}
@@ -378,7 +378,7 @@ const PortfolioPage = () => {
                 setSelectedStock(null);
               }}
               placeholder="Search stock..."
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
               autoComplete="off"
             />
             {showDropdown && searchResults.length > 0 && (
@@ -387,7 +387,7 @@ const PortfolioPage = () => {
                   <li key={stock.symbol}>
                     <button
                       type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm focus:outline-none border-b border-gray-100 last:border-b-0"
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm focus:outline-hidden border-b border-gray-100 last:border-b-0"
                       onClick={() => handleSelectStock(stock)}
                     >
                       <span className="font-medium text-gray-900">{stock.name}</span>
@@ -409,7 +409,7 @@ const PortfolioPage = () => {
               placeholder="0.00"
               min="0"
               step="0.01"
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
             />
           </div>
 
@@ -423,7 +423,7 @@ const PortfolioPage = () => {
               placeholder="0"
               min="1"
               step="1"
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
             />
           </div>
 
@@ -435,14 +435,14 @@ const PortfolioPage = () => {
               value={buyDate}
               onChange={(e) => setBuyDate(e.target.value)}
               max={todayStr()}
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
             />
           </div>
         </div>
         {addError && <p className="text-red-500 text-xs mt-2">{addError}</p>}
         <button
           onClick={handleAddHolding}
-          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors focus:outline-none"
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors focus:outline-hidden"
         >
           Add Holding
         </button>
@@ -450,7 +450,7 @@ const PortfolioPage = () => {
 
       {/* Empty state */}
       {displayHoldings.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-xs">
           <div className="text-gray-300 text-5xl mb-4">
             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -465,19 +465,19 @@ const PortfolioPage = () => {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs">
               <div className="text-xs text-gray-500 mb-1">Total Invested</div>
               <div className="text-lg sm:text-xl font-bold text-gray-900">
                 {formatNumber(totalInvested)}
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs">
               <div className="text-xs text-gray-500 mb-1">Current Value</div>
               <div className="text-lg sm:text-xl font-bold text-gray-900">
                 {loading ? '...' : formatNumber(totalCurrent)}
               </div>
             </div>
-            <div className={`rounded-xl border border-gray-200 p-4 shadow-sm ${plBg(totalPL)}`}>
+            <div className={`rounded-xl border border-gray-200 p-4 shadow-xs ${plBg(totalPL)}`}>
               <div className="text-xs text-gray-500 mb-1">Total P&L</div>
               <div className={`text-lg sm:text-xl font-bold ${plColor(totalPL)}`}>
                 {loading ? '...' : `${totalPL >= 0 ? '+' : ''}${formatNumber(totalPL)}`}
@@ -486,7 +486,7 @@ const PortfolioPage = () => {
                 {loading ? '' : `${totalPLPercent >= 0 ? '+' : ''}${totalPLPercent.toFixed(2)}%`}
               </div>
             </div>
-            <div className={`rounded-xl border border-gray-200 p-4 shadow-sm ${plBg(dayPL)}`}>
+            <div className={`rounded-xl border border-gray-200 p-4 shadow-xs ${plBg(dayPL)}`}>
               <div className="text-xs text-gray-500 mb-1">Day's P&L</div>
               <div className={`text-lg sm:text-xl font-bold ${plColor(dayPL)}`}>
                 {loading ? '...' : `${dayPL >= 0 ? '+' : ''}${formatNumber(dayPL)}`}
@@ -496,7 +496,7 @@ const PortfolioPage = () => {
 
           {/* Allocation Chart + Sort */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm lg:col-span-1">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs lg:col-span-1">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Allocation</h2>
               <PieChart holdings={displayHoldings} liveData={liveData} />
               <PieLegend holdings={displayHoldings} liveData={liveData} />
@@ -515,7 +515,7 @@ const PortfolioPage = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setImportOpen(true)}
-                    className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium transition-colors focus:outline-none flex items-center gap-1"
+                    className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium transition-colors focus:outline-hidden flex items-center gap-1"
                     title="Import holdings from CSV"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -526,7 +526,7 @@ const PortfolioPage = () => {
                   {!isDemoMode && (
                     <button
                       onClick={() => exportPortfolio(holdings, liveData)}
-                      className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-none flex items-center gap-1"
+                      className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-hidden flex items-center gap-1"
                       title="Export holdings to CSV"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -545,7 +545,7 @@ const PortfolioPage = () => {
                     <button
                       key={opt.key}
                       onClick={() => setSortBy(opt.key)}
-                      className={`text-xs px-2 py-1 rounded-md transition-colors focus:outline-none ${
+                      className={`text-xs px-2 py-1 rounded-md transition-colors focus:outline-hidden ${
                         sortBy === opt.key
                           ? 'bg-blue-100 text-blue-700 font-medium'
                           : 'text-gray-500 hover:bg-gray-100'
@@ -558,7 +558,7 @@ const PortfolioPage = () => {
               </div>
 
               {/* Desktop Table */}
-              <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -610,7 +610,7 @@ const PortfolioPage = () => {
                                 {sparklineData[h.symbol] && sparklineData[h.symbol].length >= 2 ? (
                                   <Sparkline data={sparklineData[h.symbol]} />
                                 ) : (
-                                  <div className="w-[80px] h-[30px] bg-gray-100 rounded animate-pulse" />
+                                  <div className="w-[80px] h-[30px] bg-gray-100 rounded-sm animate-pulse" />
                                 )}
                               </div>
                             </td>
@@ -638,7 +638,7 @@ const PortfolioPage = () => {
                               {!h.isDemo && (
                                 <button
                                   onClick={() => handleDelete(h.id)}
-                                  className="text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
+                                  className="text-gray-400 hover:text-red-500 transition-colors focus:outline-hidden"
                                   title="Remove holding"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -668,7 +668,7 @@ const PortfolioPage = () => {
                   const alloc = totalCurrent > 0 ? (current / totalCurrent) * 100 : 0;
 
                   return (
-                    <div key={h.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                    <div key={h.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs">
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <Link
@@ -682,7 +682,7 @@ const PortfolioPage = () => {
                         {!h.isDemo && (
                           <button
                             onClick={() => handleDelete(h.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
+                            className="text-gray-400 hover:text-red-500 transition-colors focus:outline-hidden"
                             title="Remove holding"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -696,7 +696,7 @@ const PortfolioPage = () => {
                         {sparklineData[h.symbol] && sparklineData[h.symbol].length >= 2 ? (
                           <Sparkline data={sparklineData[h.symbol]} width={120} height={32} />
                         ) : (
-                          <div className="w-[120px] h-[32px] bg-gray-100 rounded animate-pulse" />
+                          <div className="w-[120px] h-[32px] bg-gray-100 rounded-sm animate-pulse" />
                         )}
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
@@ -826,7 +826,7 @@ const RiskAnalysis = ({ symbols }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mt-6 shadow-sm">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mt-6 shadow-xs">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-semibold text-gray-700">Risk Analysis</h2>
@@ -837,7 +837,7 @@ const RiskAnalysis = ({ symbols }) => {
         <button
           onClick={handleAnalyze}
           disabled={riskLoading}
-          className="bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-none"
+          className="bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-hidden"
         >
           {riskLoading ? 'Analyzing...' : 'Analyze Risk'}
         </button>
@@ -922,7 +922,7 @@ const RiskAnalysis = ({ symbols }) => {
                   const isNeg = rc.contribution_pct < 0;
                   return (
                     <div key={rc.symbol} className="flex items-center gap-3">
-                      <div className="w-24 text-xs text-gray-700 font-medium truncate flex-shrink-0">
+                      <div className="w-24 text-xs text-gray-700 font-medium truncate shrink-0">
                         {rc.symbol.replace('.NS', '').replace('.BO', '')}
                       </div>
                       <div className="flex-1 bg-gray-100 rounded-full h-5 relative overflow-hidden">
@@ -971,7 +971,7 @@ const RiskAnalysis = ({ symbols }) => {
                           return (
                             <td
                               key={colSym}
-                              className={`px-2 py-1.5 text-center font-medium rounded ${getCorrelationColor(val ?? 0)}`}
+                              className={`px-2 py-1.5 text-center font-medium rounded-sm ${getCorrelationColor(val ?? 0)}`}
                             >
                               {val != null ? val.toFixed(2) : '-'}
                             </td>
@@ -983,9 +983,9 @@ const RiskAnalysis = ({ symbols }) => {
                 </table>
               </div>
               <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-400">
-                <span className="inline-block w-3 h-3 rounded bg-green-100"></span> Low
-                <span className="inline-block w-3 h-3 rounded bg-yellow-50 border border-yellow-200"></span> Moderate
-                <span className="inline-block w-3 h-3 rounded bg-red-100"></span> High
+                <span className="inline-block w-3 h-3 rounded-sm bg-green-100"></span> Low
+                <span className="inline-block w-3 h-3 rounded-sm bg-yellow-50 border border-yellow-200"></span> Moderate
+                <span className="inline-block w-3 h-3 rounded-sm bg-red-100"></span> High
               </div>
             </div>
           )}
@@ -1039,7 +1039,7 @@ const OptimizePortfolio = ({ symbols, totalInvested, holdings, liveData, totalCu
   });
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mt-6 shadow-sm">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mt-6 shadow-xs">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-semibold text-gray-700">Portfolio Optimization</h2>
@@ -1050,7 +1050,7 @@ const OptimizePortfolio = ({ symbols, totalInvested, holdings, liveData, totalCu
         <button
           onClick={handleOptimize}
           disabled={optLoading}
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-none"
+          className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-hidden"
         >
           {optLoading ? 'Optimizing...' : 'Optimize Portfolio'}
         </button>
@@ -1340,7 +1340,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
 
       {/* Sector Performance */}
       {sectors.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
           <h3 className="text-sm font-semibold text-gray-800 mb-3">Your Sector Performance</h3>
           <div className="space-y-3">
             {sectors.map(s => (
@@ -1369,7 +1369,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
 
       {/* Analyst Recommendations */}
       {!loadingAnalysts && Object.keys(analysts).length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
           <h3 className="text-sm font-semibold text-gray-800 mb-3">Analyst Recommendations for Your Holdings</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {portfolioSymbols.map(sym => {
@@ -1388,7 +1388,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
                       <div className="text-[10px] text-gray-400">{sym.replace('.NS', '')}</div>
                     </div>
                     {data.recommendation && (
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${recColors[data.recommendation] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase ${recColors[data.recommendation] || 'bg-gray-100 text-gray-600'}`}>
                         {data.recommendation.replace('_', ' ')}
                       </span>
                     )}
@@ -1418,7 +1418,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
 
       {/* Portfolio Stock News */}
       {!loadingNews && news.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-semibold text-gray-800">News for Your Stocks</h3>
             <Link to="/news" className="text-xs text-blue-600 hover:text-blue-800 font-medium">All news</Link>
@@ -1428,11 +1428,11 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
               <a key={idx} href={article.url} target="_blank" rel="noopener noreferrer"
                 className="flex gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors group">
                 {article.image ? (
-                  <div className="w-16 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-100">
+                  <div className="w-16 h-12 shrink-0 rounded-sm overflow-hidden bg-gray-100">
                     <img src={article.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                   </div>
                 ) : (
-                  <div className="w-16 h-12 flex-shrink-0 rounded bg-gray-100 flex items-center justify-center">
+                  <div className="w-16 h-12 shrink-0 rounded-sm bg-gray-100 flex items-center justify-center">
                     <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2" />
                     </svg>
@@ -1441,7 +1441,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-gray-900 font-medium group-hover:text-blue-600 transition-colors line-clamp-1">{article.title}</div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">{article.forStock}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-sm font-medium">{article.forStock}</span>
                     <span className="text-[10px] text-gray-400">{article.source} · {formatDate(article.published_at)}</span>
                   </div>
                 </div>

@@ -138,7 +138,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
             <button
               key={p.value}
               onClick={() => setPeriod(p.value)}
-              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-colors ${
                 period === p.value
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -151,7 +151,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
       </div>
       {loading && (
         <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
-          <div className="animate-pulse"><div className="h-64 bg-gray-100 rounded" /></div>
+          <div className="animate-pulse"><div className="h-64 bg-gray-100 rounded-sm" /></div>
         </div>
       )}
       {error && (

@@ -36,7 +36,7 @@ const GlossaryPage = () => {
           placeholder="Search terms..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-hidden"
         />
       </div>
 
@@ -73,7 +73,7 @@ const GlossaryPage = () => {
             return (
               <div
                 key={item.term}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden transition-shadow hover:shadow-sm"
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden transition-shadow hover:shadow-xs"
               >
                 <button
                   onClick={() => toggleExpand(idx)}
@@ -89,7 +89,7 @@ const GlossaryPage = () => {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{item.short}</p>
                   </div>
                   <svg
-                    className={`w-4 h-4 text-gray-400 flex-shrink-0 ml-2 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

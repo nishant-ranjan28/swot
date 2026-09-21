@@ -43,7 +43,7 @@ function IpoPage() {
             <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors">
               <div className="flex justify-between items-start mb-3">
                 <h3 className="text-white font-semibold text-sm">{ipo.name}</h3>
-                <span className="text-xs bg-blue-900/50 text-blue-400 px-2 py-0.5 rounded">{ipo.sector}</span>
+                <span className="text-xs bg-blue-900/50 text-blue-400 px-2 py-0.5 rounded-sm">{ipo.sector}</span>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">

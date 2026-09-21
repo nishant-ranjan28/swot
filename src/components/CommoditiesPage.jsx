@@ -76,7 +76,7 @@ function CommoditiesPage() {
               key={c.symbol}
               type="button"
               onClick={() => setSelected(isSelected ? null : c.symbol)}
-              className={`rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md text-left ${
+              className={`rounded-xl p-4 shadow-xs border cursor-pointer transition-all hover:shadow-md text-left ${
                 isSelected
                   ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
                   : 'bg-white border-gray-100'
@@ -84,9 +84,9 @@ function CommoditiesPage() {
             >
               {loading ? (
                 <div className="animate-pulse">
-                  <div className="h-3 bg-gray-200 rounded w-16 mb-2" />
-                  <div className="h-5 bg-gray-200 rounded w-20 mb-2" />
-                  <div className="h-3 bg-gray-200 rounded w-14" />
+                  <div className="h-3 bg-gray-200 rounded-sm w-16 mb-2" />
+                  <div className="h-5 bg-gray-200 rounded-sm w-20 mb-2" />
+                  <div className="h-3 bg-gray-200 rounded-sm w-14" />
                 </div>
               ) : (
                 <>

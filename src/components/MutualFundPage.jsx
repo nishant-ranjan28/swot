@@ -120,7 +120,7 @@ function NavChart({ schemeCode, period }) {
     }
   }, [chartData]);
 
-  if (loading) return <div className="animate-pulse h-64 bg-gray-100 rounded" />;
+  if (loading) return <div className="animate-pulse h-64 bg-gray-100 rounded-sm" />;
   if (error) return <div className="text-red-500 text-center py-4">{error}</div>;
   if (!chartData || chartData.length === 0) return <div className="text-gray-400 text-center py-4">No history data available</div>;
 
@@ -177,7 +177,7 @@ function MFOverlapTool() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
         <h2 className="text-lg font-bold text-gray-900 mb-1">Portfolio Overlap Checker</h2>
         <p className="text-sm text-gray-500 mb-4">Compare stock holdings between two mutual funds</p>
 
@@ -190,7 +190,7 @@ function MFOverlapTool() {
               value={query1}
               onChange={e => { setQuery1(e.target.value); setFund1(null); searchFunds(e.target.value, setResults1, setShow1); }}
               placeholder="Search fund..."
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none"
+              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-hidden"
             />
             {fund1 && <div className="text-xs text-purple-600 mt-1 truncate">{fund1.scheme_name}</div>}
             {show1 && results1.length > 0 && (
@@ -213,7 +213,7 @@ function MFOverlapTool() {
               value={query2}
               onChange={e => { setQuery2(e.target.value); setFund2(null); searchFunds(e.target.value, setResults2, setShow2); }}
               placeholder="Search fund..."
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-none"
+              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 focus:outline-hidden"
             />
             {fund2 && <div className="text-xs text-purple-600 mt-1 truncate">{fund2.scheme_name}</div>}
             {show2 && results2.length > 0 && (
@@ -240,7 +240,7 @@ function MFOverlapTool() {
 
       {/* Results */}
       {overlap && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5 space-y-4">
           {/* Summary */}
           <div className="grid grid-cols-3 gap-4 text-center">
             <div className="bg-purple-50 rounded-lg p-4">
@@ -385,7 +385,7 @@ function MutualFundPage() {
           onChange={e => { setSearchQuery(e.target.value); setSelectedFund(null); }}
           onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
           placeholder="Search mutual funds (e.g., HDFC Mid Cap, SBI Small Cap)"
-          className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+          className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-xs"
         />
         {showDropdown && searchResults.length > 0 && (
           <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-y-auto">
@@ -448,7 +448,7 @@ function MutualFundPage() {
                   key={fund.scheme_code}
                   type="button"
                   onClick={() => selectFund(fund)}
-                  className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all text-left"
+                  className="bg-white rounded-xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all text-left"
                 >
                   <div className="text-xs text-blue-600 font-medium mb-1">{fund.category}</div>
                   <div className="text-sm font-semibold text-gray-900 line-clamp-2 mb-2">{fund.scheme_name}</div>
@@ -508,17 +508,17 @@ function FundDetail({ schemeCode, schemeName, period, setPeriod, onBack }) {
   return (
     <div className="mb-6 space-y-4">
       {/* Fund Header */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h2 className="text-lg font-bold text-gray-900">{schemeName}</h2>
             <div className="text-xs text-gray-400 mt-0.5">Scheme Code: {schemeCode}</div>
             {!loading && nav && (
               <div className="flex flex-wrap gap-3 mt-3">
-                {nav.category && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{nav.category}</span>}
-                {nav.risk_label && <span className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded">{nav.risk_label}</span>}
-                {nav.expense_ratio != null && <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded">Expense: {nav.expense_ratio}%</span>}
-                {nav.aum && <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">AUM: {formatCr(nav.aum)}</span>}
+                {nav.category && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-sm">{nav.category}</span>}
+                {nav.risk_label && <span className="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-sm">{nav.risk_label}</span>}
+                {nav.expense_ratio != null && <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded-sm">Expense: {nav.expense_ratio}%</span>}
+                {nav.aum && <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-sm">AUM: {formatCr(nav.aum)}</span>}
               </div>
             )}
           </div>
@@ -530,8 +530,8 @@ function FundDetail({ schemeCode, schemeName, period, setPeriod, onBack }) {
           )}
           {loading && (
             <div className="animate-pulse">
-              <div className="h-7 w-24 bg-gray-200 rounded mb-1" />
-              <div className="h-3 w-20 bg-gray-200 rounded" />
+              <div className="h-7 w-24 bg-gray-200 rounded-sm mb-1" />
+              <div className="h-3 w-20 bg-gray-200 rounded-sm" />
             </div>
           )}
         </div>
@@ -559,7 +559,7 @@ function FundDetail({ schemeCode, schemeName, period, setPeriod, onBack }) {
       </div>
 
       {/* Period Selector + Chart */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-700">NAV History</h3>
           <div className="flex gap-1">
@@ -567,7 +567,7 @@ function FundDetail({ schemeCode, schemeName, period, setPeriod, onBack }) {
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
-                className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-sm text-xs font-medium transition-colors ${
                   period === p.value
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -582,14 +582,14 @@ function FundDetail({ schemeCode, schemeName, period, setPeriod, onBack }) {
       </div>
 
       {/* Holdings */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-700">Top Holdings</h3>
           {holdings?.month && <span className="text-xs text-gray-400">As of {holdings.month}</span>}
         </div>
         {loadingHoldings ? (
           <div className="animate-pulse space-y-2">
-            {[...Array(5)].map((_, i) => <div key={i} className="h-4 bg-gray-100 rounded w-3/4" />)}
+            {[...Array(5)].map((_, i) => <div key={i} className="h-4 bg-gray-100 rounded-sm w-3/4" />)}
           </div>
         ) : holdings?.holdings?.length > 0 ? (
           <>

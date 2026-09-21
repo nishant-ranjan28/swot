@@ -39,7 +39,7 @@ const DrawingToolbar = ({ activeTool, setActiveTool, drawingColor, setDrawingCol
       <button
         key={label}
         onClick={() => setActiveTool(activeTool === tool ? null : tool)}
-        className={`px-2 py-1 rounded transition-colors ${
+        className={`px-2 py-1 rounded-sm transition-colors ${
           activeTool === tool ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
         }`}
         title={label}

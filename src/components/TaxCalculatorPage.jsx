@@ -161,7 +161,7 @@ const TaxCalculatorPage = () => {
         </div>
 
         {holdings.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-xs">
             <div className="text-gray-300 text-5xl mb-4">
               <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -175,7 +175,7 @@ const TaxCalculatorPage = () => {
         ) : (
           <>
             {/* Tax Rate Settings */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 shadow-xs">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">Tax Rate Settings ({market === 'in' ? 'India' : 'US'})</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div>
@@ -185,7 +185,7 @@ const TaxCalculatorPage = () => {
                     value={taxRates.stcg}
                     onChange={e => setTaxRates(prev => ({ ...prev, stcg: parseFloat(e.target.value) || 0 }))}
                     min="0" max="100" step="0.5"
-                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
                     {market === 'in' ? 'Default: 20% (Budget 2024)' : 'Default: 24% (ordinary income)'}
@@ -198,7 +198,7 @@ const TaxCalculatorPage = () => {
                     value={taxRates.ltcg}
                     onChange={e => setTaxRates(prev => ({ ...prev, ltcg: parseFloat(e.target.value) || 0 }))}
                     min="0" max="100" step="0.5"
-                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
                     {market === 'in' ? 'Default: 12.5% above exemption' : 'Default: 15%'}
@@ -211,7 +211,7 @@ const TaxCalculatorPage = () => {
                     value={taxRates.ltcgExemption}
                     onChange={e => setTaxRates(prev => ({ ...prev, ltcgExemption: parseFloat(e.target.value) || 0 }))}
                     min="0" step="1000"
-                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
                     {market === 'in' ? 'Default: ₹1,25,000 per year' : 'Default: $0'}
@@ -224,7 +224,7 @@ const TaxCalculatorPage = () => {
                     value={taxRates.cess}
                     onChange={e => setTaxRates(prev => ({ ...prev, cess: parseFloat(e.target.value) || 0 }))}
                     min="0" max="100" step="0.5"
-                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                    className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
                     {market === 'in' ? 'Default: 4% H&E cess' : 'Default: 0%'}
@@ -233,7 +233,7 @@ const TaxCalculatorPage = () => {
               </div>
               <button
                 onClick={() => setTaxRates(DEFAULT_TAX_RATES[market] || DEFAULT_TAX_RATES.in)}
-                className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium focus:outline-none"
+                className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium focus:outline-hidden"
               >
                 Reset to defaults
               </button>
@@ -241,13 +241,13 @@ const TaxCalculatorPage = () => {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className={`rounded-xl border border-gray-200 p-4 shadow-sm ${plBg(taxSummary.netGain)}`}>
+              <div className={`rounded-xl border border-gray-200 p-4 shadow-xs ${plBg(taxSummary.netGain)}`}>
                 <div className="text-xs text-gray-500 mb-1">Total Unrealized Gains</div>
                 <div className={`text-lg sm:text-xl font-bold ${plColor(taxSummary.netGain)}`}>
                   {loading ? '...' : formatCurrency(taxSummary.netGain, currency)}
                 </div>
               </div>
-              <div className="bg-orange-50 rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="bg-orange-50 rounded-xl border border-gray-200 p-4 shadow-xs">
                 <div className="text-xs text-gray-500 mb-1">STCG ({`<`}1yr)</div>
                 <div className={`text-lg sm:text-xl font-bold ${plColor(taxSummary.netSTCG)}`}>
                   {loading ? '...' : formatCurrency(taxSummary.netSTCG, currency)}
@@ -256,7 +256,7 @@ const TaxCalculatorPage = () => {
                   Tax: {formatCurrency(taxSummary.stcgTax, currency)}
                 </div>
               </div>
-              <div className="bg-blue-50 rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="bg-blue-50 rounded-xl border border-gray-200 p-4 shadow-xs">
                 <div className="text-xs text-gray-500 mb-1">LTCG ({'>'}=1yr)</div>
                 <div className={`text-lg sm:text-xl font-bold ${plColor(taxSummary.netLTCG)}`}>
                   {loading ? '...' : formatCurrency(taxSummary.netLTCG, currency)}
@@ -265,7 +265,7 @@ const TaxCalculatorPage = () => {
                   Taxable: {formatCurrency(taxSummary.taxableLTCG, currency)}
                 </div>
               </div>
-              <div className="bg-red-50 rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="bg-red-50 rounded-xl border border-gray-200 p-4 shadow-xs">
                 <div className="text-xs text-gray-500 mb-1">Estimated Tax</div>
                 <div className="text-lg sm:text-xl font-bold text-red-700">
                   {loading ? '...' : formatCurrency(taxSummary.totalTax, currency)}
@@ -278,7 +278,7 @@ const TaxCalculatorPage = () => {
             </div>
 
             {/* Per-Holding Breakdown Table */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100">
                 <h2 className="text-sm font-semibold text-gray-700">Per-Holding Breakdown</h2>
               </div>
@@ -334,7 +334,7 @@ const TaxCalculatorPage = () => {
                             </div>
                           </td>
                           <td className="text-center px-3 py-3">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
+                            <span className={`inline-block px-2 py-0.5 rounded-sm text-[10px] font-semibold ${
                               h.isLTCG ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
                             }`}>
                               {h.type}
@@ -365,7 +365,7 @@ const TaxCalculatorPage = () => {
                           </Link>
                           <div className="text-xs text-gray-400">{h.symbol}</div>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                        <span className={`px-2 py-0.5 rounded-sm text-[10px] font-semibold ${
                           h.isLTCG ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
                         }`}>
                           {h.type} ({h.holdingDays}d)
@@ -401,7 +401,7 @@ const TaxCalculatorPage = () => {
 
             {/* Tax-Loss Harvesting */}
             {harvestCandidates.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100">
                   <h2 className="text-sm font-semibold text-gray-700">Tax-Loss Harvesting Opportunities</h2>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -439,7 +439,7 @@ const TaxCalculatorPage = () => {
                               {h.gainPercent.toFixed(2)}%
                             </td>
                             <td className="text-center px-3 py-3">
-                              <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${
+                              <span className={`inline-block px-2 py-0.5 rounded-sm text-[10px] font-semibold ${
                                 h.isLTCG ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
                               }`}>
                                 {h.type}
@@ -473,7 +473,7 @@ const TaxCalculatorPage = () => {
             {/* Disclaimer */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
               <div className="flex items-start gap-2">
-                <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
                 <div>

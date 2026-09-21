@@ -146,11 +146,11 @@ const NewsPage = () => {
         {isLoading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 animate-pulse">
+              <div key={i} className="bg-white p-5 rounded-xl shadow-xs border border-gray-100 animate-pulse">
                 <div className="h-40 bg-gray-200 rounded-lg mb-4"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                <div className="h-4 bg-gray-200 rounded-sm w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded-sm w-full mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded-sm w-2/3"></div>
               </div>
             ))}
           </div>
@@ -162,7 +162,7 @@ const NewsPage = () => {
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
+                className="group bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
               >
                 {/* Image */}
                 {article.image ? (
@@ -175,7 +175,7 @@ const NewsPage = () => {
                     />
                   </div>
                 ) : (
-                  <div className="h-24 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+                  <div className="h-24 bg-linear-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
                     <svg className="w-10 h-10 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2" />
                     </svg>
@@ -185,12 +185,12 @@ const NewsPage = () => {
                 {/* Content */}
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">
                       {article.source}
                     </span>
                     <span className="text-xs text-gray-400">{formatDate(article.published_at)}</span>
                     {article.sentiment_label && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-medium ${
                         article.sentiment_label === 'Bullish' ? 'bg-green-100 text-green-700' :
                         article.sentiment_label === 'Bearish' ? 'bg-red-100 text-red-700' :
                         'bg-gray-100 text-gray-600'
@@ -221,7 +221,7 @@ const NewsPage = () => {
 
         {/* Quick stock news links */}
         {!stockSymbol && !isLoading && (
-          <div className="mt-8 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+          <div className="mt-8 bg-white rounded-xl p-5 shadow-xs border border-gray-100">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Get news for specific stocks</h3>
             <div className="flex flex-wrap gap-2">
               {(QUICK_STOCKS[market] || QUICK_STOCKS.in).map((sym) => (

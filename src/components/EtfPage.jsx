@@ -79,7 +79,7 @@ function EtfPage() {
       {/* Overlap Checker */}
       {overlapMode && (
         <div className="mb-6 space-y-4">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
             <h2 className="text-lg font-bold text-gray-900 mb-4">ETF Overlap Checker</h2>
             <p className="text-sm text-gray-500 mb-4">
               Compare holdings of two ETFs to find common positions
@@ -127,7 +127,7 @@ function EtfPage() {
           </div>
 
           {overlapResult && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-gray-700">Overlap Results</h3>
                 <span className="text-sm font-bold text-purple-600">
@@ -153,7 +153,7 @@ function EtfPage() {
                   <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Common Holdings</h4>
                   <div className="flex flex-wrap gap-2">
                     {overlapResult.common_holdings.map((h, i) => (
-                      <span key={i} className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                      <span key={i} className="px-2 py-1 bg-purple-100 text-purple-700 rounded-sm text-xs font-medium">
                         {h}
                       </span>
                     ))}
@@ -178,14 +178,14 @@ function EtfPage() {
             &larr; Back to all ETFs
           </button>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">{selectedEtf.name}</h2>
                 <Link to={`/stock/${selectedEtf.symbol}`} className="text-sm text-blue-600 hover:underline">
                   {selectedEtf.symbol}
                 </Link>
-                <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{selectedEtf.category}</span>
+                <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-sm">{selectedEtf.category}</span>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-gray-900">
@@ -202,11 +202,11 @@ function EtfPage() {
           <PriceChart symbol={selectedEtf.symbol} title={`${selectedEtf.name} Price Chart`} decimals={2} />
 
           {/* Holdings */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Fund Details & Holdings</h3>
             {loadingHoldings ? (
               <div className="animate-pulse space-y-2">
-                {[...Array(5)].map((_, i) => <div key={i} className="h-4 bg-gray-100 rounded w-3/4" />)}
+                {[...Array(5)].map((_, i) => <div key={i} className="h-4 bg-gray-100 rounded-sm w-3/4" />)}
               </div>
             ) : holdings ? (
               <div>
@@ -310,14 +310,14 @@ function EtfPage() {
                     key={etf.symbol}
                     type="button"
                     onClick={() => selectEtf(etf)}
-                    className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all text-left"
+                    className="bg-white rounded-xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all text-left"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="text-sm font-bold text-gray-900">{etf.symbol.replace('.NS', '')}</div>
                         <div className="text-xs text-gray-500 line-clamp-1">{etf.name}</div>
                       </div>
-                      <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{etf.category}</span>
+                      <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-sm">{etf.category}</span>
                     </div>
                     <div className="flex items-baseline justify-between mt-2">
                       <span className="text-lg font-bold text-gray-900">

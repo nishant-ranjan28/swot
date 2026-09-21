@@ -32,12 +32,12 @@ function formatChange(pct) {
 function SkeletonRows({ count }) {
   return Array.from({ length: count }).map((_, i) => (
     <tr key={i} className="animate-pulse">
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded w-8" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded w-16" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded w-24" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded w-16" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded w-20" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded w-32" /></td>
+      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-8" /></td>
+      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-16" /></td>
+      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-24" /></td>
+      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-16" /></td>
+      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-20" /></td>
+      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-32" /></td>
     </tr>
   ));
 }
@@ -169,7 +169,7 @@ function CryptoChart({ symbol, timeframe, limit }) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
         <div className="animate-pulse">
-          <div className="h-64 bg-gray-100 rounded" />
+          <div className="h-64 bg-gray-100 rounded-sm" />
         </div>
       </div>
     );
@@ -320,7 +320,7 @@ function CryptoPage() {
                 <button
                   key={tf.value}
                   onClick={() => setTimeframe(tf.value)}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-colors ${
                     timeframe === tf.value
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

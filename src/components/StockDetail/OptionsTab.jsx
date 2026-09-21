@@ -32,7 +32,7 @@ const OptionsTab = ({ symbol }) => {
           <>
             <h3 className="text-base font-semibold text-gray-700 mb-1">No options data available</h3>
             <p className="text-sm text-gray-500">This stock may not have listed options, or data is temporarily unavailable.</p>
-            {error && <button onClick={refetch} className="mt-2 text-sm text-blue-600 underline focus:outline-none">Retry</button>}
+            {error && <button onClick={refetch} className="mt-2 text-sm text-blue-600 underline focus:outline-hidden">Retry</button>}
           </>
         )}
       </div>
@@ -182,7 +182,7 @@ const OptionsTab = ({ symbol }) => {
             onClick={() => setView(btn.id)}
             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
               view === btn.id
-                ? 'bg-white shadow text-gray-900'
+                ? 'bg-white shadow-sm text-gray-900'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >

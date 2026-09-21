@@ -141,7 +141,7 @@ const EconomicCalendarPage = () => {
             return (
               <div
                 key={`${ev.name}-${idx}`}
-                className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 transition-shadow hover:shadow-sm ${
+                className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 transition-shadow hover:shadow-xs ${
                   past ? 'opacity-50' : ''
                 }`}
               >
@@ -162,7 +162,7 @@ const EconomicCalendarPage = () => {
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{ev.description}</p>
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right shrink-0">
                     {displayDate && (
                       <>
                         <div className="text-sm text-gray-700 dark:text-gray-300">{formatDate(displayDate)}</div>

@@ -137,7 +137,7 @@ const RatingBadge = ({ rating }) => {
   };
   if (!rating) return <span className="text-gray-300">-</span>;
   return (
-    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${colors[rating] || 'bg-gray-100 text-gray-600'}`}>
+    <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase ${colors[rating] || 'bg-gray-100 text-gray-600'}`}>
       {rating.replace('_', ' ')}
     </span>
   );
@@ -259,7 +259,7 @@ const ScreenerPage = () => {
             </p>
           </div>
           <select value={resultSize} onChange={(e) => setResultSize(parseInt(e.target.value))}
-            className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+            className="text-xs border border-gray-200 rounded-sm px-2 py-1 bg-white">
             <option value={50}>Show 50</option>
             <option value={100}>Show 100</option>
             <option value={200}>Show 200</option>
@@ -267,7 +267,7 @@ const ScreenerPage = () => {
         </div>
 
         {/* Search + Clear */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <input type="text" placeholder="Search in results by name or symbol..."
               value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
@@ -277,18 +277,18 @@ const ScreenerPage = () => {
             {activeFilterCount >= 2 && (
               <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
                 <button onClick={() => setFilterLogic('AND')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors focus:outline-none ${
-                    filterLogic === 'AND' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors focus:outline-hidden ${
+                    filterLogic === 'AND' ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-500'
                   }`}>AND</button>
                 <button onClick={() => setFilterLogic('OR')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors focus:outline-none ${
-                    filterLogic === 'OR' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors focus:outline-hidden ${
+                    filterLogic === 'OR' ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-500'
                   }`}>OR</button>
               </div>
             )}
             {activeFilterCount > 0 && (
               <button onClick={clearFilters}
-                className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg font-medium focus:outline-none">
+                className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg font-medium focus:outline-hidden">
                 Clear all ({activeFilterCount})
               </button>
             )}
@@ -296,11 +296,11 @@ const ScreenerPage = () => {
         </div>
 
         {/* Filter Groups */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
           {FILTER_GROUPS.map((group) => (
             <div key={group.label} className="border-b border-gray-100 last:border-0">
               <button onClick={() => toggleGroup(group.label)}
-                className="w-full flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition-colors focus:outline-none">
+                className="w-full flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition-colors focus:outline-hidden">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-800">{group.label}</span>
                   {group.filters.some((f) => filters[f.key] && filters[f.key] !== 'all') && (
@@ -352,7 +352,7 @@ const ScreenerPage = () => {
                   }));
                   exportToCSV(sortedStocks, csvColumns, `screener_${new Date().toISOString().split('T')[0]}`);
                 }}
-                className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-none flex items-center gap-1"
+                className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-hidden flex items-center gap-1"
                 title="Export results to CSV"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -369,23 +369,23 @@ const ScreenerPage = () => {
         {error ? (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <p className="text-red-600">{error}</p>
-            <button onClick={fetchStocks} className="mt-2 text-sm text-blue-600 underline focus:outline-none">Retry</button>
+            <button onClick={fetchStocks} className="mt-2 text-sm text-blue-600 underline focus:outline-hidden">Retry</button>
           </div>
         ) : loading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
             <div className="space-y-3 animate-pulse">
               {[...Array(10)].map((_, i) => (
                 <div key={i} className="flex gap-4">
-                  <div className="h-4 bg-gray-200 rounded w-40"></div>
-                  <div className="h-4 bg-gray-200 rounded w-20"></div>
-                  <div className="h-4 bg-gray-200 rounded w-16"></div>
-                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="h-4 bg-gray-200 rounded-sm w-40"></div>
+                  <div className="h-4 bg-gray-200 rounded-sm w-20"></div>
+                  <div className="h-4 bg-gray-200 rounded-sm w-16"></div>
+                  <div className="h-4 bg-gray-200 rounded-sm w-20"></div>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>

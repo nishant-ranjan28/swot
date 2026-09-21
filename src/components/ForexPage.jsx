@@ -46,7 +46,7 @@ function CurrencyConverter({ rates }) {
   const result = convert();
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-5">
       <h2 className="text-lg font-bold text-gray-900 mb-4">Currency Converter</h2>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
         <div>
@@ -160,7 +160,7 @@ function ForexPage() {
               key={p.symbol}
               type="button"
               onClick={() => setSelected(isSelected ? null : p.symbol)}
-              className={`rounded-xl p-4 shadow-sm border cursor-pointer transition-all hover:shadow-md text-left ${
+              className={`rounded-xl p-4 shadow-xs border cursor-pointer transition-all hover:shadow-md text-left ${
                 isSelected
                   ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
                   : 'bg-white border-gray-100'
@@ -168,9 +168,9 @@ function ForexPage() {
             >
               {loading ? (
                 <div className="animate-pulse">
-                  <div className="h-3 bg-gray-200 rounded w-16 mb-2" />
-                  <div className="h-5 bg-gray-200 rounded w-20 mb-2" />
-                  <div className="h-3 bg-gray-200 rounded w-14" />
+                  <div className="h-3 bg-gray-200 rounded-sm w-16 mb-2" />
+                  <div className="h-5 bg-gray-200 rounded-sm w-20 mb-2" />
+                  <div className="h-3 bg-gray-200 rounded-sm w-14" />
                 </div>
               ) : (
                 <>

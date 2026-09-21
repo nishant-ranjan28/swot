@@ -105,7 +105,7 @@ function TrendingPage() {
           ) : redditData.length > 0 ? (
             <div className="space-y-3">
               {redditData.map((item, idx) => (
-                <div key={item.symbol} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                <div key={item.symbol} className="bg-white rounded-xl border border-gray-100 shadow-xs p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <span className="text-lg font-bold text-gray-300 w-6">{idx + 1}</span>
@@ -115,7 +115,7 @@ function TrendingPage() {
                       >
                         {item.symbol}
                       </Link>
-                      <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getSentimentColor(item.sentiment_label)}`}>
+                      <span className={`px-2 py-0.5 rounded-sm text-xs font-semibold ${getSentimentColor(item.sentiment_label)}`}>
                         {item.sentiment_label}
                       </span>
                     </div>
@@ -168,7 +168,7 @@ function TrendingPage() {
               ))}
             </div>
           ) : trendingLocal.length > 0 ? (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100">
                 <h2 className="text-sm font-semibold text-gray-700">Most Viewed Stocks Today</h2>
               </div>

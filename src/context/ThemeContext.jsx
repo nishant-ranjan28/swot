@@ -1,15 +1,21 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useLayoutEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useLocalStorage('stockpulse_theme', 'light');
-  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  const [theme, setTheme] = useLocalStorage('stockpulse_theme', 'dark');
   const isDark = theme === 'dark';
+  const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+  }, [isDark]);
+
   return (
     <ThemeContext.Provider value={{ theme, isDark, toggleTheme }}>
-      <div className={isDark ? 'dark' : ''}>{children}</div>
+      {children}
     </ThemeContext.Provider>
   );
 }

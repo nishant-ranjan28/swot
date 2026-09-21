@@ -14,7 +14,7 @@ const SignalBadge = ({ signal }) => {
     'Bearish': 'bg-red-100 text-red-700',
   };
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${colors[signal] || 'bg-gray-100 text-gray-600'}`}>
+    <span className={`px-2 py-0.5 rounded-sm text-xs font-semibold ${colors[signal] || 'bg-gray-100 text-gray-600'}`}>
       {signal}
     </span>
   );
@@ -35,11 +35,11 @@ const GaugeChart = ({ percentage, signal }) => {
     <div className="flex flex-col items-center">
       <div className="relative w-40 h-20 overflow-hidden">
         {/* Background arc */}
-        <div className="absolute w-40 h-40 rounded-full border-[12px] border-gray-200"
+        <div className="absolute w-40 h-40 rounded-full border-12 border-gray-200"
           style={{ clipPath: 'polygon(0 0, 100% 0, 100% 50%, 0 50%)' }}
         ></div>
         {/* Colored segments */}
-        <div className="absolute w-40 h-40 rounded-full border-[12px] border-transparent"
+        <div className="absolute w-40 h-40 rounded-full border-12 border-transparent"
           style={{
             borderTopColor: '#dc2626', borderRightColor: '#ef4444',
             clipPath: 'polygon(0 0, 30% 0, 50% 50%, 0 50%)',
@@ -290,7 +290,7 @@ const TechnicalTab = ({ symbol }) => {
                 <span className={`font-medium ${
                   pattern.signal === 'Bullish' ? 'text-green-700' : 'text-red-700'
                 }`}>{pattern.name}</span>
-                <span className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
+                <span className={`px-1.5 py-0.5 rounded-sm text-xs font-semibold ${
                   pattern.signal === 'Bullish' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                 }`}>{pattern.signal}</span>
                 <span className="text-xs text-gray-500">{pattern.strength}</span>
@@ -303,7 +303,7 @@ const TechnicalTab = ({ symbol }) => {
       {/* Disclaimer */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div className="flex gap-2">
-          <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
           <p className="text-xs text-amber-700 leading-relaxed">

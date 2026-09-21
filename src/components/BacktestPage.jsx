@@ -295,7 +295,7 @@ function BacktestPage() {
             <button
               key={s}
               onClick={() => setSymbol(s)}
-              className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+              className="text-xs px-2 py-1 rounded-sm bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
             >
               {s}
             </button>
@@ -428,7 +428,7 @@ function BacktestPage() {
                         <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
                           <td className="px-3 py-2 text-gray-400">{i + 1}</td>
                           <td className="px-3 py-2">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-medium ${
                               t.type === 'Long' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                             }`}>
                               {t.type}

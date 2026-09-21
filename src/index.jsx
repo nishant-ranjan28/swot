@@ -5,6 +5,7 @@ import App from './App';
 import { StockProvider } from './context/StockContext';
 import { MarketProvider } from './context/MarketContext';
 import { ThemeProvider } from './context/ThemeContext';
+import '@fontsource-variable/inter';
 import './index.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

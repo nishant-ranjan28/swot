@@ -223,7 +223,7 @@ const SearchInput = ({ label, value, onChange, onSelect, placeholder, searchEndp
           {suggestions.map((item) => (
             <li key={item.symbol}>
               <button
-                className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors focus:outline-none border-b border-gray-50 last:border-0"
+                className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors focus:outline-hidden border-b border-gray-50 last:border-0"
                 onClick={() => {
                   setQuery(item.name || item.symbol);
                   onChange(item.symbol);
@@ -234,7 +234,7 @@ const SearchInput = ({ label, value, onChange, onSelect, placeholder, searchEndp
                 <div className="flex justify-between items-start">
                   <div className="text-sm font-medium text-gray-900 truncate flex-1">{item.name || item.symbol}</div>
                   {item.category && (
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded ml-2 flex-shrink-0 ${
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-sm ml-2 shrink-0 ${
                       item.category === 'Mutual Fund' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                     }`}>{item.category}</span>
                   )}
@@ -282,11 +282,11 @@ const SipTool = () => {
       {/* Mode toggle */}
       <div className="flex gap-2">
         <button onClick={() => { setMode('stock'); setSymbol(''); setDisplayName(''); setResult(null); }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-none ${mode === 'stock' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-hidden ${mode === 'stock' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
           Stocks
         </button>
         <button onClick={() => { setMode('mf'); setSymbol(''); setDisplayName(''); setResult(null); }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-none ${mode === 'mf' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-hidden ${mode === 'mf' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
           Mutual Funds
         </button>
       </div>
@@ -332,13 +332,13 @@ const SipTool = () => {
         {mode === 'stock'
           ? POPULAR_STOCKS.map(s => (
             <button key={s} onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
-              className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-none">
+              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-hidden">
               {s.replace('.NS', '')}
             </button>
           ))
           : POPULAR_MFS.map(mf => (
             <button key={mf.symbol} onClick={() => { setSymbol(mf.symbol); setDisplayName(mf.name); calculate(mf.symbol); }}
-              className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-none">
+              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-hidden">
               {mf.name}
             </button>
           ))
@@ -434,7 +434,7 @@ const LumpsumTool = () => {
       <div className="flex flex-wrap gap-2">
         {POPULAR_STOCKS.map(s => (
           <button key={s} onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
-            className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-none">
+            className="px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-hidden">
             {s.replace('.NS', '')}
           </button>
         ))}
@@ -541,7 +541,7 @@ const CompareTool = () => {
       <div className="flex flex-wrap gap-2">
         {POPULAR_STOCKS.map(s => (
           <button key={s} onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
-            className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-none">
+            className="px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-hidden">
             {s.replace('.NS', '')}
           </button>
         ))}
@@ -786,7 +786,7 @@ const CalculatorPage = () => {
               <button
                 key={tool.id}
                 onClick={() => setTool(tool.id)}
-                className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all text-left focus:outline-none"
+                className="bg-white rounded-xl p-5 shadow-xs border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all text-left focus:outline-hidden"
               >
                 <div className="text-2xl mb-2">{tool.icon}</div>
                 <h3 className="text-sm font-bold text-gray-900">{tool.label}</h3>
@@ -800,7 +800,7 @@ const CalculatorPage = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setTool(null)}
-                className="p-2 hover:bg-gray-200 rounded-lg transition-colors focus:outline-none"
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors focus:outline-hidden"
               >
                 <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -818,7 +818,7 @@ const CalculatorPage = () => {
                 <button
                   key={tool.id}
                   onClick={() => setTool(tool.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors focus:outline-none ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors focus:outline-hidden ${
                     activeTool === tool.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -828,7 +828,7 @@ const CalculatorPage = () => {
             </div>
 
             {/* Calculator content */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6">
+            <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4 md:p-6">
               {renderTool()}
             </div>
 

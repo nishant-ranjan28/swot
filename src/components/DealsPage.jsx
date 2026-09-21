@@ -125,7 +125,7 @@ function DealsPage() {
               onChange={(e) => setSearchInput(e.target.value)}
               onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
               placeholder="Search by name or symbol (e.g., Apple, AAPL, Reliance)"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-500 focus:outline-hidden focus:border-blue-500 text-sm"
             />
             {showDropdown && suggestions.length > 0 && (
               <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl max-h-64 overflow-y-auto">
@@ -165,7 +165,7 @@ function DealsPage() {
               <button
                 key={s}
                 onClick={() => fetchInsider(s)}
-                className="px-3 py-1 bg-gray-800 border border-gray-700 rounded text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                className="px-3 py-1 bg-gray-800 border border-gray-700 rounded-sm text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
               >
                 {s}
               </button>
@@ -178,7 +178,7 @@ function DealsPage() {
       {loading && (
         <div className="animate-pulse space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-gray-700 rounded"></div>
+            <div key={i} className="h-12 bg-gray-700 rounded-sm"></div>
           ))}
         </div>
       )}
@@ -226,7 +226,7 @@ function DealsPage() {
                           <td className="py-3 px-3 text-white font-medium">{txn.insider || '-'}</td>
                           <td className="py-3 px-3 text-gray-400">{txn.relation || '-'}</td>
                           <td className="py-3 px-3 text-center">
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${badge.cls}`}>
+                            <span className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium ${badge.cls}`}>
                               {badge.text}
                             </span>
                           </td>

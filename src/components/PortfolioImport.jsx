@@ -171,12 +171,12 @@ const fetchBatchLookup = async (symbols) => {
 
 const StatusPill = ({ status }) => {
   if (status === 'valid') {
-    return <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Valid</span>;
+    return <span className="px-1.5 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-700">Valid</span>;
   }
   if (status === 'duplicate') {
-    return <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">Duplicate</span>;
+    return <span className="px-1.5 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-700">Duplicate</span>;
   }
-  return <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">Rejected</span>;
+  return <span className="px-1.5 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-700">Rejected</span>;
 };
 
 const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
@@ -316,7 +316,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
         type="button"
         aria-label="Close import dialog"
         onClick={close}
-        className="absolute inset-0 bg-black/40 cursor-default focus:outline-none"
+        className="absolute inset-0 bg-black/40 cursor-default focus:outline-hidden"
       />
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
@@ -328,7 +328,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
           </div>
           <button
             onClick={close}
-            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+            className="text-gray-400 hover:text-gray-600 focus:outline-hidden"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -366,7 +366,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors focus:outline-none disabled:opacity-50"
+                  className="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors focus:outline-hidden disabled:opacity-50"
                   disabled={loading}
                 >
                   {loading ? 'Processing…' : 'Choose file'}
@@ -389,7 +389,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
 
               <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
                 <p className="font-medium text-gray-700 mb-1">Required columns:</p>
-                <code className="block bg-white px-2 py-1 rounded border border-gray-200 font-mono">
+                <code className="block bg-white px-2 py-1 rounded-sm border border-gray-200 font-mono">
                   Symbol, Quantity, Buy Price, Buy Date
                 </code>
                 <p className="mt-2"><span className="font-medium">Optional:</span> Name (auto-filled if blank). Extra columns are ignored.</p>
@@ -406,9 +406,9 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
           {step === 'preview' && (
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
-                <span className="px-2 py-1 rounded bg-green-100 text-green-700 font-medium">{valid.length} valid</span>
-                <span className="px-2 py-1 rounded bg-amber-100 text-amber-700 font-medium">{duplicates.length} duplicates</span>
-                <span className="px-2 py-1 rounded bg-red-100 text-red-700 font-medium">{rejected.length} rejected</span>
+                <span className="px-2 py-1 rounded-sm bg-green-100 text-green-700 font-medium">{valid.length} valid</span>
+                <span className="px-2 py-1 rounded-sm bg-amber-100 text-amber-700 font-medium">{duplicates.length} duplicates</span>
+                <span className="px-2 py-1 rounded-sm bg-red-100 text-red-700 font-medium">{rejected.length} rejected</span>
               </div>
 
               <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -449,7 +449,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
           <div className="px-5 py-3 border-t border-gray-200 flex items-center justify-between gap-2">
             <button
               onClick={() => { reset(); }}
-              className="text-sm px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 font-medium focus:outline-none"
+              className="text-sm px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 font-medium focus:outline-hidden"
             >
               Back
             </button>
@@ -457,14 +457,14 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
               {confirmingReplace ? (
                 <button
                   onClick={handleReplace}
-                  className="text-sm px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium focus:outline-none"
+                  className="text-sm px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium focus:outline-hidden"
                 >
                   Yes, replace {holdings.length} existing holding{holdings.length === 1 ? '' : 's'}
                 </button>
               ) : (
                 <button
                   onClick={() => setConfirmingReplace(true)}
-                  className="text-sm px-3 py-1.5 rounded-md bg-red-50 text-red-700 hover:bg-red-100 font-medium focus:outline-none disabled:opacity-50"
+                  className="text-sm px-3 py-1.5 rounded-md bg-red-50 text-red-700 hover:bg-red-100 font-medium focus:outline-hidden disabled:opacity-50"
                   disabled={valid.length === 0}
                   title="Replace all current holdings with these"
                 >
@@ -474,7 +474,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
               <button
                 onClick={handleAppend}
                 disabled={valid.length === 0}
-                className="text-sm px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 font-medium focus:outline-none disabled:opacity-50"
+                className="text-sm px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 font-medium focus:outline-hidden disabled:opacity-50"
               >
                 Append {valid.length} row{valid.length === 1 ? '' : 's'}
               </button>
