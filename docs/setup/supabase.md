@@ -29,6 +29,15 @@ to turn accounts on.
    `public`, `anon` and `authenticated`), and `check (char_length(symbol) <= 32)` constraints
    on `price_alerts` and `watchlist_items`. Like migration 1, it is not re-runnable.
 
+   **Run migration 3** (needed for the daily watchlist digest). In **SQL Editor → New
+   query**, paste `supabase/migrations/20260923000000_digest_sends.sql` and click **Run**,
+   after migration 2. It creates the `digest_sends` table: one row per user, market and
+   market-local day (`unique (user_id, market, digest_date)`), which the digest job claims
+   before sending so re-runs never email twice. RLS is on; users can only read their own
+   rows (`select` is the only privilege granted to `authenticated`, and `anon` has none),
+   and only the backend's `service_role` writes to it. Like migrations 1 and 2, it is not
+   re-runnable.
+
    Alternatively, with the Supabase CLI installed:
 
    ```bash
@@ -90,7 +99,8 @@ to turn accounts on.
       Google**, and enable the provider.
 
 8. **Verify RLS.** Open **Table Editor**. All 5 tables (`profiles`, `watchlist_items`,
-   `holdings`, `price_alerts`, `alert_events`) should show **RLS enabled**. As a spot check,
+   `holdings`, `price_alerts`, `alert_events`), plus `digest_sends` after migration 3,
+   should show **RLS enabled**. As a spot check,
    sign in as two different users and confirm neither can see the other's watchlist.
 
 9. **Free tier note.** Free projects pause after about 7 days without activity. The Phase 5

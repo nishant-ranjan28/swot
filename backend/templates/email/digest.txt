@@ -1,0 +1,15 @@
+$heading
+
+$greeting
+
+$intro
+
+${summary_section}Your watchlist
+
+$rows
+
+${headlines_section}View your watchlist: $watchlist_url
+
+--
+You're receiving this because the daily digest is on.
+Manage digest emails in Settings: $settings_url

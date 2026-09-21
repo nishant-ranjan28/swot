@@ -57,4 +57,20 @@ def job_settings() -> dict:
         "mail_from_name": os.environ.get("MAIL_FROM_NAME") or "StockPulse",
         "job_secret": os.environ.get("JOB_SECRET") or "",
         "app_url": (os.environ.get("APP_URL") or "https://swot.iamnishant.in").rstrip("/"),
+        # Daily digest AI summary (Groq first, OpenRouter fallback). Model ids change
+        # over time; verify them on each provider's model list.
+        "groq_api_key": os.environ.get("GROQ_API_KEY") or "",
+        "openrouter_api_key": os.environ.get("OPENROUTER_API_KEY") or "",
+        "llm_model_groq": os.environ.get("LLM_MODEL_GROQ") or "llama-3.3-70b-versatile",
+        "llm_model_openrouter": (os.environ.get("LLM_MODEL_OPENROUTER")
+                                 or "meta-llama/llama-3.3-70b-instruct:free"),
+        "llm_max_calls": _non_negative_int(os.environ.get("LLM_MAX_CALLS_PER_RUN"), 60),
     }
+
+
+def _non_negative_int(raw, default: int) -> int:
+    try:
+        value = int(str(raw).strip())
+    except (TypeError, ValueError):
+        return default
+    return value if value >= 0 else default

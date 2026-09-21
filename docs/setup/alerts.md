@@ -23,6 +23,9 @@ are retried on the next run for up to 24 hours. Emails Brevo rejects as invalid 
 are not retried. Market holidays aren't modelled: prices don't move on a holiday, so
 nothing new fires.
 
+The daily watchlist digest and the welcome email use the same secrets and endpoint
+pattern; see [digest.md](./digest.md) once alerts are working.
+
 All secrets live only in environment variables (Render) and GitHub Actions secrets. Never
 commit them, paste them into issues, or put them in example files. The values below are
 placeholders.
