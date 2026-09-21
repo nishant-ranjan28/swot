@@ -8,7 +8,7 @@ import { readCssVar, withAlpha } from '@/lib/color';
 export function useChartTheme() {
   const { isDark } = useTheme();
   return useMemo(() => {
-    const gain = readCssVar('--gain', isDark ? '#22c55e' : '#16a34a');
+    const gain = readCssVar('--gain', isDark ? '#22c55e' : '#15803d');
     const loss = readCssVar('--loss', isDark ? '#ef4444' : '#dc2626');
     return {
       isDark,
@@ -23,6 +23,11 @@ export function useChartTheme() {
       gainArea: withAlpha(gain, 0.3),
       lossArea: withAlpha(loss, 0.3),
       series: [1, 2, 3, 4, 5].map(i => readCssVar(`--chart-${i}`, '#888888')),
+      // Categorical palette: the 5 theme chart tokens plus fixed hues that read on both themes.
+      palette: [
+        ...[1, 2, 3, 4, 5].map(i => readCssVar(`--chart-${i}`, '#888888')),
+        '#ec4899', '#06b6d4', '#f97316', '#94a3b8',
+      ],
     };
   }, [isDark]);
 }

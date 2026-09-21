@@ -12,6 +12,7 @@ import PageHeader from '@/components/common/PageHeader';
 import SectionCard from '@/components/common/SectionCard';
 import StatCard from '@/components/common/StatCard';
 import PriceChange from '@/components/common/PriceChange';
+import RangeBar from '@/components/common/RangeBar';
 import { cn } from '@/lib/utils';
 
 const formatNumber = (num) => {
@@ -119,26 +120,6 @@ const VIX_SIGNAL_VARIANT = {
   Greed: 'gain',
 };
 
-const PriceRangeBar = ({ low, high, current, currencySymbol = '₹' }) => {
-  if (!low || !high || !current || high === low) return null;
-  const position = Math.min(Math.max(((current - low) / (high - low)) * 100, 0), 100);
-  return (
-    <div className="mt-3">
-      <div className="mb-1 flex justify-between text-[10px] text-muted-foreground tabular-nums">
-        <span>{currencySymbol}{low.toFixed(0)}</span>
-        <span className="text-muted-foreground/70">52W Range</span>
-        <span>{currencySymbol}{high.toFixed(0)}</span>
-      </div>
-      <div className="relative h-1.5 rounded-full bg-muted">
-        <div
-          className="absolute -top-0.5 size-2.5 rounded-full bg-foreground ring-2 ring-card"
-          style={{ left: `calc(${position}% - 5px)` }}
-        ></div>
-      </div>
-    </div>
-  );
-};
-
 const StockCard = ({ stock }) => (
     <Link
       to={`/stock/${stock.symbol}`}
@@ -156,7 +137,15 @@ const StockCard = ({ stock }) => (
           <PriceChange percent={stock.change_percent} className="text-xs font-medium" />
         </div>
       </div>
-      <PriceRangeBar low={stock.week52_low} high={stock.week52_high} current={stock.price} currencySymbol={stock.currency === 'USD' ? '$' : '₹'} />
+      <RangeBar
+        className="mt-3"
+        low={stock.week52_low}
+        high={stock.week52_high}
+        value={stock.price}
+        label="52W Range"
+        lowLabel={`${stock.currency === 'USD' ? '$' : '₹'}${stock.week52_low?.toFixed(0)}`}
+        highLabel={`${stock.currency === 'USD' ? '$' : '₹'}${stock.week52_high?.toFixed(0)}`}
+      />
       <div className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
         <span>Vol: {formatNumber(stock.volume)}</span>
         <span>MCap: {formatNumber(stock.market_cap)}</span>

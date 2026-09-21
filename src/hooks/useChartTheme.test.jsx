@@ -21,3 +21,9 @@ test('returns resolved colors and recomputes on theme toggle', () => {
   act(() => btn.click());
   expect(btn).toHaveTextContent('false|#16a34a|rgba(22, 163, 74, 0.3)');
 });
+
+test('exposes a 9-color categorical palette', () => {
+  function P() { return <span>{useChartTheme().palette.length}</span>; }
+  render(<ThemeProvider><P /></ThemeProvider>);
+  expect(screen.getByText('9')).toBeInTheDocument();
+});

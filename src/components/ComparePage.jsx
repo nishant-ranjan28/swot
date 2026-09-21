@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
+import { Plus, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import SectionCard from '@/components/common/SectionCard';
+import ErrorState from '@/components/common/ErrorState';
+import { cn } from '@/lib/utils';
 
 // ---------- helpers ----------
 
@@ -169,37 +178,37 @@ const StockInput = ({ value, onChange, onSelect, onRemove, canRemove }) => {
   return (
     <div className="relative" ref={wrapperRef}>
       <div className="flex items-center gap-1">
-        <input
+        <Input
           type="text"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden transition-colors"
           placeholder="Search stock..."
           value={query}
           onChange={handleChange}
           autoComplete="off"
+          aria-label="Search stock"
         />
         {canRemove && (
           <button
+            type="button"
             onClick={onRemove}
-            className="p-1.5 text-gray-400 hover:text-red-500 transition-colors focus:outline-hidden"
+            className="rounded-sm p-1.5 text-muted-foreground hover:text-loss transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50"
             title="Remove stock"
+            aria-label="Remove stock"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="size-4" aria-hidden />
           </button>
         )}
       </div>
 
       {open && results.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-auto">
+        <ul className="absolute z-40 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
           {results.map((s) => (
             <li key={s.symbol}>
               <button
-                className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors focus:outline-hidden"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors focus:outline-hidden"
                 onClick={() => pick(s)}
               >
-                <span className="font-medium text-gray-900">{s.symbol}</span>
-                <span className="text-gray-500 ml-2">{s.name}</span>
+                <span className="font-medium">{s.symbol}</span>
+                <span className="text-muted-foreground ml-2">{s.name}</span>
               </button>
             </li>
           ))}
@@ -311,199 +320,198 @@ const ComparePage = () => {
   const hasResults = comparedSymbols.length >= 2;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Stock Comparison</h1>
-            <p className="text-sm text-gray-500 mt-1">Compare 2-4 stocks side by side on key metrics</p>
-          </div>
+    <PageContainer>
+      <PageHeader
+        title="Stock Comparison"
+        description="Compare 2-4 stocks side by side on key metrics"
+        actions={
           <Link
             to="/"
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium focus:outline-hidden"
+            className="text-sm font-medium text-foreground dark:text-primary underline-offset-4 hover:underline"
           >
             Back to Home
           </Link>
-        </div>
+        }
+      />
 
-        {/* Quick Presets */}
-        <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Compare</p>
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                onClick={() => handlePreset(preset)}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors focus:outline-hidden"
-              >
-                {preset.label}
-                <span className="ml-1 text-blue-400 text-xs">({preset.symbols.join(', ')})</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Stock Selectors */}
-        <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 space-y-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Select Stocks</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {slots.map((slot, idx) => (
-              <StockInput
-                key={idx}
-                value={slot}
-                onChange={(stock) => updateSlot(idx, stock)}
-                onSelect={(stock) => updateSlot(idx, stock)}
-                onRemove={() => removeSlot(idx)}
-                canRemove={slots.length > MIN_STOCKS}
-              />
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            {slots.length < MAX_STOCKS && (
-              <button
-                onClick={addSlot}
-                className="px-4 py-2 text-sm font-medium rounded-lg border border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors focus:outline-hidden"
-              >
-                + Add Stock
-              </button>
-            )}
-            <button
-              onClick={handleCompare}
-              disabled={!canCompare || loading}
-              className={`px-6 py-2 text-sm font-semibold rounded-lg transition-colors focus:outline-hidden ${
-                canCompare && !loading
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              }`}
+      {/* Quick Presets */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Quick Compare</p>
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((preset) => (
+            <Button
+              key={preset.label}
+              variant="outline"
+              size="sm"
+              onClick={() => handlePreset(preset)}
+              className="h-auto min-h-8 whitespace-normal py-1.5 text-left"
             >
-              {loading ? 'Comparing...' : 'Compare'}
-            </button>
-          </div>
+              <span>
+                {preset.label}
+                <span className="ml-1 text-xs text-muted-foreground">({preset.symbols.join(', ')})</span>
+              </span>
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Stock Selectors */}
+      <div className="relative z-20 rounded-xl border border-border bg-card p-4 space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Select Stocks</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {slots.map((slot, idx) => (
+            <StockInput
+              key={idx}
+              value={slot}
+              onChange={(stock) => updateSlot(idx, stock)}
+              onSelect={(stock) => updateSlot(idx, stock)}
+              onRemove={() => removeSlot(idx)}
+              canRemove={slots.length > MIN_STOCKS}
+            />
+          ))}
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <p className="text-red-600 text-sm">{error}</p>
-          </div>
-        )}
+        <div className="flex items-center gap-3 pt-2">
+          {slots.length < MAX_STOCKS && (
+            <Button variant="ghost" size="sm" onClick={addSlot}>
+              <Plus aria-hidden />
+              Add Stock
+            </Button>
+          )}
+          <Button onClick={handleCompare} disabled={!canCompare || loading} className="px-6">
+            {loading ? 'Comparing...' : 'Compare'}
+          </Button>
+        </div>
+      </div>
 
-        {/* Loading */}
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        )}
+      {/* Error */}
+      {error && (error.startsWith('Note:') ? (
+        <div role="status" className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning">{error}</div>
+      ) : (
+        <ErrorState title="Some data could not be loaded" message={error} />
+      ))}
 
-        {/* Comparison Table */}
-        {hasResults && !loading && (
-          <>
-          <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
-                {/* Header row with stock names */}
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="sticky left-0 z-10 bg-gray-50 text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-40 min-w-[160px]">
-                      Metric
-                    </th>
-                    {comparedSymbols.map((sym) => {
-                      const quote = data[sym]?.quote;
-                      return (
-                        <th key={sym} className="px-4 py-3 text-center min-w-[140px]">
-                          <div className="flex items-center justify-center gap-1">
-                            <Link
-                              to={`/stock/${sym}`}
-                              className="text-blue-600 hover:text-blue-800 font-bold text-sm focus:outline-hidden"
-                            >
-                              {sym}
-                            </Link>
-                            <button
-                              onClick={() => removeStockColumn(sym)}
-                              className="ml-1 p-0.5 text-gray-300 hover:text-red-500 transition-colors focus:outline-hidden"
-                              title="Remove"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                          {quote?.name && (
-                            <div className="text-[11px] text-gray-400 font-normal mt-0.5 truncate max-w-[140px]">
-                              {quote.name}
-                            </div>
-                          )}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
+      {/* Loading */}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" role="status" aria-label="Loading"></div>
+        </div>
+      )}
 
-                <tbody>
-                  {METRIC_SECTIONS.map((section) => (
-                    <React.Fragment key={section.title}>
-                      {/* Section header */}
-                      <tr>
-                        <td
-                          colSpan={comparedSymbols.length + 1}
-                          className="sticky left-0 z-10 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700 uppercase tracking-wider"
+      {/* Comparison Table */}
+      {hasResults && !loading && (
+        <>
+        <SectionCard contentClassName="p-0" className="overflow-hidden">
+          <Table className="min-w-[600px]">
+            {/* Header row with stock names */}
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="sticky left-0 z-10 bg-card px-4 py-3 h-auto text-xs font-semibold text-muted-foreground uppercase tracking-wide w-40 min-w-[160px]">
+                  Metric
+                </TableHead>
+                {comparedSymbols.map((sym) => {
+                  const quote = data[sym]?.quote;
+                  return (
+                    <TableHead key={sym} className="px-4 py-3 h-auto text-center min-w-[140px]">
+                      <div className="flex items-center justify-center gap-1">
+                        <Link
+                          to={`/stock/${sym}`}
+                          className="text-foreground hover:underline underline-offset-4 font-bold text-sm focus:outline-hidden"
                         >
-                          {section.title}
-                        </td>
-                      </tr>
+                          {sym}
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => removeStockColumn(sym)}
+                          className="ml-1 rounded-sm p-0.5 text-muted-foreground/70 hover:text-loss transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50"
+                          title="Remove"
+                          aria-label={`Remove ${sym}`}
+                        >
+                          <X className="size-3.5" aria-hidden />
+                        </button>
+                      </div>
+                      {quote?.name && (
+                        <div className="text-[11px] text-muted-foreground/70 font-normal mt-0.5 truncate max-w-[140px] mx-auto">
+                          {quote.name}
+                        </div>
+                      )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            </TableHeader>
 
-                      {/* Metric rows */}
-                      {section.metrics.map((metric) => {
-                        const rawValues = comparedSymbols.map((sym) => metric.key(data[sym]));
-                        const bestIdx = getBestIndex(rawValues, metric.bestIs);
+            <TableBody>
+              {METRIC_SECTIONS.map((section) => (
+                <React.Fragment key={section.title}>
+                  {/* Section header */}
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell
+                      colSpan={comparedSymbols.length + 1}
+                      className="sticky left-0 z-10 bg-muted px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                    >
+                      {section.title}
+                    </TableCell>
+                  </TableRow>
 
-                        return (
-                          <tr key={metric.label} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                            <td className="sticky left-0 z-10 bg-white px-4 py-2.5 text-sm text-gray-700 font-medium whitespace-nowrap">
-                              {metric.label}
-                            </td>
-                            {rawValues.map((val, i) => {
-                              const isBest = i === bestIdx;
-                              return (
-                                <td
-                                  key={comparedSymbols[i]}
-                                  className={`px-4 py-2.5 text-sm text-center font-medium ${
-                                    isBest ? 'text-green-700 bg-green-50' : 'text-gray-900'
-                                  }`}
-                                >
-                                  {metric.format(val)}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  {/* Metric rows */}
+                  {section.metrics.map((metric) => {
+                    const rawValues = comparedSymbols.map((sym) => metric.key(data[sym]));
+                    const bestIdx = getBestIndex(rawValues, metric.bestIs);
 
-            {/* Disclaimer */}
-            <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
-              <p className="text-[11px] text-gray-400 text-center">
-                Green highlights indicate the best value in each row. Data sourced from market feeds and may be delayed.
-              </p>
-            </div>
+                    return (
+                      <TableRow key={metric.label} className="group">
+                        <TableCell className="sticky left-0 z-10 bg-card group-hover:bg-muted px-4 py-2.5 text-sm text-foreground/85 font-medium">
+                          {metric.label}
+                        </TableCell>
+                        {rawValues.map((val, i) => {
+                          const isBest = i === bestIdx;
+                          return (
+                            <TableCell
+                              key={comparedSymbols[i]}
+                              className={cn(
+                                'px-4 py-2.5 text-sm text-center font-medium tabular-nums',
+                                isBest && 'bg-gain/10 font-semibold text-gain',
+                              )}
+                            >
+                              {metric.format(val)}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+
+          {/* Disclaimer */}
+          <div className="border-t border-border px-4 py-3 bg-muted/40">
+            <p className="text-[11px] text-muted-foreground/70 text-center">
+              Green highlights indicate the best value in each row. Data sourced from market feeds and may be delayed.
+            </p>
           </div>
+        </SectionCard>
 
-          {/* Verdict & Summary */}
-          <ComparisonVerdict data={data} symbols={comparedSymbols} />
-          </>
-        )}
-      </main>
-    </div>
+        {/* Verdict & Summary */}
+        <ComparisonVerdict data={data} symbols={comparedSymbols} />
+        </>
+      )}
+    </PageContainer>
   );
 };
 
 // ===== Verdict Component =====
+// Category → chart token, in the category order (valuation 1 … momentum 5).
+const CAT_COLORS = {
+  valuation: { bg: 'bg-chart-1', border: 'border-l-chart-1' },
+  profitability: { bg: 'bg-chart-2', border: 'border-l-chart-2' },
+  growth: { bg: 'bg-chart-3', border: 'border-l-chart-3' },
+  health: { bg: 'bg-chart-4', border: 'border-l-chart-4' },
+  momentum: { bg: 'bg-chart-5', border: 'border-l-chart-5' },
+};
+
 const ComparisonVerdict = ({ data, symbols }) => {
   if (!data || symbols.length < 2) return null;
 
@@ -584,18 +592,18 @@ const ComparisonVerdict = ({ data, symbols }) => {
   const maxTotal = Math.max(...ranked.map(r => r.total));
 
   return (
-    <div className="space-y-4 mt-6">
+    <div className="space-y-4">
       {/* Winner Banner */}
-      <div className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+      <div className="rounded-xl border border-gain/30 bg-gain/5 p-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <div className="text-xs text-green-600 font-semibold uppercase tracking-wide mb-1">Overall Winner</div>
-            <div className="text-xl font-bold text-green-800">{winner.name}</div>
-            <div className="text-sm text-green-600 mt-0.5">Won {winner.wins} out of 13 metric comparisons</div>
+            <div className="text-xs text-gain font-semibold uppercase tracking-wide mb-1">Overall Winner</div>
+            <div className="text-xl font-bold text-foreground">{winner.name}</div>
+            <div className="text-sm text-muted-foreground mt-0.5">Won {winner.wins} out of 13 metric comparisons</div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-green-800">₹{winner.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-            <Link to={`/stock/${winner.sym}`} className="text-xs text-green-600 hover:text-green-800 font-medium">
+            <div className="text-2xl font-bold text-foreground tabular-nums">₹{winner.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            <Link to={`/stock/${winner.sym}`} className="text-xs text-gain font-medium underline-offset-4 hover:underline">
               View detailed analysis →
             </Link>
           </div>
@@ -603,27 +611,23 @@ const ComparisonVerdict = ({ data, symbols }) => {
       </div>
 
       {/* Score Breakdown */}
-      <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-        <h3 className="text-sm font-semibold text-gray-800 mb-4">Score Breakdown</h3>
+      <SectionCard title="Score Breakdown">
         <div className="space-y-3">
           {ranked.map((stock, idx) => (
             <div key={stock.sym} className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                idx === 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-              }`}>
+              <div className={cn(
+                'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                idx === 0 ? 'bg-gain/12 text-gain' : 'bg-muted text-muted-foreground',
+              )}>
                 {idx + 1}
               </div>
-              <div className="w-32 text-sm font-medium text-gray-900 truncate">{stock.name}</div>
+              <div className="w-32 text-sm font-medium truncate">{stock.name}</div>
               <div className="flex-1">
-                <div className="h-6 bg-gray-100 rounded-full overflow-hidden flex">
+                <div className="h-6 bg-muted rounded-full overflow-hidden flex">
                   {categories.map(cat => {
                     const pct = maxTotal > 0 ? (stock[cat] / maxTotal) * 100 : 0;
-                    const colors = {
-                      valuation: 'bg-blue-400', profitability: 'bg-green-400',
-                      growth: 'bg-purple-400', health: 'bg-amber-400', momentum: 'bg-cyan-400',
-                    };
                     return pct > 0 ? (
-                      <div key={cat} className={`h-full ${colors[cat]}`}
+                      <div key={cat} className={cn('h-full', CAT_COLORS[cat].bg)}
                         style={{ width: `${pct}%` }}
                         title={`${catLabels[cat]}: ${stock[cat]} pts`}
                       ></div>
@@ -631,43 +635,31 @@ const ComparisonVerdict = ({ data, symbols }) => {
                   })}
                 </div>
               </div>
-              <div className="w-12 text-right text-sm font-bold text-gray-900">{stock.total} pts</div>
+              <div className="w-12 text-right text-sm font-bold tabular-nums">{stock.total} pts</div>
             </div>
           ))}
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-gray-100">
-          {categories.map(cat => {
-            const colors = { valuation: 'bg-blue-400', profitability: 'bg-green-400', growth: 'bg-purple-400', health: 'bg-amber-400', momentum: 'bg-cyan-400' };
-            return (
-              <span key={cat} className="flex items-center gap-1.5 text-xs text-gray-500">
-                <span className={`w-3 h-3 rounded-sm ${colors[cat]}`}></span>
-                {catLabels[cat]}
-              </span>
-            );
-          })}
+        <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-border">
+          {categories.map(cat => (
+            <span key={cat} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={cn('w-3 h-3 rounded-sm', CAT_COLORS[cat].bg)}></span>
+              {catLabels[cat]}
+            </span>
+          ))}
         </div>
-      </div>
+      </SectionCard>
 
       {/* Category Winners */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {categories.map(cat => {
           const catWinner = [...ranked].sort((a, b) => b[cat] - a[cat])[0];
-          const colors = {
-            valuation: 'border-blue-200 bg-blue-50', profitability: 'border-green-200 bg-green-50',
-            growth: 'border-purple-200 bg-purple-50', health: 'border-amber-200 bg-amber-50',
-            momentum: 'border-cyan-200 bg-cyan-50',
-          };
-          const textColors = {
-            valuation: 'text-blue-700', profitability: 'text-green-700',
-            growth: 'text-purple-700', health: 'text-amber-700', momentum: 'text-cyan-700',
-          };
           return (
-            <div key={cat} className={`rounded-lg border p-3 text-center ${colors[cat]}`}>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{catLabels[cat]}</div>
-              <div className={`text-sm font-bold mt-1 ${textColors[cat]}`}>{catWinner.name}</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">{catWinner[cat]} pts</div>
+            <div key={cat} className={cn('rounded-lg border border-border border-l-2 bg-card p-3 text-center', CAT_COLORS[cat].border)}>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{catLabels[cat]}</div>
+              <div className="text-sm font-bold mt-1 text-foreground">{catWinner.name}</div>
+              <div className="text-[10px] text-muted-foreground/70 mt-0.5 tabular-nums">{catWinner[cat]} pts</div>
             </div>
           );
         })}
@@ -675,24 +667,24 @@ const ComparisonVerdict = ({ data, symbols }) => {
 
       {/* Key Insights */}
       {insights.length > 0 && (
-        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">Key Insights</h3>
+        <SectionCard title="Key Insights">
           <div className="space-y-2">
             {insights.slice(0, 8).map((insight, idx) => (
               <div key={idx} className="flex items-start gap-2">
-                <span className={`mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 ${
-                  insight.type === 'positive' ? 'bg-green-500' : insight.type === 'negative' ? 'bg-red-500' : 'bg-yellow-500'
-                }`}></span>
-                <p className="text-sm text-gray-700">{insight.text}</p>
+                <span className={cn(
+                  'mt-1.5 w-1.5 h-1.5 rounded-full shrink-0',
+                  insight.type === 'positive' ? 'bg-gain' : insight.type === 'negative' ? 'bg-loss' : 'bg-warning',
+                )}></span>
+                <p className="text-sm text-foreground/85">{insight.text}</p>
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {/* Disclaimer */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-        <p className="text-xs text-amber-700">
+      <div className="rounded-lg border border-warning/40 bg-warning/10 p-3">
+        <p className="text-xs text-warning">
           <span className="font-semibold">Disclaimer:</span> This comparison and scoring is algorithmically generated based on publicly available financial metrics. It is not investment advice. Different investors may weight categories differently based on their strategy. Always do your own research.
         </p>
       </div>

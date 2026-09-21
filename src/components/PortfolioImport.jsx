@@ -1,7 +1,17 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Papa from 'papaparse';
+import { UploadCloud } from 'lucide-react';
 import api from '../api';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
 
 const MAX_FILE_BYTES = 1 * 1024 * 1024;
 const MAX_ROWS = 5000;
@@ -171,12 +181,12 @@ const fetchBatchLookup = async (symbols) => {
 
 const StatusPill = ({ status }) => {
   if (status === 'valid') {
-    return <span className="px-1.5 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-700">Valid</span>;
+    return <Badge variant="gain">Valid</Badge>;
   }
   if (status === 'duplicate') {
-    return <span className="px-1.5 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-700">Duplicate</span>;
+    return <Badge variant="warning">Duplicate</Badge>;
   }
-  return <span className="px-1.5 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-700">Rejected</span>;
+  return <Badge variant="loss">Rejected</Badge>;
 };
 
 const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
@@ -204,15 +214,6 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
     reset();
     onClose();
   }, [reset, onClose]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key === 'Escape') close();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, close]);
 
   useEffect(() => {
     if (!open) reset();
@@ -303,47 +304,24 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
     close();
   };
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="portfolio-import-title"
-    >
-      <button
-        type="button"
-        aria-label="Close import dialog"
-        onClick={close}
-        className="absolute inset-0 bg-black/40 cursor-default focus:outline-hidden"
-      />
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-          <div>
-            <h3 id="portfolio-import-title" className="text-base font-semibold text-gray-900">Import Portfolio CSV</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Importing into <span className="font-medium">{market === 'us' ? 'US' : 'Indian'}</span> market — switch markets to import there.
-            </p>
-          </div>
-          <button
-            onClick={close}
-            className="text-gray-400 hover:text-gray-600 focus:outline-hidden"
-            aria-label="Close"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) close(); }}>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogHeader className="border-b border-border px-5 py-4 pr-12 text-left">
+          <DialogTitle className="text-base">Import Portfolio CSV</DialogTitle>
+          <DialogDescription className="text-xs">
+            Importing into <span className="font-medium text-foreground">{market === 'us' ? 'US' : 'Indian'}</span> market — switch markets to import there.
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="flex-1 overflow-auto px-5 py-4">
           {step === 'upload' && (
             <div className="space-y-4">
               <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                }`}
+                className={cn(
+                  'rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors',
+                  dragActive && 'border-primary bg-primary/5',
+                )}
                 onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
                 onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                 onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
@@ -353,10 +331,8 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
                   handleFile(e.dataTransfer.files?.[0]);
                 }}
               >
-                <svg className="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <p className="text-sm text-gray-600 mb-3">Drop your CSV here, or</p>
+                <UploadCloud className="mx-auto mb-2 size-10 text-muted-foreground/70" aria-hidden />
+                <p className="mb-3 text-sm text-muted-foreground">Drop your CSV here, or</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -364,39 +340,38 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
                   className="hidden"
                   onChange={(e) => handleFile(e.target.files?.[0])}
                 />
-                <button
+                <Button
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium transition-colors focus:outline-hidden disabled:opacity-50"
                   disabled={loading}
                 >
                   {loading ? 'Processing…' : 'Choose file'}
-                </button>
+                </Button>
                 {fileName && !loading && (
-                  <p className="text-xs text-gray-500 mt-2">Selected: {fileName}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Selected: {fileName}</p>
                 )}
               </div>
 
-              <div className="flex items-center justify-between text-xs text-gray-600">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <a
                   href="/portfolio-template.csv"
                   download="portfolio-template.csv"
-                  className="text-blue-600 hover:text-blue-700 font-medium underline"
+                  className="font-medium text-foreground underline underline-offset-4 dark:text-primary"
                 >
                   Download CSV template
                 </a>
-                <span className="text-gray-400">Max 1 MB, 5,000 rows</span>
+                <span className="text-muted-foreground/70">Max 1 MB, 5,000 rows</span>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600">
-                <p className="font-medium text-gray-700 mb-1">Required columns:</p>
-                <code className="block bg-white px-2 py-1 rounded-sm border border-gray-200 font-mono">
+              <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+                <p className="mb-1 font-medium text-foreground/85">Required columns:</p>
+                <code className="block rounded-sm border border-border bg-card px-2 py-1 font-mono">
                   Symbol, Quantity, Buy Price, Buy Date
                 </code>
                 <p className="mt-2"><span className="font-medium">Optional:</span> Name (auto-filled if blank). Extra columns are ignored.</p>
               </div>
 
               {errorMsg && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
+                <div role="alert" className="rounded-md border border-loss/30 bg-loss/5 p-3 text-sm text-loss">
                   {errorMsg}
                 </div>
               )}
@@ -406,39 +381,41 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
           {step === 'preview' && (
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm">
-                <span className="px-2 py-1 rounded-sm bg-green-100 text-green-700 font-medium">{valid.length} valid</span>
-                <span className="px-2 py-1 rounded-sm bg-amber-100 text-amber-700 font-medium">{duplicates.length} duplicates</span>
-                <span className="px-2 py-1 rounded-sm bg-red-100 text-red-700 font-medium">{rejected.length} rejected</span>
+                <Badge variant="gain" className="px-2 py-1 text-sm">{valid.length} valid</Badge>
+                <Badge variant="warning" className="px-2 py-1 text-sm">{duplicates.length} duplicates</Badge>
+                <Badge variant="loss" className="px-2 py-1 text-sm">{rejected.length} rejected</Badge>
               </div>
 
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <div className="max-h-[50vh] overflow-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-50 text-gray-500 uppercase sticky top-0">
-                      <tr>
-                        <th className="text-left px-2 py-2 font-medium">Line</th>
-                        <th className="text-left px-2 py-2 font-medium">Status</th>
-                        <th className="text-left px-2 py-2 font-medium">Symbol</th>
-                        <th className="text-right px-2 py-2 font-medium">Qty</th>
-                        <th className="text-right px-2 py-2 font-medium">Buy Price</th>
-                        <th className="text-left px-2 py-2 font-medium">Buy Date</th>
-                        <th className="text-left px-2 py-2 font-medium">Reason</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+              {/* shadcn Table wraps <table> in its own overflow container, so the height cap
+                  goes on that container; otherwise the sticky header has nothing to stick to. */}
+              <div className="overflow-hidden rounded-lg border border-border [&_[data-slot=table-container]]:max-h-[50vh] [&_[data-slot=table-container]]:overflow-auto">
+                <div>
+                  <Table className="text-xs">
+                    <TableHeader className="sticky top-0 z-10 bg-background">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="h-8 text-xs uppercase text-muted-foreground">Line</TableHead>
+                        <TableHead className="h-8 text-xs uppercase text-muted-foreground">Status</TableHead>
+                        <TableHead className="h-8 text-xs uppercase text-muted-foreground">Symbol</TableHead>
+                        <TableHead className="h-8 text-right text-xs uppercase text-muted-foreground">Qty</TableHead>
+                        <TableHead className="h-8 text-right text-xs uppercase text-muted-foreground">Buy Price</TableHead>
+                        <TableHead className="h-8 text-xs uppercase text-muted-foreground">Buy Date</TableHead>
+                        <TableHead className="h-8 text-xs uppercase text-muted-foreground">Reason</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {classified.map((c) => (
-                        <tr key={c.lineNumber} className="border-t border-gray-100">
-                          <td className="px-2 py-1.5 text-gray-400">{c.lineNumber}</td>
-                          <td className="px-2 py-1.5"><StatusPill status={c.status} /></td>
-                          <td className="px-2 py-1.5 font-mono">{c.row?.symbol || '-'}</td>
-                          <td className="px-2 py-1.5 text-right">{c.row?.quantity ?? '-'}</td>
-                          <td className="px-2 py-1.5 text-right">{c.row?.buyPrice ?? '-'}</td>
-                          <td className="px-2 py-1.5">{c.row?.buyDate || '-'}</td>
-                          <td className="px-2 py-1.5 text-gray-500">{c.reason || ''}</td>
-                        </tr>
+                        <TableRow key={c.lineNumber}>
+                          <TableCell className="py-1.5 text-muted-foreground/70 tabular-nums">{c.lineNumber}</TableCell>
+                          <TableCell className="py-1.5"><StatusPill status={c.status} /></TableCell>
+                          <TableCell className="py-1.5 font-mono">{c.row?.symbol || '-'}</TableCell>
+                          <TableCell className="py-1.5 text-right tabular-nums">{c.row?.quantity ?? '-'}</TableCell>
+                          <TableCell className="py-1.5 text-right tabular-nums">{c.row?.buyPrice ?? '-'}</TableCell>
+                          <TableCell className="py-1.5 tabular-nums">{c.row?.buyDate || '-'}</TableCell>
+                          <TableCell className="py-1.5 text-muted-foreground">{c.reason || ''}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             </div>
@@ -446,43 +423,35 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
         </div>
 
         {step === 'preview' && (
-          <div className="px-5 py-3 border-t border-gray-200 flex items-center justify-between gap-2">
-            <button
-              onClick={() => { reset(); }}
-              className="text-sm px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 font-medium focus:outline-hidden"
-            >
+          <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
+            <Button variant="outline" size="sm" onClick={() => { reset(); }}>
               Back
-            </button>
+            </Button>
             <div className="flex items-center gap-2">
               {confirmingReplace ? (
-                <button
-                  onClick={handleReplace}
-                  className="text-sm px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium focus:outline-hidden"
-                >
+                <Button variant="destructive" size="sm" onClick={handleReplace}>
                   Yes, replace {holdings.length} existing holding{holdings.length === 1 ? '' : 's'}
-                </button>
+                </Button>
               ) : (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setConfirmingReplace(true)}
-                  className="text-sm px-3 py-1.5 rounded-md bg-red-50 text-red-700 hover:bg-red-100 font-medium focus:outline-hidden disabled:opacity-50"
+                  className="border-loss/30 text-loss hover:bg-loss/10 hover:text-loss"
                   disabled={valid.length === 0}
                   title="Replace all current holdings with these"
                 >
                   Replace all
-                </button>
+                </Button>
               )}
-              <button
-                onClick={handleAppend}
-                disabled={valid.length === 0}
-                className="text-sm px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 font-medium focus:outline-hidden disabled:opacity-50"
-              >
+              <Button size="sm" onClick={handleAppend} disabled={valid.length === 0}>
                 Append {valid.length} row{valid.length === 1 ? '' : 's'}
-              </button>
+              </Button>
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

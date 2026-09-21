@@ -2,6 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useMarket } from '../context/MarketContext';
+import { BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import PriceChange from '@/components/common/PriceChange';
+import RangeBar from '@/components/common/RangeBar';
+import ErrorState from '@/components/common/ErrorState';
+import EmptyState from '@/components/common/EmptyState';
+import { cn } from '@/lib/utils';
 
 const formatNumber = (num, market = 'in') => {
   if (!num) return 'N/A';
@@ -17,104 +27,75 @@ const formatNumber = (num, market = 'in') => {
   return num.toLocaleString('en-IN');
 };
 
-const PriceRangeBar = ({ low, high, current, theme, locale = 'en-IN', currencyCode = 'INR' }) => {
-  if (!low || !high || !current || high === low) return null;
-  const position = Math.min(Math.max(((current - low) / (high - low)) * 100, 0), 100);
-  const gradientClass = theme === 'green'
-    ? 'from-yellow-400 via-green-400 to-green-500'
-    : 'from-red-500 via-red-400 to-yellow-400';
-  const markerClass = theme === 'green' ? 'border-green-500' : 'border-red-500';
-
-  return (
-    <div className="mt-2">
-      <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
-        <span>{low.toLocaleString(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 })}</span>
-        <span className="text-[10px] text-gray-300">52W Range</span>
-        <span>{high.toLocaleString(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 })}</span>
-      </div>
-      <div className="relative h-1.5 bg-gray-200 rounded-full">
-        <div
-          className={`absolute h-1.5 bg-linear-to-r ${gradientClass} rounded-full`}
-          style={{ width: '100%' }}
-        ></div>
-        <div
-          className={`absolute w-2.5 h-2.5 bg-white border-2 ${markerClass} rounded-full -top-0.5 shadow-xs`}
-          style={{ left: `calc(${position}% - 5px)` }}
-        ></div>
-      </div>
-    </div>
-  );
-};
-
 const StockCard = ({ stock, type, locale = 'en-IN', currencyCode = 'INR', market = 'in' }) => {
   const isNearHigh = type === 'high';
-  const theme = isNearHigh ? 'green' : 'red';
-  const isPositive = (stock.change_percent || 0) >= 0;
 
   const badgeText = isNearHigh
     ? `${Math.abs(stock.pct_from_high || 0).toFixed(1)}% from 52W High`
     : `${Math.abs(stock.pct_from_low || 0).toFixed(1)}% from 52W Low`;
 
-  const badgeClass = isNearHigh
-    ? 'bg-green-50 text-green-700 border-green-200'
-    : 'bg-red-50 text-red-700 border-red-200';
-
-  const borderHoverClass = isNearHigh
-    ? 'hover:border-green-200'
-    : 'hover:border-red-200';
-
   return (
     <Link
       to={`/stock/${stock.symbol}`}
-      className={`bg-white rounded-xl p-4 shadow-xs border border-gray-100 ${borderHoverClass} hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 block`}
+      className={cn(
+        'block rounded-xl border border-border border-l-2 bg-card p-4 transition-colors hover:border-foreground/20',
+        isNearHigh ? 'border-l-gain hover:border-l-gain' : 'border-l-loss hover:border-l-loss',
+      )}
     >
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-gray-900 truncate">{stock.name}</div>
-          <div className="text-xs text-gray-500 mt-0.5">{stock.symbol?.replace(/\.(NS|BO)$/, '')}</div>
+          <div className="text-sm font-semibold truncate">{stock.name}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{stock.symbol?.replace(/\.(NS|BO)$/, '')}</div>
           {stock.sector && (
-            <div className="text-[10px] text-gray-400 mt-0.5">{stock.sector}</div>
+            <div className="text-[10px] text-muted-foreground/70 mt-0.5">{stock.sector}</div>
           )}
         </div>
         <div className="text-right ml-3">
-          <div className="text-sm font-bold text-gray-900">
+          <div className="text-sm font-semibold tabular-nums">
             {stock.price?.toLocaleString(locale, { style: 'currency', currency: currencyCode, minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className={`text-xs font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {isPositive ? '+' : ''}{stock.change_percent?.toFixed(2)}%
-          </div>
+          <PriceChange percent={stock.change_percent} className="text-xs font-semibold" />
         </div>
       </div>
 
-      <PriceRangeBar low={stock.week52_low} high={stock.week52_high} current={stock.price} theme={theme} locale={locale} currencyCode={currencyCode} />
+      <RangeBar
+        className="mt-2"
+        low={stock.week52_low}
+        high={stock.week52_high}
+        value={stock.price}
+        tone={isNearHigh ? 'gain' : 'loss'}
+        label="52W Range"
+        lowLabel={stock.week52_low?.toLocaleString(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 })}
+        highLabel={stock.week52_high?.toLocaleString(locale, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 })}
+      />
 
       <div className="mt-2 flex justify-between items-center">
-        <span className="text-xs text-gray-400">MCap: {formatNumber(stock.market_cap, market)}</span>
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeClass}`}>
+        <span className="text-xs text-muted-foreground tabular-nums">MCap: {formatNumber(stock.market_cap, market)}</span>
+        <Badge variant={isNearHigh ? 'gain' : 'loss'} className="text-[10px] tabular-nums">
           {badgeText}
-        </span>
+        </Badge>
       </div>
     </Link>
   );
 };
 
 const SkeletonCard = () => (
-  <div className="bg-white rounded-xl p-4 shadow-xs border border-gray-100 animate-pulse">
+  <div className="rounded-xl border border-border bg-card p-4">
     <div className="flex justify-between">
       <div>
-        <div className="h-4 bg-gray-200 rounded-sm w-28 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded-sm w-16 mb-1"></div>
-        <div className="h-2 bg-gray-200 rounded-sm w-12"></div>
+        <Skeleton className="mb-2 h-4 w-28" />
+        <Skeleton className="mb-1 h-3 w-16" />
+        <Skeleton className="h-2 w-12" />
       </div>
       <div className="text-right">
-        <div className="h-4 bg-gray-200 rounded-sm w-20 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded-sm w-12 ml-auto"></div>
+        <Skeleton className="mb-2 h-4 w-20" />
+        <Skeleton className="ml-auto h-3 w-12" />
       </div>
     </div>
-    <div className="mt-3 h-1.5 bg-gray-200 rounded-full"></div>
+    <Skeleton className="mt-3 h-1.5 rounded-full" />
     <div className="mt-2 flex justify-between">
-      <div className="h-3 bg-gray-200 rounded-sm w-20"></div>
-      <div className="h-4 bg-gray-200 rounded-full w-28"></div>
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="h-4 w-28 rounded-full" />
     </div>
   </div>
 );
@@ -149,128 +130,90 @@ const ScannerPage = () => {
 
   const activeStocks = activeTab === 'high' ? nearHigh : nearLow;
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">52-Week High/Low Scanner</h1>
-            <p className="text-gray-500">Stocks trading near their 52-week highs and lows</p>
-          </div>
+  const tabClass = (tab, activeClass) => cn(
+    'flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors',
+    activeTab === tab ? activeClass : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+  );
+  const countClass = (tab) => cn(
+    'rounded-full px-1.5 py-0.5 text-xs tabular-nums',
+    activeTab === tab ? 'bg-current/20 text-white' : 'bg-muted text-muted-foreground',
+  );
 
-          {/* Tabs */}
-          <div className="flex justify-center gap-2">
-            <button
-              onClick={() => setActiveTab('high')}
-              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                activeTab === 'high'
-                  ? 'bg-green-600 text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              Near 52W High
-              {!loading && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  activeTab === 'high' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {nearHigh.length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('low')}
-              className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                activeTab === 'low'
-                  ? 'bg-red-600 text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6" />
-              </svg>
-              Near 52W Low
-              {!loading && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  activeTab === 'low' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {nearLow.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
+  return (
+    <PageContainer>
+      <PageHeader
+        title="52-Week High/Low Scanner"
+        description="Stocks trading near their 52-week highs and lows"
+      />
+
+      {/* Tabs */}
+      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1">
+        <button
+          type="button"
+          aria-pressed={activeTab === 'high'}
+          onClick={() => setActiveTab('high')}
+          className={tabClass('high', 'bg-gain text-white')}
+        >
+          <TrendingUp className="size-4" aria-hidden />
+          Near 52W High
+          {!loading && <span className={countClass('high')}>{nearHigh.length}</span>}
+        </button>
+        <button
+          type="button"
+          aria-pressed={activeTab === 'low'}
+          onClick={() => setActiveTab('low')}
+          className={tabClass('low', 'bg-loss text-white')}
+        >
+          <TrendingDown className="size-4" aria-hidden />
+          Near 52W Low
+          {!loading && <span className={countClass('low')}>{nearLow.length}</span>}
+        </button>
       </div>
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Info banner */}
-        <div className={`rounded-lg p-3 mb-6 text-sm ${
-          activeTab === 'high'
-            ? 'bg-green-50 text-green-700 border border-green-200'
-            : 'bg-red-50 text-red-700 border border-red-200'
-        }`}>
-          {activeTab === 'high'
-            ? 'Showing stocks within 5% of their 52-week high, sorted by closest to high first.'
-            : 'Showing stocks within 10% of their 52-week low, sorted by closest to low first.'
-          }
+      {/* Info banner */}
+      <div className={cn(
+        'rounded-lg border p-3 text-sm text-foreground/85',
+        activeTab === 'high' ? 'border-gain/30 bg-gain/5' : 'border-loss/30 bg-loss/5',
+      )}>
+        {activeTab === 'high'
+          ? 'Showing stocks within 5% of their 52-week high, sorted by closest to high first.'
+          : 'Showing stocks within 10% of their 52-week low, sorted by closest to low first.'
+        }
+      </div>
+
+      {/* Error state */}
+      {error && <ErrorState message={error} onRetry={fetchData} />}
+
+      {/* Loading state */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {[...Array(8)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
-
-        {/* Error state */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mb-6">
-            <svg className="w-10 h-10 mx-auto text-red-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <p className="text-red-600 mb-2">{error}</p>
-            <button
-              onClick={fetchData}
-              className="text-sm font-medium text-blue-600 hover:text-blue-800 underline"
-            >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {/* Loading state */}
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {[...Array(8)].map((_, i) => (
-              <SkeletonCard key={i} />
-            ))}
-          </div>
-        ) : activeStocks.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {activeStocks.map((stock) => (
-              <StockCard
-                key={stock.symbol}
-                stock={stock}
-                type={activeTab}
-                locale={market === 'us' ? 'en-US' : 'en-IN'}
-                currencyCode={market === 'us' ? 'USD' : 'INR'}
-                market={market}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <svg className="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">No stocks found</h3>
-            <p className="text-gray-500 text-sm">
-              {activeTab === 'high'
-                ? 'No stocks are currently within 5% of their 52-week high.'
-                : 'No stocks are currently within 10% of their 52-week low.'
-              }
-            </p>
-          </div>
-        )}
-      </main>
-    </div>
+      ) : activeStocks.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {activeStocks.map((stock) => (
+            <StockCard
+              key={stock.symbol}
+              stock={stock}
+              type={activeTab}
+              locale={market === 'us' ? 'en-US' : 'en-IN'}
+              currencyCode={market === 'us' ? 'USD' : 'INR'}
+              market={market}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={BarChart3}
+          title="No stocks found"
+          description={activeTab === 'high'
+            ? 'No stocks are currently within 5% of their 52-week high.'
+            : 'No stocks are currently within 10% of their 52-week low.'}
+        />
+      )}
+    </PageContainer>
   );
 };
 

@@ -7,6 +7,23 @@ import Sparkline from './Sparkline';
 import { exportPortfolio } from '../utils/exportUtils';
 import PortfolioImport from './PortfolioImport';
 import { getSampleHoldings, SEEN_FLAG_KEY } from '../data/samplePortfolio';
+import { AlertTriangle, Download, Loader2, Newspaper, Search, Trash2, Upload } from 'lucide-react';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import PageContainer from './common/PageContainer';
+import PageHeader from './common/PageHeader';
+import SectionCard from './common/SectionCard';
+import StatCard from './common/StatCard';
+import PriceChange from './common/PriceChange';
+import EmptyState from './common/EmptyState';
+import ErrorState from './common/ErrorState';
 
 const formatNumber = (num) => {
   if (num == null || isNaN(num)) return '-';
@@ -17,15 +34,12 @@ const formatNumber = (num) => {
   return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const COLORS = [
-  '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-  '#EC4899', '#06B6D4', '#F97316', '#6B7280',
-];
-
 const todayStr = () => new Date().toISOString().split('T')[0];
 
 const PieChart = ({ holdings, liveData }) => {
   const canvasRef = useRef(null);
+  const ct = useChartTheme();
+  const { palette } = ct;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -64,7 +78,7 @@ const PieChart = ({ holdings, liveData }) => {
     const total = slices.reduce((s, i) => s + i.value, 0);
     if (total === 0) {
       ctx.clearRect(0, 0, displaySize, displaySize);
-      ctx.fillStyle = '#9CA3AF';
+      ctx.fillStyle = ct.text;
       ctx.font = '14px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('No data', cx, cy);
@@ -80,23 +94,28 @@ const PieChart = ({ holdings, liveData }) => {
       ctx.arc(cx, cy, outerR, startAngle, startAngle + sweepAngle);
       ctx.arc(cx, cy, innerR, startAngle + sweepAngle, startAngle, true);
       ctx.closePath();
-      ctx.fillStyle = COLORS[i % COLORS.length];
+      ctx.fillStyle = palette[i % palette.length];
       ctx.fill();
       startAngle += sweepAngle;
     });
 
-    // Center text
-    ctx.fillStyle = '#111827';
+    // Center hole + text
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, 2 * Math.PI);
+    ctx.fillStyle = ct.background;
+    ctx.fill();
+    ctx.fillStyle = ct.foreground;
     ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${slices.length} stocks`, cx, cy);
-  }, [holdings, liveData]);
+  }, [holdings, liveData, palette, ct]);
 
   return <canvas ref={canvasRef} className="mx-auto" />;
 };
 
 const PieLegend = ({ holdings, liveData }) => {
+  const { palette } = useChartTheme();
   const items = holdings.map((h) => {
     const price = liveData[h.symbol]?.price || h.buyPrice;
     return { symbol: h.symbol, name: h.name, value: price * h.quantity };
@@ -117,13 +136,13 @@ const PieLegend = ({ holdings, liveData }) => {
   return (
     <div className="flex flex-wrap gap-2 mt-3 justify-center">
       {slices.map((s, i) => (
-        <div key={s.symbol} className="flex items-center gap-1.5 text-xs text-gray-700">
+        <div key={s.symbol} className="flex items-center gap-1.5 text-xs text-foreground/85">
           <span
             className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-            style={{ backgroundColor: COLORS[i % COLORS.length] }}
+            style={{ backgroundColor: palette[i % palette.length] }}
           />
           <span className="truncate max-w-[90px]">{s.name}</span>
-          <span className="text-gray-400">{total > 0 ? ((s.value / total) * 100).toFixed(1) : 0}%</span>
+          <span className="text-muted-foreground/70 tabular-nums">{total > 0 ? ((s.value / total) * 100).toFixed(1) : 0}%</span>
         </div>
       ))}
     </div>
@@ -352,46 +371,92 @@ const PortfolioPage = () => {
     }
   });
 
-  const plColor = (val) => (val >= 0 ? 'text-green-600' : 'text-red-600');
-  const plBg = (val) => (val >= 0 ? 'bg-green-50' : 'bg-red-50');
+  const plColor = (val) => (val >= 0 ? 'text-gain' : 'text-loss');
+
+  const holdingActions = displayHoldings.length > 0 && (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} title="Import holdings from CSV">
+        <Upload aria-hidden />
+        Import CSV
+      </Button>
+      {!isDemoMode && (
+        <Button variant="outline" size="sm" onClick={() => exportPortfolio(holdings, liveData)} title="Export holdings to CSV">
+          <Download aria-hidden />
+          Export CSV
+        </Button>
+      )}
+    </>
+  );
+
+  const sortControl = (
+    <div className="flex items-center gap-1">
+      <span className="mr-1 text-xs text-muted-foreground/70">Sort:</span>
+      {[
+        { key: 'name', label: 'Name' },
+        { key: 'value', label: 'Value' },
+        { key: 'pl', label: 'P&L%' },
+        { key: 'allocation', label: 'Alloc' },
+      ].map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          onClick={() => setSortBy(opt.key)}
+          aria-pressed={sortBy === opt.key}
+          className={cn(
+            'rounded-md px-2 py-1 text-xs transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50',
+            sortBy === opt.key
+              ? 'bg-primary font-medium text-primary-foreground'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const stockLinkClass = 'text-sm font-medium text-foreground underline-offset-4 hover:underline';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Portfolio Tracker</h1>
-        <p className="text-sm text-gray-500 mt-1">Track your virtual stock portfolio performance</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Portfolio"
+        description="Track your virtual stock portfolio performance"
+        actions={holdingActions || undefined}
+      />
 
       {/* Add Holding Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mb-6 shadow-xs">
-        <h2 className="text-sm font-semibold text-gray-700 mb-4">Add Holding</h2>
+      <SectionCard title="Add Holding">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
           {/* Stock search */}
           <div className="lg:col-span-2 relative" ref={dropdownRef}>
-            <label className="block text-xs text-gray-500 font-medium mb-1">Stock</label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setSelectedStock(null);
-              }}
-              placeholder="Search stock..."
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
-              autoComplete="off"
-            />
+            <label htmlFor="portfolio-stock-search" className="mb-1 block text-xs font-medium text-muted-foreground">Stock</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" aria-hidden />
+              <Input
+                id="portfolio-stock-search"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedStock(null);
+                }}
+                placeholder="Search stock..."
+                className="pl-9"
+                autoComplete="off"
+              />
+            </div>
             {showDropdown && searchResults.length > 0 && (
-              <ul className="absolute z-50 bg-white border border-gray-200 rounded-lg w-full max-h-52 overflow-auto mt-1 shadow-lg">
+              <ul className="absolute z-40 mt-1 max-h-52 w-full overflow-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
                 {searchResults.map((stock) => (
                   <li key={stock.symbol}>
                     <button
                       type="button"
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm focus:outline-hidden border-b border-gray-100 last:border-b-0"
+                      className="w-full border-b border-border px-3 py-2 text-left text-sm last:border-b-0 hover:bg-muted focus-visible:bg-muted focus-visible:outline-hidden"
                       onClick={() => handleSelectStock(stock)}
                     >
-                      <span className="font-medium text-gray-900">{stock.name}</span>
-                      <span className="text-gray-400 ml-2 text-xs">{stock.symbol}</span>
+                      <span className="font-medium text-foreground">{stock.name}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">{stock.symbol}</span>
                     </button>
                   </li>
                 ))}
@@ -401,259 +466,206 @@ const PortfolioPage = () => {
 
           {/* Buy Price */}
           <div>
-            <label className="block text-xs text-gray-500 font-medium mb-1">Buy Price</label>
-            <input
+            <label htmlFor="portfolio-buy-price" className="mb-1 block text-xs font-medium text-muted-foreground">Buy Price</label>
+            <Input
+              id="portfolio-buy-price"
               type="number"
               value={buyPrice}
               onChange={(e) => setBuyPrice(e.target.value)}
               placeholder="0.00"
               min="0"
               step="0.01"
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
+              className="tabular-nums"
             />
           </div>
 
           {/* Quantity */}
           <div>
-            <label className="block text-xs text-gray-500 font-medium mb-1">Quantity</label>
-            <input
+            <label htmlFor="portfolio-quantity" className="mb-1 block text-xs font-medium text-muted-foreground">Quantity</label>
+            <Input
+              id="portfolio-quantity"
               type="number"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder="0"
               min="1"
               step="1"
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
+              className="tabular-nums"
             />
           </div>
 
           {/* Buy Date */}
           <div>
-            <label className="block text-xs text-gray-500 font-medium mb-1">Buy Date</label>
-            <input
+            <label htmlFor="portfolio-buy-date" className="mb-1 block text-xs font-medium text-muted-foreground">Buy Date</label>
+            <Input
+              id="portfolio-buy-date"
               type="date"
               value={buyDate}
               onChange={(e) => setBuyDate(e.target.value)}
               max={todayStr()}
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-hidden"
+              className="tabular-nums"
             />
           </div>
         </div>
-        {addError && <p className="text-red-500 text-xs mt-2">{addError}</p>}
-        <button
-          onClick={handleAddHolding}
-          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors focus:outline-hidden"
-        >
+        {addError && <p className="mt-2 text-sm text-loss">{addError}</p>}
+        <Button onClick={handleAddHolding} className="mt-4">
           Add Holding
-        </button>
-      </div>
+        </Button>
+      </SectionCard>
 
       {/* Empty state */}
       {displayHoldings.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center shadow-xs">
-          <div className="text-gray-300 text-5xl mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-            </svg>
-          </div>
-          <p className="text-gray-500 text-lg font-medium">No holdings yet.</p>
-          <p className="text-gray-400 text-sm mt-1">Add your first stock above.</p>
-        </div>
+        <EmptyState title="No holdings yet." description="Add your first stock above." />
       )}
 
       {displayHoldings.length > 0 && (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs">
-              <div className="text-xs text-gray-500 mb-1">Total Invested</div>
-              <div className="text-lg sm:text-xl font-bold text-gray-900">
-                {formatNumber(totalInvested)}
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs">
-              <div className="text-xs text-gray-500 mb-1">Current Value</div>
-              <div className="text-lg sm:text-xl font-bold text-gray-900">
-                {loading ? '...' : formatNumber(totalCurrent)}
-              </div>
-            </div>
-            <div className={`rounded-xl border border-gray-200 p-4 shadow-xs ${plBg(totalPL)}`}>
-              <div className="text-xs text-gray-500 mb-1">Total P&L</div>
-              <div className={`text-lg sm:text-xl font-bold ${plColor(totalPL)}`}>
-                {loading ? '...' : `${totalPL >= 0 ? '+' : ''}${formatNumber(totalPL)}`}
-              </div>
-              <div className={`text-xs font-medium ${plColor(totalPLPercent)}`}>
-                {loading ? '' : `${totalPLPercent >= 0 ? '+' : ''}${totalPLPercent.toFixed(2)}%`}
-              </div>
-            </div>
-            <div className={`rounded-xl border border-gray-200 p-4 shadow-xs ${plBg(dayPL)}`}>
-              <div className="text-xs text-gray-500 mb-1">Day's P&L</div>
-              <div className={`text-lg sm:text-xl font-bold ${plColor(dayPL)}`}>
-                {loading ? '...' : `${dayPL >= 0 ? '+' : ''}${formatNumber(dayPL)}`}
-              </div>
-            </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <StatCard label="Total Invested" value={formatNumber(totalInvested)} />
+            <StatCard label="Current Value" value={loading ? '...' : formatNumber(totalCurrent)} />
+            <StatCard
+              label="Total P&L"
+              value={(
+                <span className={loading ? undefined : plColor(totalPL)}>
+                  {loading ? '...' : `${totalPL >= 0 ? '+' : ''}${formatNumber(totalPL)}`}
+                </span>
+              )}
+              change={loading ? undefined : { percent: totalPLPercent }}
+            />
+            <StatCard
+              label="Day's P&L"
+              value={(
+                <span className={loading ? undefined : plColor(dayPL)}>
+                  {loading ? '...' : `${dayPL >= 0 ? '+' : ''}${formatNumber(dayPL)}`}
+                </span>
+              )}
+            />
           </div>
 
           {/* Allocation Chart + Sort */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs lg:col-span-1">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Allocation</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <SectionCard title="Allocation" className="lg:col-span-1">
               <PieChart holdings={displayHoldings} liveData={liveData} />
               <PieLegend holdings={displayHoldings} liveData={liveData} />
-            </div>
+            </SectionCard>
 
             {/* Sort + Holdings Table */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-3">
               {isDemoMode && (
-                <div className="text-xs px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-md mb-3 leading-relaxed">
-                  <span className="font-semibold">Sample portfolio for preview only.</span>{' '}
+                <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                  <span className="font-semibold text-foreground">Sample portfolio for preview only.</span>{' '}
                   Add your first holding (or import a CSV) and this sample disappears — only your own holdings will be tracked from then on.
                 </div>
               )}
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-gray-700">Holdings ({displayHoldings.length})</h2>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setImportOpen(true)}
-                    className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium transition-colors focus:outline-hidden flex items-center gap-1"
-                    title="Import holdings from CSV"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12" />
-                    </svg>
-                    Import CSV
-                  </button>
-                  {!isDemoMode && (
-                    <button
-                      onClick={() => exportPortfolio(holdings, liveData)}
-                      className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-hidden flex items-center gap-1"
-                      title="Export holdings to CSV"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Export CSV
-                    </button>
-                  )}
-                  <span className="text-xs text-gray-400">Sort:</span>
-                  {[
-                    { key: 'name', label: 'Name' },
-                    { key: 'value', label: 'Value' },
-                    { key: 'pl', label: 'P&L%' },
-                    { key: 'allocation', label: 'Alloc' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.key}
-                      onClick={() => setSortBy(opt.key)}
-                      className={`text-xs px-2 py-1 rounded-md transition-colors focus:outline-hidden ${
-                        sortBy === opt.key
-                          ? 'bg-blue-100 text-blue-700 font-medium'
-                          : 'text-gray-500 hover:bg-gray-100'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+
+              {/* Mobile header (the desktop header lives in the table card) */}
+              <div className="flex flex-wrap items-center justify-between gap-2 md:hidden">
+                <h2 className="text-sm font-semibold">Holdings ({displayHoldings.length})</h2>
+                {sortControl}
               </div>
 
               {/* Desktop Table */}
-              <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 text-gray-500 text-xs uppercase">
-                        <th className="text-left px-4 py-3 font-medium">Stock</th>
-                        <th className="text-right px-3 py-3 font-medium">Qty</th>
-                        <th className="text-right px-3 py-3 font-medium">Avg Buy</th>
-                        <th className="text-right px-3 py-3 font-medium">CMP</th>
-                        <th className="text-center px-3 py-3 font-medium">5D</th>
-                        <th className="text-right px-3 py-3 font-medium">Invested</th>
-                        <th className="text-right px-3 py-3 font-medium">Current</th>
-                        <th className="text-right px-3 py-3 font-medium">P&L</th>
-                        <th className="text-right px-3 py-3 font-medium">Day Chg</th>
-                        <th className="text-right px-3 py-3 font-medium">Alloc%</th>
-                        <th className="px-3 py-3"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {sortedHoldings.map((h) => {
-                        const live = liveData[h.symbol];
-                        const currentPrice = live?.price || h.buyPrice;
-                        const invested = h.buyPrice * h.quantity;
-                        const current = currentPrice * h.quantity;
-                        const pl = current - invested;
-                        const plPct = invested > 0 ? (pl / invested) * 100 : 0;
-                        const dayChange = (live?.change || 0) * h.quantity;
-                        const alloc = totalCurrent > 0 ? (current / totalCurrent) * 100 : 0;
+              <SectionCard
+                title={`Holdings (${displayHoldings.length})`}
+                action={sortControl}
+                className="hidden md:block"
+                contentClassName="p-0"
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 text-xs uppercase hover:bg-muted/40">
+                      <TableHead className="px-4 text-muted-foreground">Stock</TableHead>
+                      <TableHead className="px-3 text-right text-muted-foreground">Qty</TableHead>
+                      <TableHead className="px-3 text-right text-muted-foreground">Avg Buy</TableHead>
+                      <TableHead className="px-3 text-right text-muted-foreground">CMP</TableHead>
+                      <TableHead className="px-3 text-center text-muted-foreground">5D</TableHead>
+                      <TableHead className="px-3 text-right text-muted-foreground">Invested</TableHead>
+                      <TableHead className="px-3 text-right text-muted-foreground">Current</TableHead>
+                      <TableHead className="px-3 text-right text-muted-foreground">P&L</TableHead>
+                      <TableHead className="px-3 text-right text-muted-foreground">Day Chg</TableHead>
+                      <TableHead className="px-3 text-right text-muted-foreground">Alloc%</TableHead>
+                      <TableHead className="px-3"><span className="sr-only">Actions</span></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedHoldings.map((h) => {
+                      const live = liveData[h.symbol];
+                      const currentPrice = live?.price || h.buyPrice;
+                      const invested = h.buyPrice * h.quantity;
+                      const current = currentPrice * h.quantity;
+                      const pl = current - invested;
+                      const plPct = invested > 0 ? (pl / invested) * 100 : 0;
+                      const dayChange = (live?.change || 0) * h.quantity;
+                      const alloc = totalCurrent > 0 ? (current / totalCurrent) * 100 : 0;
 
-                        return (
-                          <tr key={h.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3">
-                              <Link
-                                to={`/stock/${h.symbol}`}
-                                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                              >
-                                {h.name}
-                              </Link>
-                              <div className="text-xs text-gray-400">{h.symbol}</div>
-                            </td>
-                            <td className="text-right px-3 py-3 text-gray-700">{h.quantity}</td>
-                            <td className="text-right px-3 py-3 text-gray-700">
-                              {h.buyPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td className="text-right px-3 py-3 font-medium text-gray-900">
-                              {loading ? '...' : currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td className="px-3 py-3">
-                              <div className="flex justify-center">
-                                {sparklineData[h.symbol] && sparklineData[h.symbol].length >= 2 ? (
-                                  <Sparkline data={sparklineData[h.symbol]} />
-                                ) : (
-                                  <div className="w-[80px] h-[30px] bg-gray-100 rounded-sm animate-pulse" />
-                                )}
-                              </div>
-                            </td>
-                            <td className="text-right px-3 py-3 text-gray-600">
-                              {formatNumber(invested)}
-                            </td>
-                            <td className="text-right px-3 py-3 text-gray-900 font-medium">
-                              {loading ? '...' : formatNumber(current)}
-                            </td>
-                            <td className="text-right px-3 py-3">
-                              <div className={`font-medium ${plColor(pl)}`}>
-                                {loading ? '...' : `${pl >= 0 ? '+' : ''}${formatNumber(pl)}`}
-                              </div>
-                              <div className={`text-xs ${plColor(plPct)}`}>
-                                {loading ? '' : `${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%`}
-                              </div>
-                            </td>
-                            <td className={`text-right px-3 py-3 text-xs font-medium ${plColor(dayChange)}`}>
-                              {loading ? '...' : `${dayChange >= 0 ? '+' : ''}${formatNumber(dayChange)}`}
-                            </td>
-                            <td className="text-right px-3 py-3 text-gray-600 text-xs">
-                              {alloc.toFixed(1)}%
-                            </td>
-                            <td className="px-3 py-3">
-                              {!h.isDemo && (
-                                <button
-                                  onClick={() => handleDelete(h.id)}
-                                  className="text-gray-400 hover:text-red-500 transition-colors focus:outline-hidden"
-                                  title="Remove holding"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
+                      return (
+                        <TableRow key={h.id}>
+                          <TableCell className="px-4 py-3">
+                            <Link to={`/stock/${h.symbol}`} className={stockLinkClass}>
+                              {h.name}
+                            </Link>
+                            <div className="text-xs text-muted-foreground">{h.symbol}</div>
+                          </TableCell>
+                          <TableCell className="px-3 py-3 text-right tabular-nums text-foreground/85">{h.quantity}</TableCell>
+                          <TableCell className="px-3 py-3 text-right tabular-nums text-foreground/85">
+                            {h.buyPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="px-3 py-3 text-right font-medium tabular-nums">
+                            {loading ? '...' : currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="px-3 py-3">
+                            <div className="flex justify-center">
+                              {sparklineData[h.symbol] && sparklineData[h.symbol].length >= 2 ? (
+                                <Sparkline data={sparklineData[h.symbol]} />
+                              ) : (
+                                <Skeleton className="h-[30px] w-[80px] rounded-sm" />
                               )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-3 py-3 text-right tabular-nums text-muted-foreground">
+                            {formatNumber(invested)}
+                          </TableCell>
+                          <TableCell className="px-3 py-3 text-right font-medium tabular-nums">
+                            {loading ? '...' : formatNumber(current)}
+                          </TableCell>
+                          <TableCell className="px-3 py-3 text-right">
+                            <div className={cn('font-medium tabular-nums', plColor(pl))}>
+                              {loading ? '...' : `${pl >= 0 ? '+' : ''}${formatNumber(pl)}`}
+                            </div>
+                            {!loading && <PriceChange percent={plPct} className="text-xs" />}
+                          </TableCell>
+                          <TableCell className={cn('px-3 py-3 text-right text-xs font-medium tabular-nums', plColor(dayChange))}>
+                            {loading ? '...' : `${dayChange >= 0 ? '+' : ''}${formatNumber(dayChange)}`}
+                          </TableCell>
+                          <TableCell className="px-3 py-3 text-right text-xs text-muted-foreground">
+                            <div className="flex items-center justify-end gap-2">
+                              <div className="h-1.5 w-12 overflow-hidden rounded-full bg-muted">
+                                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(alloc, 100)}%` }} />
+                              </div>
+                              <span className="w-10 tabular-nums">{alloc.toFixed(1)}%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-3 py-3">
+                            {!h.isDemo && (
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => handleDelete(h.id)}
+                                className="text-muted-foreground hover:text-loss"
+                                title="Remove holding"
+                                aria-label={`Remove ${h.name}`}
+                              >
+                                <Trash2 aria-hidden />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </SectionCard>
 
               {/* Mobile Cards */}
               <div className="md:hidden space-y-3">
@@ -668,27 +680,25 @@ const PortfolioPage = () => {
                   const alloc = totalCurrent > 0 ? (current / totalCurrent) * 100 : 0;
 
                   return (
-                    <div key={h.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-xs">
+                    <div key={h.id} className="rounded-xl border border-border bg-card p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <Link
-                            to={`/stock/${h.symbol}`}
-                            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                          >
+                          <Link to={`/stock/${h.symbol}`} className={stockLinkClass}>
                             {h.name}
                           </Link>
-                          <div className="text-xs text-gray-400">{h.symbol}</div>
+                          <div className="text-xs text-muted-foreground">{h.symbol}</div>
                         </div>
                         {!h.isDemo && (
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => handleDelete(h.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors focus:outline-hidden"
+                            className="text-muted-foreground hover:text-loss"
                             title="Remove holding"
+                            aria-label={`Remove ${h.name}`}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                            <Trash2 aria-hidden />
+                          </Button>
                         )}
                       </div>
                       {/* Sparkline */}
@@ -696,47 +706,50 @@ const PortfolioPage = () => {
                         {sparklineData[h.symbol] && sparklineData[h.symbol].length >= 2 ? (
                           <Sparkline data={sparklineData[h.symbol]} width={120} height={32} />
                         ) : (
-                          <div className="w-[120px] h-[32px] bg-gray-100 rounded-sm animate-pulse" />
+                          <Skeleton className="h-[32px] w-[120px] rounded-sm" />
                         )}
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div>
-                          <span className="text-gray-400">Qty</span>
-                          <div className="text-gray-800 font-medium">{h.quantity}</div>
+                          <span className="text-muted-foreground/70">Qty</span>
+                          <div className="font-medium tabular-nums text-foreground">{h.quantity}</div>
                         </div>
                         <div>
-                          <span className="text-gray-400">Avg Buy</span>
-                          <div className="text-gray-800 font-medium">{h.buyPrice.toFixed(2)}</div>
+                          <span className="text-muted-foreground/70">Avg Buy</span>
+                          <div className="font-medium tabular-nums text-foreground">{h.buyPrice.toFixed(2)}</div>
                         </div>
                         <div>
-                          <span className="text-gray-400">CMP</span>
-                          <div className="text-gray-900 font-medium">
+                          <span className="text-muted-foreground/70">CMP</span>
+                          <div className="font-medium tabular-nums text-foreground">
                             {loading ? '...' : currentPrice.toFixed(2)}
                           </div>
                         </div>
                         <div>
-                          <span className="text-gray-400">Invested</span>
-                          <div className="text-gray-700">{formatNumber(invested)}</div>
+                          <span className="text-muted-foreground/70">Invested</span>
+                          <div className="tabular-nums text-foreground/85">{formatNumber(invested)}</div>
                         </div>
                         <div>
-                          <span className="text-gray-400">Current</span>
-                          <div className="text-gray-900 font-medium">{loading ? '...' : formatNumber(current)}</div>
+                          <span className="text-muted-foreground/70">Current</span>
+                          <div className="font-medium tabular-nums text-foreground">{loading ? '...' : formatNumber(current)}</div>
                         </div>
                         <div>
-                          <span className="text-gray-400">Alloc</span>
-                          <div className="text-gray-700">{alloc.toFixed(1)}%</div>
+                          <span className="text-muted-foreground/70">Alloc</span>
+                          <div className="tabular-nums text-foreground/85">{alloc.toFixed(1)}%</div>
+                          <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(alloc, 100)}%` }} />
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                         <div>
-                          <span className="text-xs text-gray-400 mr-1">P&L:</span>
-                          <span className={`text-sm font-medium ${plColor(pl)}`}>
+                          <span className="mr-1 text-xs text-muted-foreground/70">P&L:</span>
+                          <span className={cn('text-sm font-medium tabular-nums', plColor(pl))}>
                             {loading ? '...' : `${pl >= 0 ? '+' : ''}${formatNumber(pl)} (${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%)`}
                           </span>
                         </div>
                         <div>
-                          <span className="text-xs text-gray-400 mr-1">Day:</span>
-                          <span className={`text-xs font-medium ${plColor(dayChange)}`}>
+                          <span className="mr-1 text-xs text-muted-foreground/70">Day:</span>
+                          <span className={cn('text-xs font-medium tabular-nums', plColor(dayChange))}>
                             {loading ? '...' : `${dayChange >= 0 ? '+' : ''}${formatNumber(dayChange)}`}
                           </span>
                         </div>
@@ -784,7 +797,7 @@ const PortfolioPage = () => {
         holdings={holdings}
         onImport={handleImport}
       />
-    </div>
+    </PageContainer>
   );
 };
 
@@ -811,48 +824,45 @@ const RiskAnalysis = ({ symbols }) => {
   };
 
   const getCorrelationColor = (val) => {
-    if (val === 1) return 'bg-gray-100 text-gray-700';
-    if (val >= 0.7) return 'bg-red-100 text-red-700';
-    if (val >= 0.4) return 'bg-orange-100 text-orange-700';
-    if (val >= 0.1) return 'bg-yellow-50 text-yellow-700';
-    if (val >= -0.1) return 'bg-green-50 text-green-700';
-    return 'bg-green-100 text-green-800';
+    if (val === 1) return 'bg-muted text-muted-foreground';
+    if (val >= 0.7) return 'bg-loss/30 text-foreground';
+    if (val >= 0.4) return 'bg-loss/15';
+    if (val >= 0.1) return 'bg-warning/10';
+    if (val >= -0.1) return 'bg-gain/15';
+    return 'bg-gain/30';
   };
 
   const getDiversificationLabel = (ratio) => {
-    if (ratio >= 1.5) return { text: 'Well Diversified', color: 'text-green-600', bg: 'bg-green-50' };
-    if (ratio >= 1.2) return { text: 'Moderately Diversified', color: 'text-yellow-600', bg: 'bg-yellow-50' };
-    return { text: 'Low Diversification', color: 'text-red-600', bg: 'bg-red-50' };
+    if (ratio >= 1.5) return { text: 'Well Diversified', color: 'text-gain', bg: 'bg-gain/10' };
+    if (ratio >= 1.2) return { text: 'Moderately Diversified', color: 'text-warning', bg: 'bg-warning/10' };
+    return { text: 'Low Diversification', color: 'text-loss', bg: 'bg-loss/10' };
   };
 
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mt-6 shadow-xs">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-700">Risk Analysis</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Portfolio risk metrics using 2 years of historical data
-          </p>
-        </div>
-        <button
-          onClick={handleAnalyze}
-          disabled={riskLoading}
-          className="bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-hidden"
-        >
-          {riskLoading ? 'Analyzing...' : 'Analyze Risk'}
-        </button>
-      </div>
+  const tile = 'rounded-lg bg-muted/40 p-3';
+  const tileLabel = 'text-xs font-medium text-muted-foreground';
+  const tileValue = 'text-lg font-bold tabular-nums';
+  const shortSym = (sym) => sym.replace('.NS', '').replace('.BO', '');
 
+  return (
+    <SectionCard
+      title="Risk Analysis"
+      description="Portfolio risk metrics using 2 years of historical data"
+      action={(
+        <Button onClick={handleAnalyze} disabled={riskLoading} size="sm">
+          {riskLoading ? 'Analyzing...' : 'Analyze Risk'}
+        </Button>
+      )}
+    >
       {riskError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-          <p className="text-sm text-red-700">{riskError}</p>
+        <div className="mb-4">
+          <ErrorState title="Risk analysis failed" message={riskError} />
         </div>
       )}
 
       {riskLoading && (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600"></div>
-          <span className="ml-3 text-sm text-gray-500">Running risk analysis...</span>
+        <div className="flex items-center justify-center py-8" role="status">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
+          <span className="ml-3 text-sm text-muted-foreground">Running risk analysis...</span>
         </div>
       )}
 
@@ -860,34 +870,34 @@ const RiskAnalysis = ({ symbols }) => {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            <div className="bg-blue-50 rounded-lg p-3">
-              <div className="text-xs text-blue-500 font-medium">Annual Return</div>
-              <div className={`text-lg font-bold ${riskData.annual_return_pct >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+            <div className={tile}>
+              <div className={tileLabel}>Annual Return</div>
+              <div className={cn(tileValue, riskData.annual_return_pct >= 0 ? 'text-gain' : 'text-loss')}>
                 {riskData.annual_return_pct >= 0 ? '+' : ''}{riskData.annual_return_pct}%
               </div>
             </div>
-            <div className="bg-amber-50 rounded-lg p-3">
-              <div className="text-xs text-amber-500 font-medium">Volatility</div>
-              <div className="text-lg font-bold text-amber-700">{riskData.annual_volatility_pct}%</div>
+            <div className={tile}>
+              <div className={tileLabel}>Volatility</div>
+              <div className={cn(tileValue, 'text-warning')}>{riskData.annual_volatility_pct}%</div>
             </div>
-            <div className="bg-green-50 rounded-lg p-3">
-              <div className="text-xs text-green-500 font-medium">Sharpe Ratio</div>
-              <div className={`text-lg font-bold ${riskData.sharpe_ratio >= 1 ? 'text-green-700' : riskData.sharpe_ratio >= 0 ? 'text-yellow-700' : 'text-red-700'}`}>
+            <div className={tile}>
+              <div className={tileLabel}>Sharpe Ratio</div>
+              <div className={cn(tileValue, riskData.sharpe_ratio >= 1 ? 'text-gain' : riskData.sharpe_ratio >= 0 ? 'text-warning' : 'text-loss')}>
                 {riskData.sharpe_ratio}
               </div>
             </div>
-            <div className="bg-red-50 rounded-lg p-3">
-              <div className="text-xs text-red-500 font-medium">VaR (95%)</div>
-              <div className="text-lg font-bold text-red-700">{riskData.var_95_daily_pct}%</div>
-              <div className="text-[10px] text-red-400">Daily</div>
+            <div className={tile}>
+              <div className={tileLabel}>VaR (95%)</div>
+              <div className={cn(tileValue, 'text-loss')}>{riskData.var_95_daily_pct}%</div>
+              <div className="text-[10px] text-muted-foreground/70">Daily</div>
             </div>
-            <div className="bg-orange-50 rounded-lg p-3">
-              <div className="text-xs text-orange-500 font-medium">Max Drawdown</div>
-              <div className="text-lg font-bold text-orange-700">{riskData.max_drawdown_pct}%</div>
+            <div className={tile}>
+              <div className={tileLabel}>Max Drawdown</div>
+              <div className={cn(tileValue, 'text-loss')}>{riskData.max_drawdown_pct}%</div>
             </div>
-            <div className="bg-purple-50 rounded-lg p-3">
-              <div className="text-xs text-purple-500 font-medium">Beta</div>
-              <div className="text-lg font-bold text-purple-700">
+            <div className={tile}>
+              <div className={tileLabel}>Beta</div>
+              <div className={cn(tileValue, 'text-foreground')}>
                 {riskData.beta != null ? riskData.beta : 'N/A'}
               </div>
             </div>
@@ -897,14 +907,14 @@ const RiskAnalysis = ({ symbols }) => {
           {(() => {
             const d = getDiversificationLabel(riskData.diversification_ratio);
             return (
-              <div className={`${d.bg} rounded-lg p-3 mb-6 flex items-center justify-between`}>
+              <div className={cn(d.bg, 'rounded-lg p-3 mb-6 flex items-center justify-between')}>
                 <div>
-                  <span className="text-xs text-gray-500 font-medium">Diversification Ratio</span>
-                  <div className={`text-lg font-bold ${d.color}`}>
+                  <span className="text-xs font-medium text-muted-foreground">Diversification Ratio</span>
+                  <div className={cn('text-lg font-bold tabular-nums', d.color)}>
                     {riskData.diversification_ratio}x
                   </div>
                 </div>
-                <span className={`text-sm font-medium ${d.color} px-3 py-1 rounded-full ${d.bg}`}>
+                <span className={cn('text-sm font-medium px-3 py-1 rounded-full', d.color, d.bg)}>
                   {d.text}
                 </span>
               </div>
@@ -914,7 +924,7 @@ const RiskAnalysis = ({ symbols }) => {
           {/* Risk Contribution */}
           {riskData.risk_contribution && riskData.risk_contribution.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Risk Contribution</h3>
+              <h3 className="mb-3 text-sm font-semibold">Risk Contribution</h3>
               <div className="space-y-2">
                 {riskData.risk_contribution.map((rc) => {
                   const maxContrib = Math.max(...riskData.risk_contribution.map(r => Math.abs(r.contribution_pct)));
@@ -922,23 +932,23 @@ const RiskAnalysis = ({ symbols }) => {
                   const isNeg = rc.contribution_pct < 0;
                   return (
                     <div key={rc.symbol} className="flex items-center gap-3">
-                      <div className="w-24 text-xs text-gray-700 font-medium truncate shrink-0">
-                        {rc.symbol.replace('.NS', '').replace('.BO', '')}
+                      <div className="w-24 shrink-0 truncate text-xs font-medium text-foreground/85">
+                        {shortSym(rc.symbol)}
                       </div>
-                      <div className="flex-1 bg-gray-100 rounded-full h-5 relative overflow-hidden">
+                      <div className="relative h-5 flex-1 overflow-hidden rounded-full bg-muted">
                         <div
-                          className={`h-full rounded-full transition-all ${isNeg ? 'bg-green-400' : 'bg-rose-400'}`}
+                          className={cn('h-full rounded-full transition-all', isNeg ? 'bg-gain' : 'bg-primary')}
                           style={{ width: `${Math.min(barWidth, 100)}%` }}
                         />
                       </div>
-                      <div className={`w-16 text-right text-xs font-medium ${isNeg ? 'text-green-600' : 'text-gray-700'}`}>
+                      <div className={cn('w-16 text-right text-xs font-medium tabular-nums', isNeg ? 'text-gain' : 'text-foreground/85')}>
                         {rc.contribution_pct}%
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <p className="text-[10px] text-gray-400 mt-2">
+              <p className="mt-2 text-[10px] text-muted-foreground/70">
                 Shows each stock's marginal contribution to total portfolio variance
               </p>
             </div>
@@ -947,15 +957,15 @@ const RiskAnalysis = ({ symbols }) => {
           {/* Correlation Matrix */}
           {riskData.correlation && Object.keys(riskData.correlation).length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Correlation Matrix</h3>
+              <h3 className="mb-3 text-sm font-semibold">Correlation Matrix</h3>
               <div className="overflow-x-auto">
-                <table className="text-xs border-collapse">
+                <table className="text-xs border-separate border-spacing-0.5">
                   <thead>
                     <tr>
-                      <th className="px-2 py-1.5 text-left text-gray-500 font-medium"></th>
+                      <th className="px-2 py-1.5 text-left font-medium text-muted-foreground"><span className="sr-only">Symbol</span></th>
                       {riskData.symbols.map((sym) => (
-                        <th key={sym} className="px-2 py-1.5 text-center text-gray-500 font-medium whitespace-nowrap">
-                          {sym.replace('.NS', '').replace('.BO', '')}
+                        <th key={sym} className="whitespace-nowrap px-2 py-1.5 text-center font-medium text-muted-foreground">
+                          {shortSym(sym)}
                         </th>
                       ))}
                     </tr>
@@ -963,15 +973,15 @@ const RiskAnalysis = ({ symbols }) => {
                   <tbody>
                     {riskData.symbols.map((rowSym) => (
                       <tr key={rowSym}>
-                        <td className="px-2 py-1.5 text-gray-700 font-medium whitespace-nowrap">
-                          {rowSym.replace('.NS', '').replace('.BO', '')}
-                        </td>
+                        <th scope="row" className="whitespace-nowrap px-2 py-1.5 text-left font-medium text-foreground/85">
+                          {shortSym(rowSym)}
+                        </th>
                         {riskData.symbols.map((colSym) => {
                           const val = riskData.correlation[rowSym]?.[colSym];
                           return (
                             <td
                               key={colSym}
-                              className={`px-2 py-1.5 text-center font-medium rounded-sm ${getCorrelationColor(val ?? 0)}`}
+                              className={cn('px-2 py-1.5 text-center font-medium tabular-nums rounded-sm', getCorrelationColor(val ?? 0))}
                             >
                               {val != null ? val.toFixed(2) : '-'}
                             </td>
@@ -982,17 +992,17 @@ const RiskAnalysis = ({ symbols }) => {
                   </tbody>
                 </table>
               </div>
-              <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-400">
-                <span className="inline-block w-3 h-3 rounded-sm bg-green-100"></span> Low
-                <span className="inline-block w-3 h-3 rounded-sm bg-yellow-50 border border-yellow-200"></span> Moderate
-                <span className="inline-block w-3 h-3 rounded-sm bg-red-100"></span> High
+              <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground/70">
+                <span className="inline-block size-3 rounded-sm bg-gain/30"></span> Low
+                <span className="inline-block size-3 rounded-sm border border-warning/30 bg-warning/10"></span> Moderate
+                <span className="inline-block size-3 rounded-sm bg-loss/30"></span> High
               </div>
             </div>
           )}
 
           {/* Disclaimer */}
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-700">
+          <div className="mt-4 rounded-lg border border-warning/30 bg-warning/10 p-3">
+            <p className="text-xs text-foreground/85">
               <strong>Disclaimer:</strong> Risk metrics are based on historical data and may not predict
               future performance. VaR and CVaR are daily figures at 95% confidence. Diversification ratio
               above 1.0 indicates diversification benefit. Always consult a qualified financial advisor.
@@ -1000,7 +1010,7 @@ const RiskAnalysis = ({ symbols }) => {
           </div>
         </>
       )}
-    </div>
+    </SectionCard>
   );
 };
 
@@ -1038,34 +1048,30 @@ const OptimizePortfolio = ({ symbols, totalInvested, holdings, liveData, totalCu
     currentWeights[sym] = totalCurrent > 0 ? (currentWeights[sym] / totalCurrent) * 100 : 0;
   });
 
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mt-6 shadow-xs">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-700">Portfolio Optimization</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Mean-Variance optimization (Max Sharpe Ratio) using 2 years of historical data
-          </p>
-        </div>
-        <button
-          onClick={handleOptimize}
-          disabled={optLoading}
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors focus:outline-hidden"
-        >
-          {optLoading ? 'Optimizing...' : 'Optimize Portfolio'}
-        </button>
-      </div>
+  const tile = 'rounded-lg bg-muted/40 p-3';
+  const tileLabel = 'text-xs font-medium text-muted-foreground';
+  const tileValue = 'text-lg font-bold tabular-nums';
 
+  return (
+    <SectionCard
+      title="Portfolio Optimization"
+      description="Mean-Variance optimization (Max Sharpe Ratio) using 2 years of historical data"
+      action={(
+        <Button onClick={handleOptimize} disabled={optLoading} size="sm">
+          {optLoading ? 'Optimizing...' : 'Optimize Portfolio'}
+        </Button>
+      )}
+    >
       {optError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-          <p className="text-sm text-red-700">{optError}</p>
+        <div className="mb-4">
+          <ErrorState title="Optimization failed" message={optError} />
         </div>
       )}
 
       {optLoading && (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          <span className="ml-3 text-sm text-gray-500">Running optimization...</span>
+        <div className="flex items-center justify-center py-8" role="status">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
+          <span className="ml-3 text-sm text-muted-foreground">Running optimization...</span>
         </div>
       )}
 
@@ -1073,70 +1079,70 @@ const OptimizePortfolio = ({ symbols, totalInvested, holdings, liveData, totalCu
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="bg-indigo-50 rounded-lg p-3">
-              <div className="text-xs text-indigo-500 font-medium">Expected Return</div>
-              <div className="text-lg font-bold text-indigo-700">{optResult.expected_return}%</div>
+            <div className={tile}>
+              <div className={tileLabel}>Expected Return</div>
+              <div className={cn(tileValue, 'text-foreground')}>{optResult.expected_return}%</div>
             </div>
-            <div className="bg-amber-50 rounded-lg p-3">
-              <div className="text-xs text-amber-500 font-medium">Volatility</div>
-              <div className="text-lg font-bold text-amber-700">{optResult.volatility}%</div>
+            <div className={tile}>
+              <div className={tileLabel}>Volatility</div>
+              <div className={cn(tileValue, 'text-warning')}>{optResult.volatility}%</div>
             </div>
-            <div className="bg-green-50 rounded-lg p-3">
-              <div className="text-xs text-green-500 font-medium">Sharpe Ratio</div>
-              <div className="text-lg font-bold text-green-700">{optResult.sharpe_ratio}</div>
+            <div className={tile}>
+              <div className={tileLabel}>Sharpe Ratio</div>
+              <div className={cn(tileValue, 'text-gain')}>{optResult.sharpe_ratio}</div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="text-xs text-gray-500 font-medium">Leftover Cash</div>
-              <div className="text-lg font-bold text-gray-700">
+            <div className={tile}>
+              <div className={tileLabel}>Leftover Cash</div>
+              <div className={cn(tileValue, 'text-foreground/85')}>
                 {formatNumber(optResult.leftover_cash)}
               </div>
             </div>
           </div>
 
           {/* Allocation Table */}
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs uppercase">
-                  <th className="text-left px-4 py-3 font-medium">Stock</th>
-                  <th className="text-right px-3 py-3 font-medium">Current Wt%</th>
-                  <th className="text-right px-3 py-3 font-medium">Optimal Wt%</th>
-                  <th className="text-right px-3 py-3 font-medium">Suggested Shares</th>
-                  <th className="text-right px-3 py-3 font-medium">Price</th>
-                  <th className="text-right px-4 py-3 font-medium">Value</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+          <div className="overflow-hidden rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 text-xs uppercase hover:bg-muted/40">
+                  <TableHead className="px-4 text-muted-foreground">Stock</TableHead>
+                  <TableHead className="px-3 text-right text-muted-foreground">Current Wt%</TableHead>
+                  <TableHead className="px-3 text-right text-muted-foreground">Optimal Wt%</TableHead>
+                  <TableHead className="px-3 text-right text-muted-foreground">Suggested Shares</TableHead>
+                  <TableHead className="px-3 text-right text-muted-foreground">Price</TableHead>
+                  <TableHead className="px-4 text-right text-muted-foreground">Value</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {optResult.allocations.map((a) => {
                   const curWt = currentWeights[a.symbol] || 0;
                   const diff = a.weight - curWt;
                   return (
-                    <tr key={a.symbol} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-900">{a.symbol}</td>
-                      <td className="text-right px-3 py-3 text-gray-600">{curWt.toFixed(1)}%</td>
-                      <td className="text-right px-3 py-3">
-                        <span className="font-medium text-gray-900">{a.weight.toFixed(1)}%</span>
+                    <TableRow key={a.symbol}>
+                      <TableCell className="px-4 py-3 font-medium">{a.symbol}</TableCell>
+                      <TableCell className="px-3 py-3 text-right tabular-nums text-muted-foreground">{curWt.toFixed(1)}%</TableCell>
+                      <TableCell className="px-3 py-3 text-right tabular-nums">
+                        <span className="font-medium">{a.weight.toFixed(1)}%</span>
                         {Math.abs(diff) > 0.5 && (
-                          <span className={`ml-1 text-xs ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <span className={cn('ml-1 text-xs', diff > 0 ? 'text-gain' : 'text-loss')}>
                             ({diff > 0 ? '+' : ''}{diff.toFixed(1)}%)
                           </span>
                         )}
-                      </td>
-                      <td className="text-right px-3 py-3 text-gray-700">{a.shares}</td>
-                      <td className="text-right px-3 py-3 text-gray-600">{a.price.toFixed(2)}</td>
-                      <td className="text-right px-4 py-3 font-medium text-gray-900">
+                      </TableCell>
+                      <TableCell className="px-3 py-3 text-right tabular-nums text-foreground/85">{a.shares}</TableCell>
+                      <TableCell className="px-3 py-3 text-right tabular-nums text-muted-foreground">{a.price.toFixed(2)}</TableCell>
+                      <TableCell className="px-4 py-3 text-right font-medium tabular-nums">
                         {formatNumber(a.value)}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Disclaimer */}
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-700">
+          <div className="mt-4 rounded-lg border border-warning/30 bg-warning/10 p-3">
+            <p className="text-xs text-foreground/85">
               <strong>Disclaimer:</strong> This optimization is for educational purposes only and does not
               constitute financial advice. Past performance does not guarantee future results. The Max Sharpe
               optimization assumes normally distributed returns and may not reflect real-world constraints
@@ -1146,7 +1152,7 @@ const OptimizePortfolio = ({ symbols, totalInvested, holdings, liveData, totalCu
           </div>
         </>
       )}
-    </div>
+    </SectionCard>
   );
 };
 
@@ -1264,30 +1270,32 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
     return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
   };
 
-  const recColors = {
-    strong_buy: 'bg-green-100 text-green-700',
-    buy: 'bg-green-50 text-green-600',
-    hold: 'bg-yellow-100 text-yellow-700',
-    sell: 'bg-red-100 text-red-700',
-    underperform: 'bg-red-100 text-red-700',
-    strong_sell: 'bg-red-200 text-red-800',
+  const recVariants = {
+    strong_buy: 'gain',
+    buy: 'gain',
+    hold: 'warning',
+    sell: 'loss',
+    underperform: 'loss',
+    strong_sell: 'loss',
   };
 
   return (
-    <div className="space-y-6 mt-6">
-      <h2 className="text-lg font-bold text-gray-900">Portfolio Insights</h2>
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold tracking-tight">Portfolio Insights</h2>
 
       {/* Price Alert Triggers */}
       {(alertsTriggered.length > 0 || alertsNearby.length > 0) && (
         <div className="space-y-3">
           {alertsTriggered.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-red-800 mb-2 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                Price Alerts Triggered
-              </h3>
+            <SectionCard
+              className="border-loss/30 bg-loss/5"
+              title={(
+                <span className="flex items-center gap-2 text-loss">
+                  <AlertTriangle className="size-4" aria-hidden />
+                  Price Alerts Triggered
+                </span>
+              )}
+            >
               <div className="space-y-2">
                 {alertsTriggered.map(w => {
                   const price = liveData[w.symbol]?.price;
@@ -1295,14 +1303,14 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
                   const hitLow = w.alertLow && price <= w.alertLow;
                   return (
                     <Link key={w.symbol} to={`/stock/${w.symbol}`}
-                      className="flex justify-between items-center bg-white rounded-lg p-2 hover:bg-red-50 transition-colors">
+                      className="flex items-center justify-between rounded-lg bg-card p-2 transition-colors hover:bg-muted/50">
                       <div>
-                        <span className="text-sm font-semibold text-gray-900">{w.name || w.symbol}</span>
-                        <span className="text-xs text-gray-500 ml-2">{w.symbol.replace('.NS', '')}</span>
+                        <span className="text-sm font-semibold text-foreground">{w.name || w.symbol}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{w.symbol.replace('.NS', '')}</span>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-bold">₹{price?.toFixed(2)}</div>
-                        <div className="text-xs text-red-600">
+                        <div className="text-sm font-bold tabular-nums">₹{price?.toFixed(2)}</div>
+                        <div className="text-xs text-loss">
                           {hitHigh && `Crossed target ₹${w.alertHigh}`}
                           {hitLow && `Fell below ₹${w.alertLow}`}
                         </div>
@@ -1311,12 +1319,11 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
                   );
                 })}
               </div>
-            </div>
+            </SectionCard>
           )}
 
           {alertsNearby.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-amber-800 mb-2">Approaching Alert Targets</h3>
+            <SectionCard className="border-warning/30 bg-warning/5" title="Approaching Alert Targets">
               <div className="space-y-2">
                 {alertsNearby.map(w => {
                   const price = liveData[w.symbol]?.price;
@@ -1324,53 +1331,51 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
                   const nearLow = w.alertLow && Math.abs(price - w.alertLow);
                   return (
                     <Link key={w.symbol} to={`/stock/${w.symbol}`}
-                      className="flex justify-between items-center bg-white rounded-lg p-2 hover:bg-amber-50 transition-colors">
-                      <span className="text-sm font-medium text-gray-900">{w.name || w.symbol}</span>
-                      <span className="text-xs text-amber-700">
+                      className="flex items-center justify-between rounded-lg bg-card p-2 transition-colors hover:bg-muted/50">
+                      <span className="text-sm font-medium text-foreground">{w.name || w.symbol}</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">
                         ₹{price?.toFixed(2)} — {nearHigh < nearLow ? `₹${nearHigh?.toFixed(2)} from ₹${w.alertHigh} target` : `₹${nearLow?.toFixed(2)} from ₹${w.alertLow} floor`}
                       </span>
                     </Link>
                   );
                 })}
               </div>
-            </div>
+            </SectionCard>
           )}
         </div>
       )}
 
       {/* Sector Performance */}
       {sectors.length > 0 && (
-        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">Your Sector Performance</h3>
+        <SectionCard title="Your Sector Performance">
           <div className="space-y-3">
             {sectors.map(s => (
               <div key={s.name} className="flex items-center gap-3">
-                <div className="w-28 text-sm text-gray-700 font-medium truncate">{s.name}</div>
+                <div className="w-28 truncate text-sm font-medium text-foreground/85">{s.name}</div>
                 <div className="flex-1">
-                  <div className="flex h-5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="flex h-5 overflow-hidden rounded-full bg-muted">
                     <div
-                      className={`h-full rounded-full ${s.pl >= 0 ? 'bg-green-400' : 'bg-red-400'}`}
+                      className={cn('h-full rounded-full', s.pl >= 0 ? 'bg-gain' : 'bg-loss')}
                       style={{ width: `${Math.min(s.allocation, 100)}%` }}
                     ></div>
                   </div>
                 </div>
-                <div className="w-16 text-right text-xs text-gray-500">{s.allocation.toFixed(1)}%</div>
-                <div className={`w-20 text-right text-xs font-semibold ${s.pl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className="w-16 text-right text-xs tabular-nums text-muted-foreground">{s.allocation.toFixed(1)}%</div>
+                <div className={cn('w-20 text-right text-xs font-semibold tabular-nums', s.pl >= 0 ? 'text-gain' : 'text-loss')}>
                   {s.plPct >= 0 ? '+' : ''}{s.plPct.toFixed(1)}%
                 </div>
-                <div className={`w-24 text-right text-xs ${s.dayChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={cn('w-24 text-right text-xs tabular-nums', s.dayChange >= 0 ? 'text-gain' : 'text-loss')}>
                   Today: {s.dayChange >= 0 ? '+' : ''}₹{Math.abs(s.dayChange).toFixed(0)}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {/* Analyst Recommendations */}
       {!loadingAnalysts && Object.keys(analysts).length > 0 && (
-        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">Analyst Recommendations for Your Holdings</h3>
+        <SectionCard title="Analyst Recommendations for Your Holdings">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {portfolioSymbols.map(sym => {
               const data = analysts[sym];
@@ -1381,74 +1386,78 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
                 ? ((data.target_mean_price - price) / price * 100).toFixed(1) : null;
               return (
                 <Link key={sym} to={`/stock/${sym}`}
-                  className="bg-gray-50 rounded-lg p-3 hover:bg-blue-50 transition-colors block">
+                  className="block rounded-lg border border-border bg-muted/40 p-3 transition-colors hover:border-foreground/20">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <div className="text-sm font-semibold text-gray-900">{name}</div>
-                      <div className="text-[10px] text-gray-400">{sym.replace('.NS', '')}</div>
+                      <div className="text-sm font-semibold text-foreground">{name}</div>
+                      <div className="text-[10px] text-muted-foreground/70">{sym.replace('.NS', '')}</div>
                     </div>
                     {data.recommendation && (
-                      <span className={`px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase ${recColors[data.recommendation] || 'bg-gray-100 text-gray-600'}`}>
+                      <Badge
+                        variant={recVariants[data.recommendation] || 'secondary'}
+                        className="rounded-sm text-[10px] font-bold uppercase"
+                      >
                         {data.recommendation.replace('_', ' ')}
-                      </span>
+                      </Badge>
                     )}
                   </div>
                   {data.target_mean_price && (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Target: ₹{data.target_mean_price.toFixed(0)}</span>
+                      <span className="tabular-nums text-muted-foreground">Target: ₹{data.target_mean_price.toFixed(0)}</span>
                       {targetDiff && (
-                        <span className={parseFloat(targetDiff) >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                        <span className={cn('font-medium tabular-nums', parseFloat(targetDiff) >= 0 ? 'text-gain' : 'text-loss')}>
                           {parseFloat(targetDiff) >= 0 ? '+' : ''}{targetDiff}% upside
                         </span>
                       )}
                     </div>
                   )}
                   {data.number_of_analysts && (
-                    <div className="text-[10px] text-gray-400 mt-1">{data.number_of_analysts} analysts</div>
+                    <div className="mt-1 text-[10px] text-muted-foreground/70">{data.number_of_analysts} analysts</div>
                   )}
                 </Link>
               );
             })}
           </div>
-          <div className="mt-3 bg-amber-50 border border-amber-100 rounded-lg p-2">
-            <p className="text-[10px] text-amber-600">Analyst ratings are for informational purposes only and do not constitute financial advice.</p>
+          <div className="mt-3 rounded-lg border border-warning/30 bg-warning/10 p-2">
+            <p className="text-[10px] text-foreground/85">Analyst ratings are for informational purposes only and do not constitute financial advice.</p>
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {/* Portfolio Stock News */}
       {!loadingNews && news.length > 0 && (
-        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-semibold text-gray-800">News for Your Stocks</h3>
-            <Link to="/news" className="text-xs text-blue-600 hover:text-blue-800 font-medium">All news</Link>
-          </div>
-          <div className="space-y-2">
+        <SectionCard
+          title="News for Your Stocks"
+          action={(
+            <Link to="/news" className="text-xs font-medium text-foreground underline-offset-4 hover:underline dark:text-primary">
+              All news
+            </Link>
+          )}
+        >
+          <div className="space-y-1">
             {news.map((article, idx) => (
               <a key={idx} href={article.url} target="_blank" rel="noopener noreferrer"
-                className="flex gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors group">
+                className="group flex gap-3 rounded-md p-2 transition-colors hover:bg-muted/50">
                 {article.image ? (
-                  <div className="w-16 h-12 shrink-0 rounded-sm overflow-hidden bg-gray-100">
-                    <img src={article.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                  <div className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                    <img src={article.image} alt="" className="h-full w-full rounded-md object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                   </div>
                 ) : (
-                  <div className="w-16 h-12 shrink-0 rounded-sm bg-gray-100 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2" />
-                    </svg>
+                  <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <Newspaper className="size-5 text-muted-foreground/60" aria-hidden />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-gray-900 font-medium group-hover:text-blue-600 transition-colors line-clamp-1">{article.title}</div>
+                  <div className="line-clamp-1 text-sm font-medium transition-colors group-hover:text-foreground dark:group-hover:text-primary">{article.title}</div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-sm font-medium">{article.forStock}</span>
-                    <span className="text-[10px] text-gray-400">{article.source} · {formatDate(article.published_at)}</span>
+                    <Badge variant="secondary" className="rounded-sm px-1.5 text-[10px]">{article.forStock}</Badge>
+                    <span className="text-[10px] text-muted-foreground">{article.source} · {formatDate(article.published_at)}</span>
                   </div>
                 </div>
               </a>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
     </div>
   );

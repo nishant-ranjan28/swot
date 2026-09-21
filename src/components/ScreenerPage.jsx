@@ -3,6 +3,20 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import { useMarket } from '../context/MarketContext';
 import { exportToCSV } from '../utils/exportUtils';
+import { ChevronDown, Download, SearchX } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import SectionCard from '@/components/common/SectionCard';
+import SortableTableHead from '@/components/common/SortableTableHead';
+import PriceChange from '@/components/common/PriceChange';
+import ErrorState from '@/components/common/ErrorState';
+import EmptyState from '@/components/common/EmptyState';
+import { cn } from '@/lib/utils';
 
 const formatNumber = (num) => {
   if (num == null) return 'N/A';
@@ -129,19 +143,34 @@ const COLUMNS = [
   { key: 'recommendation', label: 'Rating', align: 'center' },
 ];
 
+// Same rating -> tone mapping as before, expressed as Badge variants.
+const RATING_BADGE = {
+  buy: { variant: 'gain' },
+  strong_buy: { variant: 'gain', className: 'bg-gain/25' },
+  hold: { variant: 'warning' },
+  sell: { variant: 'loss' },
+  underperform: { variant: 'loss' },
+  strong_sell: { variant: 'loss', className: 'bg-loss/25' },
+};
+
 const RatingBadge = ({ rating }) => {
-  const colors = {
-    buy: 'bg-green-50 text-green-600', strong_buy: 'bg-green-100 text-green-700',
-    hold: 'bg-yellow-100 text-yellow-700', sell: 'bg-red-100 text-red-700',
-    underperform: 'bg-red-100 text-red-700', strong_sell: 'bg-red-200 text-red-800',
-  };
-  if (!rating) return <span className="text-gray-300">-</span>;
+  if (!rating) return <span className="text-muted-foreground/70">-</span>;
+  const style = RATING_BADGE[rating] || { variant: 'secondary' };
   return (
-    <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase ${colors[rating] || 'bg-gray-100 text-gray-600'}`}>
+    <Badge variant={style.variant} className={cn('rounded-sm px-1.5 text-[10px] font-semibold uppercase', style.className)}>
       {rating.replace('_', ' ')}
-    </span>
+    </Badge>
   );
 };
+
+const SELECT_CLASS = 'h-9 w-full rounded-md border border-input bg-card px-2 text-sm transition-colors';
+
+const segmentClass = (active) => cn(
+  'rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+  active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+);
+
+const alignClass = (col) => (col.align === 'right' ? 'text-right tabular-nums' : col.align === 'center' ? 'text-center' : 'text-left');
 
 const ScreenerPage = () => {
   const { market, marketLabel } = useMarket();
@@ -232,14 +261,14 @@ const ScreenerPage = () => {
     switch (col.key) {
       case 'name':
         return (
-          <Link to={`/stock/${stock.symbol}`} className="hover:text-blue-600 transition-colors">
-            <div className="text-sm font-semibold text-gray-900">{stock.name}</div>
-            <div className="text-[10px] text-gray-400">{stock.symbol}</div>
+          <Link to={`/stock/${stock.symbol}`} className="underline-offset-4 hover:underline">
+            <div className="text-sm font-semibold text-foreground">{stock.name}</div>
+            <div className="text-[10px] text-muted-foreground/70">{stock.symbol}</div>
           </Link>
         );
       case 'price': return val != null ? <span className="font-medium">₹{val.toFixed(2)}</span> : <span>-</span>;
       case 'change_percent':
-        return <span className={`font-semibold ${val >= 0 ? 'text-green-600' : 'text-red-600'}`}>{val >= 0 ? '+' : ''}{val?.toFixed(2)}%</span>;
+        return <PriceChange percent={val} className="font-semibold" />;
       case 'market_cap': return formatNumber(val);
       case 'volume': return formatNumber(val);
       case 'week52_high': case 'week52_low': return val ? `₹${val.toFixed(2)}` : '-';
@@ -249,96 +278,24 @@ const ScreenerPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-[1400px] mx-auto p-3 sm:p-4 md:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Stock Screener</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Search across {total.toLocaleString('en-IN')}+ {marketLabel} stocks with real-time filters
-            </p>
-          </div>
-          <select value={resultSize} onChange={(e) => setResultSize(parseInt(e.target.value))}
-            className="text-xs border border-gray-200 rounded-sm px-2 py-1 bg-white">
-            <option value={50}>Show 50</option>
-            <option value={100}>Show 100</option>
-            <option value={200}>Show 200</option>
-          </select>
-        </div>
-
-        {/* Search + Clear */}
-        <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input type="text" placeholder="Search in results by name or symbol..."
-              value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            {/* AND/OR toggle */}
-            {activeFilterCount >= 2 && (
-              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-                <button onClick={() => setFilterLogic('AND')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors focus:outline-hidden ${
-                    filterLogic === 'AND' ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-500'
-                  }`}>AND</button>
-                <button onClick={() => setFilterLogic('OR')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors focus:outline-hidden ${
-                    filterLogic === 'OR' ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-500'
-                  }`}>OR</button>
-              </div>
-            )}
-            {activeFilterCount > 0 && (
-              <button onClick={clearFilters}
-                className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg font-medium focus:outline-hidden">
-                Clear all ({activeFilterCount})
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Filter Groups */}
-        <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
-          {FILTER_GROUPS.map((group) => (
-            <div key={group.label} className="border-b border-gray-100 last:border-0">
-              <button onClick={() => toggleGroup(group.label)}
-                className="w-full flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition-colors focus:outline-hidden">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-800">{group.label}</span>
-                  {group.filters.some((f) => filters[f.key] && filters[f.key] !== 'all') && (
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                  )}
-                </div>
-                <svg className={`w-4 h-4 text-gray-400 transition-transform ${expandedGroups[group.label] ? 'rotate-180' : ''}`}
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {expandedGroups[group.label] && (
-                <div className="px-4 pb-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                  {group.filters.map((filter) => (
-                    <div key={filter.key}>
-                      <label className="block text-[10px] text-gray-500 font-medium mb-1 uppercase tracking-wide">{filter.label}</label>
-                      <select value={filters[filter.key] || 'all'} onChange={(e) => setFilter(filter.key, e.target.value)}
-                        className={`w-full px-2 py-1.5 border rounded-md text-xs bg-white transition-colors ${
-                          filters[filter.key] && filters[filter.key] !== 'all' ? 'border-blue-400 ring-1 ring-blue-100' : 'border-gray-200'
-                        }`}>
-                        {filter.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              )}
+    <PageContainer className="max-w-[1400px] space-y-4">
+      <PageHeader
+        title="Stock Screener"
+        description={`Search across ${total.toLocaleString('en-IN')}+ ${marketLabel} stocks with real-time filters`}
+        actions={
+          <>
+            <div className="inline-flex rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Results to show">
+              {[50, 100, 200].map((n) => (
+                <button key={n} type="button" aria-pressed={resultSize === n}
+                  onClick={() => setResultSize(n)} className={segmentClass(resultSize === n)}>
+                  Show {n}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
-
-        {/* Results info */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">
-              {loading ? 'Searching...' : `${sortedStocks.length} stocks shown (${total.toLocaleString('en-IN')} matched)`}
-            </span>
             {sortedStocks.length > 0 && !loading && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   const csvColumns = COLUMNS.map(col => ({
                     label: col.label,
@@ -352,86 +309,142 @@ const ScreenerPage = () => {
                   }));
                   exportToCSV(sortedStocks, csvColumns, `screener_${new Date().toISOString().split('T')[0]}`);
                 }}
-                className="text-xs px-2.5 py-1 rounded-md bg-green-50 text-green-700 hover:bg-green-100 font-medium transition-colors focus:outline-hidden flex items-center gap-1"
                 title="Export results to CSV"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <Download aria-hidden />
                 Export CSV
-              </button>
+              </Button>
             )}
-          </div>
-          <span className="text-[10px] text-gray-400">Click column headers to sort</span>
+          </>
+        }
+      />
+
+      {/* Search + filters */}
+      <SectionCard title="Filters" contentClassName="p-0">
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+          <Input type="text" placeholder="Search in results by name or symbol..."
+            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1 bg-card"
+          />
+          {/* AND/OR toggle */}
+          {activeFilterCount >= 2 && (
+            <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-0.5" role="group" aria-label="Filter logic">
+              <button type="button" aria-pressed={filterLogic === 'AND'} onClick={() => setFilterLogic('AND')}
+                className={segmentClass(filterLogic === 'AND')}>AND</button>
+              <button type="button" aria-pressed={filterLogic === 'OR'} onClick={() => setFilterLogic('OR')}
+                className={segmentClass(filterLogic === 'OR')}>OR</button>
+            </div>
+          )}
+          {activeFilterCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-loss hover:text-loss">
+              Clear all ({activeFilterCount})
+            </Button>
+          )}
         </div>
 
-        {/* Table */}
-        {error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-600">{error}</p>
-            <button onClick={fetchStocks} className="mt-2 text-sm text-blue-600 underline focus:outline-hidden">Retry</button>
+        {/* Filter Groups */}
+        {FILTER_GROUPS.map((group) => (
+          <div key={group.label} className="border-t border-border">
+            <button type="button" onClick={() => toggleGroup(group.label)}
+              aria-expanded={!!expandedGroups[group.label]}
+              className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-muted/50">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground">{group.label}</span>
+                {group.filters.some((f) => filters[f.key] && filters[f.key] !== 'all') && (
+                  <span className="size-2 rounded-full bg-primary" aria-hidden></span>
+                )}
+              </div>
+              <ChevronDown aria-hidden
+                className={cn('size-4 text-muted-foreground/70 transition-transform', expandedGroups[group.label] && 'rotate-180')} />
+            </button>
+            {expandedGroups[group.label] && (
+              <div className="px-4 pb-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {group.filters.map((filter) => (
+                  <div key={filter.key}>
+                    <label htmlFor={`screener-${filter.key}`}
+                      className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{filter.label}</label>
+                    <select id={`screener-${filter.key}`}
+                      value={filters[filter.key] || 'all'} onChange={(e) => setFilter(filter.key, e.target.value)}
+                      className={cn(SELECT_CLASS,
+                        filters[filter.key] && filters[filter.key] !== 'all' && 'border-primary ring-1 ring-primary/30')}>
+                      {filter.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ) : loading ? (
-          <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-            <div className="space-y-3 animate-pulse">
-              {[...Array(10)].map((_, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="h-4 bg-gray-200 rounded-sm w-40"></div>
-                  <div className="h-4 bg-gray-200 rounded-sm w-20"></div>
-                  <div className="h-4 bg-gray-200 rounded-sm w-16"></div>
-                  <div className="h-4 bg-gray-200 rounded-sm w-20"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    {COLUMNS.map((col) => (
-                      <th key={col.key} onClick={() => handleSort(col.key)}
-                        className={`px-3 py-2.5 font-semibold text-gray-600 cursor-pointer hover:bg-gray-100 whitespace-nowrap ${
-                          col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
-                        } ${col.sticky ? 'sticky left-0 bg-gray-50 z-10' : ''}`}>
-                        <span className="inline-flex items-center gap-1">
-                          {col.label}
-                          {sortKey === col.key && (
-                            <svg className={`w-3 h-3 ${sortDir === 'asc' ? '' : 'rotate-180'}`} fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M5.293 7.707a1 1 0 011.414 0L10 11.001l3.293-3.294a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                            </svg>
-                          )}
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedStocks.map((stock) => (
-                    <tr key={stock.symbol} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
-                      {COLUMNS.map((col) => (
-                        <td key={col.key}
-                          className={`px-3 py-2 whitespace-nowrap ${
-                            col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'
-                          } ${col.sticky ? 'sticky left-0 bg-white z-10' : ''}`}>
-                          {renderCell(stock, col)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                  {sortedStocks.length === 0 && (
-                    <tr><td colSpan={COLUMNS.length} className="text-center py-8 text-gray-400">
-                      No stocks match your filters.
-                    </td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        ))}
+      </SectionCard>
+
+      {/* Results info */}
+      <div className="flex justify-between items-center">
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {loading ? 'Searching...' : `${sortedStocks.length} stocks shown (${total.toLocaleString('en-IN')} matched)`}
+        </span>
+        <span className="text-[10px] text-muted-foreground/70">Click column headers to sort</span>
       </div>
-    </div>
+
+      {/* Table */}
+      {error ? (
+        <ErrorState message={error} onRetry={fetchStocks} />
+      ) : loading ? (
+        <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="flex gap-4">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <Table className="text-xs">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                {COLUMNS.map((col) => (
+                  <SortableTableHead
+                    key={col.key}
+                    active={sortKey === col.key}
+                    dir={sortDir}
+                    onSort={() => handleSort(col.key)}
+                    align={col.align === 'right' ? 'right' : 'left'}
+                    className={cn(
+                      'px-3 font-semibold text-muted-foreground',
+                      col.align === 'center' && 'text-center',
+                      col.sticky && 'sticky left-0 z-10 bg-card',
+                    )}
+                  >
+                    {col.label}
+                  </SortableTableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedStocks.map((stock) => (
+                <TableRow key={stock.symbol}>
+                  {COLUMNS.map((col) => (
+                    <TableCell key={col.key}
+                      className={cn('px-3 py-2', alignClass(col), col.sticky && 'sticky left-0 z-10 bg-card')}>
+                      {renderCell(stock, col)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+              {sortedStocks.length === 0 && (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={COLUMNS.length} className="whitespace-normal p-4">
+                    <EmptyState icon={SearchX} title="No stocks match your filters." className="border-0 py-8" />
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </PageContainer>
   );
 };
 
