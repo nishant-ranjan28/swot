@@ -35,6 +35,9 @@ CORS_ORIGINS = [
     "https://swot-analyse.vercel.app",
     "https://swot.iamnishant.in",
 ]
+# Vercel preview deployments of this project only (per-commit and per-branch URLs),
+# e.g. https://swot-analyse-<hash>-nishants-projects-b0da7be3.vercel.app
+CORS_ORIGIN_REGEX = r"^https://swot-analyse-[a-z0-9-]+-nishants-projects-b0da7be3\.vercel\.app$"
 
 # Rate limiting
 SEARCH_RATE_LIMIT = "30/minute"

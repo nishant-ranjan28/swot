@@ -5,7 +5,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from config import CORS_ORIGINS
+from config import CORS_ORIGINS, CORS_ORIGIN_REGEX
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -16,6 +16,7 @@ app.state.limiter = limiter
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["GET"],
     allow_headers=["*"],
