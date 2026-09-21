@@ -1,0 +1,13 @@
+$heading
+
+$greeting
+
+$intro
+
+$rows
+
+View your alerts: $alerts_url
+Triggered alerts are switched off. Re-arm them from the Alerts page.
+
+--
+You're receiving this because email alerts are on. Manage in Settings: $settings_url

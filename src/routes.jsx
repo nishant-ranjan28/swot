@@ -25,6 +25,7 @@ import MutualFundPage from './components/MutualFundPage';
 import EtfPage from './components/EtfPage';
 import TrendingPage from './components/TrendingPage';
 import SettingsPage from './components/SettingsPage';
+import AlertsPage from './components/AlertsPage';
 import LoginPage from './components/auth/LoginPage';
 import SignupPage from './components/auth/SignupPage';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
@@ -35,6 +36,7 @@ export const PAGE_ROUTES = [
   { path: '/stock/:symbol', element: <StockDetailPage /> },
   { path: '/watchlist', element: <WatchlistPage /> },
   { path: '/portfolio', element: <PortfolioPage /> },
+  { path: '/alerts', element: <AlertsPage /> },
   { path: '/compare', element: <ComparePage /> },
   { path: '/screener', element: <ScreenerPage /> },
   { path: '/scanner', element: <ScannerPage /> },

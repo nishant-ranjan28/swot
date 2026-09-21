@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
 
-export default function SectionCard({ title, description, action, className, contentClassName, children }) {
+export default function SectionCard({ title, description, action, className, contentClassName, children, ...props }) {
   return (
-    <section className={cn('rounded-xl border border-border bg-card', className)}>
+    <section className={cn('rounded-xl border border-border bg-card', className)} {...props}>
       {(title || action) && (
         <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div>

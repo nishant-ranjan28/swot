@@ -18,6 +18,17 @@ to turn accounts on.
    created (the trigger `on_auth_user_created` on `auth.users`, the function
    `public.handle_new_user`, and the five tables).
 
+   **Run migration 2** (needed for price-alert emails). In **SQL Editor → New query**, paste
+   `supabase/migrations/20260922000000_profile_email.sql` and click **Run**, after migration 1.
+   It adds `profiles.email`, backfills it from `auth.users`, updates `handle_new_user` to
+   copy the email for new users, and adds the trigger `on_auth_user_email_changed` to keep
+   it in sync. Users can read their email on their profile but can't edit it. For the
+   price-alert job it also adds `alert_events.claimed_at` (send claims, so overlapping runs
+   can't email twice), the function `public.fire_alert(uuid, numeric)` (deactivates an alert
+   and records its event atomically; executable by `service_role` only, revoked from
+   `public`, `anon` and `authenticated`), and `check (char_length(symbol) <= 32)` constraints
+   on `price_alerts` and `watchlist_items`. Like migration 1, it is not re-runnable.
+
    Alternatively, with the Supabase CLI installed:
 
    ```bash

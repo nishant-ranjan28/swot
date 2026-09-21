@@ -379,3 +379,49 @@ describe('array payloads and defaultToNull', () => {
     ]);
   });
 });
+
+describe('order, limit and select columns', () => {
+  const events = () =>
+    createFakeSupabase({
+      tables: {
+        alert_events: [
+          { id: 'e1', user_id: 'u1', triggered_at: '2026-09-01T00:00:00Z' },
+          { id: 'e2', user_id: 'u1', triggered_at: '2026-09-03T00:00:00Z' },
+          { id: 'e3', user_id: 'u1', triggered_at: '2026-09-02T00:00:00Z' },
+        ],
+      },
+    });
+
+  test('order sorts ascending by default and descending with { ascending: false }', async () => {
+    const client = events();
+    const asc = await client.from('alert_events').select('*').order('triggered_at');
+    expect(asc.data.map((r) => r.id)).toEqual(['e1', 'e3', 'e2']);
+    const desc = await client.from('alert_events').select('*').order('triggered_at', { ascending: false });
+    expect(desc.data.map((r) => r.id)).toEqual(['e2', 'e3', 'e1']);
+  });
+
+  test('limit caps the rows after ordering', async () => {
+    const client = events();
+    const { data } = await client.from('alert_events').select('*').order('triggered_at', { ascending: false }).limit(2);
+    expect(data.map((r) => r.id)).toEqual(['e2', 'e3']);
+  });
+
+  test('calls record columns, order and limit only when given', async () => {
+    const client = events();
+    await client.from('alert_events').select('id,price').eq('user_id', 'u1').order('triggered_at', { ascending: false }).limit(5);
+    expect(client.calls[0]).toMatchObject({
+      columns: 'id,price',
+      order: [{ column: 'triggered_at', ascending: false }],
+      limit: 5,
+    });
+    await client.from('alert_events').select();
+    expect(client.calls[1]).not.toHaveProperty('columns');
+    expect(client.calls[1]).not.toHaveProperty('order');
+    expect(client.calls[1]).not.toHaveProperty('limit');
+  });
+
+  test('embedded selects are not supported: they fail loudly', async () => {
+    const client = events();
+    await expect(client.from('alert_events').select('id,alert:price_alerts(symbol)')).rejects.toThrow(/embedded/);
+  });
+});

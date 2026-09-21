@@ -9,6 +9,12 @@ import {
   updateProfile,
   importLocal,
   markImported,
+  normalizeAlertSymbol,
+  listAlerts,
+  listAlertEvents,
+  createAlert,
+  rearmAlert,
+  deleteAlert,
 } from './userDataRepo';
 
 const UID = 'user-1';
@@ -217,6 +223,7 @@ describe('applyWatchlistDiff', () => {
       { type: 'eq', column: 'user_id', value: UID },
       { type: 'eq', column: 'market', value: 'in' },
       { type: 'in', column: 'symbol', value: ['INFY'] },
+      { type: 'in', column: 'condition', value: ['above', 'below'] },
     ]);
 
     expect(delItems.filters).toEqual([
@@ -247,6 +254,32 @@ describe('applyWatchlistDiff', () => {
       [OTHER, 'INFY'],
       [UID, 'TCS'],
     ]);
+  });
+
+  test('removing a symbol deletes its above/below alerts but keeps its pct alerts and their events', async () => {
+    const client = createFakeSupabase({
+      tables: {
+        watchlist_items: [{ id: 'w1', user_id: UID, market: 'in', symbol: 'INFY' }],
+        price_alerts: [
+          { id: 'a1', user_id: UID, market: 'in', symbol: 'INFY', condition: 'above', target: 1 },
+          { id: 'a2', user_id: UID, market: 'in', symbol: 'INFY', condition: 'below', target: 1 },
+          { id: 'a3', user_id: UID, market: 'in', symbol: 'INFY', condition: 'pct_up', target: 5 },
+        ],
+        alert_events: [{ id: 'e1', alert_id: 'a3', user_id: UID, price: 1500, emailed: true }],
+      },
+    });
+    const diff = {
+      ...emptyWatchDiff(),
+      deleteAlerts: [
+        { symbol: 'INFY', condition: 'above' },
+        { symbol: 'INFY', condition: 'below' },
+      ],
+      deleteSymbols: ['INFY'],
+    };
+    expect(await applyWatchlistDiff(client, UID, 'in', diff)).toEqual({ error: null });
+    expect(client.tables.watchlist_items).toEqual([]);
+    expect(client.tables.price_alerts.map((r) => r.id)).toEqual(['a3']);
+    expect(client.tables.alert_events.map((r) => r.id)).toEqual(['e1']);
   });
 
   test('re-setting an alert re-arms it', async () => {
@@ -634,5 +667,245 @@ describe('importLocal skips holdings the database would reject', () => {
     expect(error).toBeNull();
     expect(counts.holdings).toBe(1);
     expect(client.tables.holdings.map((h) => h.symbol)).toEqual(['TCS.NS']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('alerts page repo', () => {
+  const alert = (id, extra = {}) => ({
+    id,
+    user_id: UID,
+    market: 'in',
+    symbol: 'TCS.NS',
+    name: 'TCS',
+    condition: 'above',
+    target: 4000,
+    active: true,
+    last_triggered_at: null,
+    created_at: '2026-09-01T00:00:00Z',
+    ...extra,
+  });
+
+  describe('normalizeAlertSymbol', () => {
+    test('trims and uppercases', () => {
+      expect(normalizeAlertSymbol('us', '  aapl ')).toBe('AAPL');
+    });
+    test('appends .NS for the in market when there is no exchange suffix', () => {
+      expect(normalizeAlertSymbol('in', 'reliance')).toBe('RELIANCE.NS');
+      expect(normalizeAlertSymbol('in', 'tcs.ns')).toBe('TCS.NS');
+      expect(normalizeAlertSymbol('in', 'SBIN.BO')).toBe('SBIN.BO');
+    });
+    test('never suffixes us symbols, and leaves empty input empty', () => {
+      expect(normalizeAlertSymbol('us', 'BRK.B')).toBe('BRK.B');
+      expect(normalizeAlertSymbol('in', '   ')).toBe('');
+      expect(normalizeAlertSymbol('in', undefined)).toBe('');
+    });
+    test('never suffixes index symbols (leading ^)', () => {
+      expect(normalizeAlertSymbol('in', '^nsei')).toBe('^NSEI');
+      expect(normalizeAlertSymbol('in', ' ^BSESN ')).toBe('^BSESN');
+    });
+  });
+
+  describe('listAlerts', () => {
+    test("returns this user's alerts (active and inactive), newest first", async () => {
+      const client = createFakeSupabase({
+        tables: {
+          price_alerts: [
+            alert('a1', { created_at: '2026-09-01T00:00:00Z' }),
+            alert('a2', { condition: 'below', active: false, created_at: '2026-09-03T00:00:00Z' }),
+            alert('a3', { user_id: OTHER, created_at: '2026-09-04T00:00:00Z' }),
+            alert('a4', { market: 'us', symbol: 'AAPL', created_at: '2026-09-02T00:00:00Z' }),
+          ],
+        },
+      });
+      const { data, error } = await listAlerts(client, UID);
+      expect(error).toBeNull();
+      expect(data.map((r) => r.id)).toEqual(['a2', 'a4', 'a1']);
+      expect(client.calls[0]).toMatchObject({
+        table: 'price_alerts',
+        filters: [{ type: 'eq', column: 'user_id', value: UID }],
+        order: [{ column: 'created_at', ascending: false }],
+      });
+    });
+
+    test('returns { error } and never throws', async () => {
+      const client = createFakeSupabase();
+      client.failNext = true;
+      expect((await listAlerts(client, UID)).error).toBeTruthy();
+      expect((await listAlerts({ from: () => { throw new Error('x'); } }, UID)).error).toBeTruthy();
+    });
+  });
+
+  describe('listAlertEvents', () => {
+    const seeded = () =>
+      createFakeSupabase({
+        tables: {
+          price_alerts: [alert('a1', { active: false }), alert('a2', { market: 'us', symbol: 'AAPL', condition: 'pct_down', target: 3 })],
+          alert_events: [
+            { id: 'e1', alert_id: 'a1', user_id: UID, price: 4010, triggered_at: '2026-09-02T00:00:00Z', emailed: true },
+            { id: 'e2', alert_id: 'a2', user_id: UID, price: 170, triggered_at: '2026-09-05T00:00:00Z', emailed: false },
+            { id: 'e3', alert_id: 'a1', user_id: OTHER, price: 1, triggered_at: '2026-09-06T00:00:00Z', emailed: false },
+          ],
+        },
+      });
+
+    test('events newest first, each joined with its alert, this user only', async () => {
+      const { data, error } = await listAlertEvents(seeded(), UID);
+      expect(error).toBeNull();
+      expect(data).toEqual([
+        {
+          id: 'e2',
+          price: 170,
+          triggered_at: '2026-09-05T00:00:00Z',
+          emailed: false,
+          alert: { symbol: 'AAPL', name: 'TCS', market: 'us', condition: 'pct_down', target: 3 },
+        },
+        {
+          id: 'e1',
+          price: 4010,
+          triggered_at: '2026-09-02T00:00:00Z',
+          emailed: true,
+          alert: { symbol: 'TCS.NS', name: 'TCS', market: 'in', condition: 'above', target: 4000 },
+        },
+      ]);
+    });
+
+    test('fetches events (limit 50 by default) then their alerts by id, both filtered by user', async () => {
+      const client = seeded();
+      await listAlertEvents(client, UID);
+      expect(client.calls).toHaveLength(2);
+      expect(client.calls[0]).toMatchObject({
+        table: 'alert_events',
+        filters: [{ type: 'eq', column: 'user_id', value: UID }],
+        order: [{ column: 'triggered_at', ascending: false }],
+        limit: 50,
+      });
+      expect(client.calls[1]).toMatchObject({ table: 'price_alerts' });
+      expect(client.calls[1].filters).toEqual(
+        expect.arrayContaining([
+          { type: 'eq', column: 'user_id', value: UID },
+          { type: 'in', column: 'id', value: expect.arrayContaining(['a1', 'a2']) },
+        ]),
+      );
+      await listAlertEvents(client, UID, { limit: 5 });
+      expect(client.calls[2].limit).toBe(5);
+    });
+
+    test('no events: one query, empty list', async () => {
+      const client = createFakeSupabase();
+      expect(await listAlertEvents(client, UID)).toEqual({ data: [], error: null });
+      expect(client.calls).toHaveLength(1);
+    });
+
+    test('an event whose alert is missing gets alert: null', async () => {
+      const client = seeded();
+      client.tables.price_alerts = [];
+      const { data } = await listAlertEvents(client, UID);
+      expect(data.map((e) => e.alert)).toEqual([null, null]);
+    });
+
+    test('returns { error } when either query fails', async () => {
+      const client = seeded();
+      client.failNext = true;
+      expect((await listAlertEvents(client, UID)).error).toBeTruthy();
+      const second = seeded();
+      const from = second.from;
+      let n = 0;
+      second.from = (t) => {
+        if (++n === 2) second.failNext = true;
+        return from(t);
+      };
+      expect((await listAlertEvents(second, UID)).error).toBeTruthy();
+    });
+  });
+
+  describe('createAlert', () => {
+    test('inserts an armed alert with a normalized symbol and returns it', async () => {
+      const client = createFakeSupabase();
+      const { data, error } = await createAlert(client, UID, { market: 'in', symbol: ' reliance ', condition: 'above', target: '2500' });
+      expect(error).toBeNull();
+      expect(data).toMatchObject({ user_id: UID, market: 'in', symbol: 'RELIANCE.NS', condition: 'above', target: 2500, active: true });
+      expect(client.tables.price_alerts).toHaveLength(1);
+      expect(client.calls[0]).toMatchObject({
+        op: 'upsert',
+        options: { onConflict: 'user_id,market,symbol,condition', defaultToNull: false },
+      });
+    });
+
+    test('re-creating an existing (triggered) alert re-arms it in place and keeps its name', async () => {
+      const client = createFakeSupabase({
+        tables: { price_alerts: [alert('a1', { active: false, last_triggered_at: '2026-09-02T00:00:00Z' })] },
+      });
+      const { error } = await createAlert(client, UID, { market: 'in', symbol: 'TCS', condition: 'above', target: 4200 });
+      expect(error).toBeNull();
+      expect(client.tables.price_alerts).toEqual([
+        expect.objectContaining({ id: 'a1', name: 'TCS', target: 4200, active: true, last_triggered_at: null }),
+      ]);
+    });
+
+    test('rejects a target that is not > 0, an empty symbol, or a bad condition/market, without a query', async () => {
+      const client = createFakeSupabase();
+      for (const input of [
+        { market: 'us', symbol: 'AAPL', condition: 'above', target: 0 },
+        { market: 'us', symbol: 'AAPL', condition: 'below', target: -5 },
+        { market: 'us', symbol: 'AAPL', condition: 'pct_up', target: 'abc' },
+        { market: 'us', symbol: '  ', condition: 'above', target: 10 },
+        { market: 'us', symbol: 'AAPL', condition: 'sideways', target: 10 },
+        { market: 'eu', symbol: 'AAPL', condition: 'above', target: 10 },
+      ]) {
+        const { error } = await createAlert(client, UID, input);
+        expect(error).toEqual({ message: expect.any(String), invalid: true });
+      }
+      expect(client.calls).toHaveLength(0);
+    });
+
+    test('returns { error } on a failed write', async () => {
+      const client = createFakeSupabase();
+      client.failNext = true;
+      expect((await createAlert(client, UID, { market: 'us', symbol: 'AAPL', condition: 'above', target: 1 })).error).toBeTruthy();
+    });
+  });
+
+  describe('rearmAlert / deleteAlert', () => {
+    const seeded = () =>
+      createFakeSupabase({
+        tables: {
+          price_alerts: [
+            alert('a1', { active: false, last_triggered_at: '2026-09-02T00:00:00Z' }),
+            alert('a2', { user_id: OTHER, active: false, last_triggered_at: '2026-09-02T00:00:00Z' }),
+          ],
+        },
+      });
+
+    test('rearmAlert sets active and clears last_triggered_at, for this user only', async () => {
+      const client = seeded();
+      expect(await rearmAlert(client, UID, 'a1')).toEqual({ error: null });
+      expect(client.tables.price_alerts[0]).toMatchObject({ active: true, last_triggered_at: null });
+      expect(client.calls[0].filters).toEqual([
+        { type: 'eq', column: 'id', value: 'a1' },
+        { type: 'eq', column: 'user_id', value: UID },
+      ]);
+      await rearmAlert(client, UID, 'a2');
+      expect(client.tables.price_alerts[1]).toMatchObject({ active: false });
+    });
+
+    test('deleteAlert removes the row, for this user only', async () => {
+      const client = seeded();
+      expect(await deleteAlert(client, UID, 'a1')).toEqual({ error: null });
+      await deleteAlert(client, UID, 'a2');
+      expect(client.tables.price_alerts.map((r) => r.id)).toEqual(['a2']);
+      expect(client.calls[0].filters).toEqual([
+        { type: 'eq', column: 'id', value: 'a1' },
+        { type: 'eq', column: 'user_id', value: UID },
+      ]);
+    });
+
+    test('both return { error } on failure', async () => {
+      const client = seeded();
+      client.failNext = true;
+      expect((await rearmAlert(client, UID, 'a1')).error).toBeTruthy();
+      client.failNext = true;
+      expect((await deleteAlert(client, UID, 'a1')).error).toBeTruthy();
+    });
   });
 });

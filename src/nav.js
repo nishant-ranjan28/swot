@@ -4,7 +4,7 @@ import {
   Filter, ScanSearch, GitCompare, Grid3x3, History,
   PiggyBank, Layers,
   Newspaper, Flame, Landmark, Handshake, CalendarCheck, CalendarDays, Rocket,
-  Star, Briefcase,
+  Star, Briefcase, Bell,
   Calculator, Receipt, BookOpen,
 } from 'lucide-react';
 
@@ -39,6 +39,7 @@ export const NAV_GROUPS = [
   { label: 'My Stuff', items: [
     { to: '/watchlist', label: 'Watchlist', icon: Star },
     { to: '/portfolio', label: 'Portfolio', icon: Briefcase },
+    { to: '/alerts', label: 'Alerts', icon: Bell },
   ]},
   { label: 'Tools', items: [
     { to: '/calculator', label: 'Calculators', icon: Calculator },

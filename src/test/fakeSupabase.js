@@ -17,6 +17,11 @@
 //     payload take their DEFAULT on insert and are left alone on conflict-update.
 // A failed write leaves the table unchanged.
 //
+// Reads support eq/in filters, .order(column, { ascending }) and .limit(n). Column lists
+// passed to select() are recorded but not applied (full rows come back); embedded
+// resources (`alert:price_alerts(...)`) are not supported and throw, so code can't pass
+// a test on a join the fake silently ignored.
+//
 // Auth: auth.signOut() clears the session and then emits SIGNED_OUT, like supabase-js,
 // so anything that reacts to SIGNED_OUT already runs without a session. With
 // { requireSession: true } (off by default; also settable as client.requireSession)
@@ -84,7 +89,7 @@ export function createFakeSupabase({ session = null, tables = {}, requireSession
 }
 
 function createBuilder(client, table) {
-  const q = { op: null, values: undefined, options: undefined, filters: [], returning: false, single: null };
+  const q = { op: null, values: undefined, options: undefined, filters: [], returning: false, single: null, columns: undefined, order: [], limit: undefined };
   let promise = null;
   const setOp = (op, values, options) => {
     q.op = op;
@@ -94,9 +99,18 @@ function createBuilder(client, table) {
   };
 
   const builder = {
-    select() {
+    select(columns) {
+      if (columns !== undefined) q.columns = columns;
       if (q.op) q.returning = true; // .select() after a mutation: return affected rows
       else setOp('select');
+      return builder;
+    },
+    order(column, { ascending = true } = {}) {
+      q.order.push({ column, ascending });
+      return builder;
+    },
+    limit(n) {
+      q.limit = n;
       return builder;
     },
     insert: (rows, options) => setOp('insert', rows, options),
@@ -125,6 +139,25 @@ function createBuilder(client, table) {
     },
   };
   return builder;
+}
+
+/** Sort by each order clause in turn (nulls last, as PostgREST's default for asc), then cap. */
+function ordered(rows, order, limit) {
+  const out = [...rows];
+  if (order.length) {
+    out.sort((a, b) => {
+      for (const { column, ascending } of order) {
+        const x = a[column] ?? null;
+        const y = b[column] ?? null;
+        if (x === y) continue;
+        if (x === null) return 1;
+        if (y === null) return -1;
+        return (x < y ? -1 : 1) * (ascending ? 1 : -1);
+      }
+      return 0;
+    });
+  }
+  return limit === undefined ? out : out.slice(0, limit);
 }
 
 function matches(row, filters) {
@@ -211,6 +244,9 @@ function commit(table, rows, { inserts = [], patches = [], removes = [] }) {
 
 function run(client, table, q) {
   const op = q.op || 'select';
+  if (q.columns && q.columns.includes('(')) {
+    throw new Error(`fakeSupabase: embedded selects are not supported (${q.columns})`);
+  }
   client.calls.push({
     table,
     op,
@@ -219,6 +255,9 @@ function run(client, table, q) {
     filters: q.filters,
     returning: op === 'select' || q.returning,
     single: q.single,
+    ...(q.columns !== undefined && { columns: q.columns }),
+    ...(q.order.length && { order: q.order }),
+    ...(q.limit !== undefined && { limit: q.limit }),
   });
   if (client.failNext) {
     client.failNext = false;
@@ -277,6 +316,7 @@ function run(client, table, q) {
   if (err) return fail(err);
 
   if (op !== 'select' && !q.returning) return ok(null);
+  if (op === 'select') affected = ordered(affected, q.order, q.limit);
   const data = clone(affected);
   if (!q.single) return ok(data);
   if (data.length === 1) return ok(data[0]);

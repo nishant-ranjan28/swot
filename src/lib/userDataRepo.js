@@ -19,6 +19,7 @@ import {
 const MARKETS = ['in', 'us'];
 const WATCH_KEY = 'user_id,market,symbol';
 const ALERT_KEY = 'user_id,market,symbol,condition';
+const WATCHLIST_CONDITIONS = ['above', 'below'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // postgrest-js sends the union of keys for array payloads and, by default, NULL for any
 // key a row lacks. defaultToNull: false makes missing keys take the column DEFAULT.
@@ -106,8 +107,8 @@ export function loadCollection(client, userId, market, collection) {
 
 /**
  * Steps, stopping at the first error: upsert items, upsert alerts, delete cleared
- * alerts on kept symbols (one query each), delete all alerts of removed symbols
- * (one query), delete removed items. Empty steps are skipped.
+ * alerts on kept symbols (one query each), delete the above/below alerts of removed
+ * symbols (one query; pct alerts aren't the watchlist's), delete removed items. Empty steps are skipped.
  * @returns {Promise<{ error }>}
  */
 export function applyWatchlistDiff(client, userId, market, diff) {
@@ -138,7 +139,14 @@ export function applyWatchlistDiff(client, userId, market, diff) {
     }
     if (deleteSymbols.length) {
       steps.push(() =>
-        client.from('price_alerts').delete().eq('user_id', userId).eq('market', market).in('symbol', deleteSymbols),
+        client
+          .from('price_alerts')
+          .delete()
+          .eq('user_id', userId)
+          .eq('market', market)
+          .in('symbol', deleteSymbols)
+          // The watchlist only owns above/below; pct alerts set on the Alerts page stay.
+          .in('condition', WATCHLIST_CONDITIONS),
       );
       steps.push(() =>
         client.from('watchlist_items').delete().eq('user_id', userId).eq('market', market).in('symbol', deleteSymbols),
@@ -322,5 +330,125 @@ export function importLocal(client, userId, local) {
       counts: { watchlist: watchRows.length, holdings: holdingRows.length, alerts: alertRows.length },
       error: null,
     };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Alerts page: direct reads and writes of price_alerts, read-only alert_events.
+// These are the same rows as the watchlist's alertHigh/alertLow (above/below), so after
+// a write the caller should reload the user data context.
+
+export const ALERT_CONDITIONS = ['above', 'below', 'pct_up', 'pct_down'];
+const ALERT_EVENT_FIELDS = 'id,alert_id,price,triggered_at,emailed';
+const EVENT_ALERT_FIELDS = ['symbol', 'name', 'market', 'condition', 'target'];
+
+/**
+ * Trim and uppercase; for the in market, add .NS when there's no .NS/.BO suffix (the
+ * watchlist stores .NS symbols, so the rows line up with its alerts). Index symbols
+ * (^NSEI) are left alone.
+ */
+export function normalizeAlertSymbol(market, symbol) {
+  const s = String(symbol ?? '').trim().toUpperCase();
+  if (!s || market !== 'in' || s.startsWith('^') || /\.(NS|BO)$/.test(s)) return s;
+  return `${s}.NS`;
+}
+
+/** @returns {Promise<{ data?: object[], error }>} all of the user's alerts, newest first */
+export function listAlerts(client, userId) {
+  return safely(() =>
+    client.from('price_alerts').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+  );
+}
+
+/**
+ * The user's trigger history, newest first, each event joined with its alert:
+ * { id, price, triggered_at, emailed, alert: { symbol, name, market, condition, target } | null }.
+ * Two queries (events, then their alerts by id) joined here rather than a PostgREST
+ * embedded select, so the same code runs against the test fake.
+ * @returns {Promise<{ data?: object[], error }>}
+ */
+export function listAlertEvents(client, userId, { limit = 50 } = {}) {
+  return safely(async () => {
+    const events = await client
+      .from('alert_events')
+      .select(ALERT_EVENT_FIELDS)
+      .eq('user_id', userId)
+      .order('triggered_at', { ascending: false })
+      .limit(limit);
+    if (events.error) return { error: events.error };
+    const rows = events.data || [];
+    if (!rows.length) return { data: [], error: null };
+
+    const ids = [...new Set(rows.map((e) => e.alert_id))];
+    const alerts = await client.from('price_alerts').select(`id,${EVENT_ALERT_FIELDS.join(',')}`).eq('user_id', userId).in('id', ids);
+    if (alerts.error) return { error: alerts.error };
+    const byId = new Map((alerts.data || []).map((a) => [a.id, a]));
+
+    const data = rows.map(({ id, alert_id, price, triggered_at, emailed }) => {
+      const a = byId.get(alert_id);
+      return {
+        id,
+        price,
+        triggered_at,
+        emailed,
+        alert: a ? Object.fromEntries(EVENT_ALERT_FIELDS.map((k) => [k, a[k] ?? null])) : null,
+      };
+    });
+    return { data, error: null };
+  });
+}
+
+/** Client-side checks the database would also make; returns a message or null. */
+function alertInputError({ market, symbol, condition, target }) {
+  if (!MARKETS.includes(market)) return 'Choose a market';
+  if (!symbol) return 'Enter a symbol';
+  if (!ALERT_CONDITIONS.includes(condition)) return 'Choose a condition';
+  if (!(Number(target) > 0)) return 'Target must be greater than 0';
+  return null;
+}
+
+/**
+ * Create (or re-set and re-arm) an alert: upsert on user+market+symbol+condition.
+ * The symbol is normalized; `name` is only written when given, so re-setting an alert
+ * keeps the name the watchlist stored. Invalid input → { error: { message, invalid: true } }
+ * (a message fit to show the user), no query.
+ * @returns {Promise<{ data?: object, error }>} the saved row
+ */
+export function createAlert(client, userId, { market, symbol, name, condition, target } = {}) {
+  return safely(async () => {
+    const input = { market, symbol: normalizeAlertSymbol(market, symbol), condition, target };
+    const message = alertInputError(input);
+    if (message) return { error: { message, invalid: true } };
+    const row = {
+      user_id: userId,
+      market,
+      symbol: input.symbol,
+      condition,
+      target: Number(target),
+      active: true,
+      last_triggered_at: null,
+      ...(name ? { name } : {}),
+    };
+    return client.from('price_alerts').upsert(row, { ...BULK, onConflict: ALERT_KEY }).select().single();
+  });
+}
+
+/** Make a triggered alert fire again. @returns {Promise<{ error }>} */
+export function rearmAlert(client, userId, id) {
+  return safely(async () => {
+    const { error } = await client
+      .from('price_alerts')
+      .update({ active: true, last_triggered_at: null })
+      .eq('id', id)
+      .eq('user_id', userId);
+    return { error: error || null };
+  });
+}
+
+/** @returns {Promise<{ error }>} */
+export function deleteAlert(client, userId, id) {
+  return safely(async () => {
+    const { error } = await client.from('price_alerts').delete().eq('id', id).eq('user_id', userId);
+    return { error: error || null };
   });
 }
