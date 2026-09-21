@@ -2,6 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useMarket } from '../context/MarketContext';
+import { CalendarDays } from 'lucide-react';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorState from '@/components/common/ErrorState';
+import { Skeleton } from '@/components/ui/skeleton';
+import { segmentClass } from '@/lib/segment';
 
 const FILTER_TABS = ['This Week', 'Next Week', 'This Month'];
 
@@ -53,10 +60,10 @@ function formatDate(dateStr) {
 }
 
 const SkeletonCard = () => (
-  <div className="animate-pulse bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-sm w-3/4 mb-2"></div>
-    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-sm w-1/2 mb-2"></div>
-    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-sm w-1/4"></div>
+  <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+    <Skeleton className="h-4 w-3/4" />
+    <Skeleton className="h-3 w-1/2" />
+    <Skeleton className="h-3 w-1/4" />
   </div>
 );
 
@@ -97,21 +104,21 @@ const EarningsCalendarPage = () => {
   const groupOrder = ['Today', 'Tomorrow', 'This Week', 'Next Week', 'Later'];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Earnings Calendar</h1>
-      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Upcoming earnings announcements for top {market === 'us' ? 'US' : 'Indian'} stocks</p>
+    <PageContainer className="max-w-4xl">
+      <PageHeader
+        title="Earnings Calendar"
+        description={`Upcoming earnings announcements for top ${market === 'us' ? 'US' : 'Indian'} stocks`}
+      />
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1" role="group" aria-label="Time range">
         {FILTER_TABS.map(tab => (
           <button
             key={tab}
+            type="button"
+            aria-pressed={activeFilter === tab}
             onClick={() => setActiveFilter(tab)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              activeFilter === tab
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
+            className={segmentClass(activeFilter === tab)}
           >
             {tab}
           </button>
@@ -120,27 +127,21 @@ const EarningsCalendarPage = () => {
 
       {/* Loading */}
       {isLoading && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
       )}
 
       {/* Error */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-700 dark:text-red-400">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState message={error} />}
 
       {/* Empty */}
       {!isLoading && !error && filtered.length === 0 && (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          <svg className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <p className="font-medium">No upcoming earnings found for this period</p>
-          <p className="text-sm mt-1">Try selecting a different time range</p>
-        </div>
+        <EmptyState
+          icon={CalendarDays}
+          title="No upcoming earnings found for this period"
+          description="Try selecting a different time range"
+        />
       )}
 
       {/* Grouped Results */}
@@ -148,33 +149,33 @@ const EarningsCalendarPage = () => {
         const items = grouped[group];
         if (!items || items.length === 0) return null;
         return (
-          <div key={group} className="mb-6">
-            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">{group}</h2>
+          <section key={group}>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group}</h2>
             <div className="space-y-2">
               {items.map((e, i) => (
-                <div key={`${e.symbol}-${i}`} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center justify-between hover:shadow-xs transition-shadow">
+                <div key={`${e.symbol}-${i}`} className="rounded-lg border border-border bg-card p-3 flex items-center justify-between transition-colors hover:border-foreground/20">
                   <div className="flex-1 min-w-0">
                     <Link
                       to={`/stock/${e.symbol}`}
-                      className="text-blue-600 dark:text-blue-400 font-semibold hover:underline truncate block"
+                      className="block truncate font-semibold text-foreground underline-offset-4 hover:underline"
                     >
                       {e.name}
                     </Link>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{e.symbol}</span>
+                    <span className="text-xs text-muted-foreground">{e.symbol}</span>
                   </div>
                   <div className="text-right ml-4 shrink-0">
-                    <div className="text-sm text-gray-700 dark:text-gray-300">{formatDate(e.date)}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-foreground/85 tabular-nums">{formatDate(e.date)}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums">
                       {e.eps_estimate != null ? `EPS Est: ${e.eps_estimate}` : 'EPS Est: N/A'}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         );
       })}
-    </div>
+    </PageContainer>
   );
 };
 

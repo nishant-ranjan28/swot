@@ -54,7 +54,7 @@ const FinancialsTab = ({ symbol }) => {
       {/* Financial Statements */}
       {statements && (
         <div>
-          <div className="mb-4 inline-flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1">
+          <div className="mb-4 inline-flex flex-wrap gap-1 rounded-lg border border-border bg-muted/40 p-1" role="group" aria-label="Statement">
             {['income_statement', 'balance_sheet', 'cash_flow'].map((type) => (
               <button
                 key={type}

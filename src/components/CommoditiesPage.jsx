@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import PriceChart from './PriceChart';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import StatCard from '@/components/common/StatCard';
+import ErrorState from '@/components/common/ErrorState';
+import SelectableTile, { TileSkeleton } from '@/components/common/SelectableTile';
 
 const COMMODITIES = [
   { symbol: 'GC=F', name: 'Gold', unit: 'oz' },
@@ -41,66 +48,47 @@ function CommoditiesPage() {
   }, [fetchQuotes]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Commodities</h1>
-          <p className="text-sm text-gray-500 mt-1">Live prices for major commodities (USD)</p>
-        </div>
-        <button
-          onClick={fetchQuotes}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          Refresh
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Commodities"
+        description="Live prices for major commodities (USD)"
+        actions={
+          <Button size="sm" onClick={fetchQuotes}>
+            <RefreshCw aria-hidden />
+            Refresh
+          </Button>
+        }
+      />
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState title={error} onRetry={fetchQuotes} />}
 
       {/* Commodity Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         {COMMODITIES.map(c => {
           const q = quotes[c.symbol];
           const isSelected = selected === c.symbol;
           const price = q?.price || q?.regularMarketPrice || 0;
           const changePct = q?.change_percent ?? q?.regularMarketChangePercent ?? 0;
           const change = q?.change ?? q?.regularMarketChange ?? 0;
-          const isPositive = changePct >= 0;
 
           return (
-            <button
+            <SelectableTile
               key={c.symbol}
-              type="button"
+              selected={isSelected}
               onClick={() => setSelected(isSelected ? null : c.symbol)}
-              className={`rounded-xl p-4 shadow-xs border cursor-pointer transition-all hover:shadow-md text-left ${
-                isSelected
-                  ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
-                  : 'bg-white border-gray-100'
-              }`}
             >
               {loading ? (
-                <div className="animate-pulse">
-                  <div className="h-3 bg-gray-200 rounded-sm w-16 mb-2" />
-                  <div className="h-5 bg-gray-200 rounded-sm w-20 mb-2" />
-                  <div className="h-3 bg-gray-200 rounded-sm w-14" />
-                </div>
+                <TileSkeleton />
               ) : (
-                <>
-                  <div className="text-sm text-gray-500 font-medium">{c.name}</div>
-                  <div className="text-xl font-bold text-gray-900 mt-1">
-                    ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-0.5">per {c.unit}</div>
-                  <div className={`text-sm font-semibold mt-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                    {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePct.toFixed(2)}%)
-                  </div>
-                </>
+                <StatCard
+                  label={c.name}
+                  value={`$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                  change={{ value: change, percent: changePct }}
+                  sub={`per ${c.unit}`}
+                  className="h-full transition-colors"
+                />
               )}
-            </button>
+            </SelectableTile>
           );
         })}
       </div>
@@ -115,11 +103,11 @@ function CommoditiesPage() {
       )}
 
       {/* Disclaimer */}
-      <div className="text-xs text-gray-400 text-center mt-6">
+      <p className="text-center text-xs text-muted-foreground">
         Data sourced from Yahoo Finance. Prices are for informational purposes only and may be delayed.
         Not financial advice.
-      </div>
-    </div>
+      </p>
+    </PageContainer>
   );
 }
 

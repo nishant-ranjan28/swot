@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Flame, MessageSquare } from 'lucide-react';
 import api from '../api';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import SectionCard from '@/components/common/SectionCard';
+import EmptyState from '@/components/common/EmptyState';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { segmentClass } from '@/lib/segment';
+import { cn } from '@/lib/utils';
 
 const SUBREDDITS = [
   { value: 'IndianStockMarket', label: 'r/IndianStockMarket' },
@@ -9,17 +18,19 @@ const SUBREDDITS = [
   { value: 'investing', label: 'r/investing' },
 ];
 
-const getSentimentColor = (label) => {
-  if (label === 'Bullish') return 'text-green-600 bg-green-50';
-  if (label === 'Bearish') return 'text-red-600 bg-red-50';
-  return 'text-gray-600 bg-gray-50';
+const getSentimentVariant = (label) => {
+  if (label === 'Bullish') return 'gain';
+  if (label === 'Bearish') return 'loss';
+  return 'warning';
 };
 
-const getSentimentBarColor = (score) => {
-  if (score > 0.1) return '#16a34a';
-  if (score < -0.1) return '#dc2626';
-  return '#9ca3af';
+const getSentimentBarClass = (score) => {
+  if (score > 0.1) return 'bg-gain';
+  if (score < -0.1) return 'bg-loss';
+  return 'bg-muted-foreground/50';
 };
+
+const LINK_CLASS = 'text-foreground underline-offset-4 hover:underline';
 
 function TrendingPage() {
   const [activeSub, setActiveSub] = useState('IndianStockMarket');
@@ -50,27 +61,27 @@ function TrendingPage() {
   const maxMentions = redditData.length > 0 ? redditData[0].mentions : 1;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Trending & Social Sentiment</h1>
-        <p className="text-sm text-gray-500 mt-1">Track stock buzz from Reddit and most viewed stocks on StockPulse</p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Trending & Social Sentiment"
+        description="Track stock buzz from Reddit and most viewed stocks on StockPulse"
+      />
 
       {/* Tab Toggle */}
-      <div className="flex gap-2 mb-6">
+      <div className="inline-flex gap-1 rounded-lg border border-border bg-card p-1" role="group" aria-label="View">
         <button
+          type="button"
+          aria-pressed={activeTab === 'reddit'}
           onClick={() => setActiveTab('reddit')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'reddit' ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          className={segmentClass(activeTab === 'reddit')}
         >
           Reddit Buzz
         </button>
         <button
+          type="button"
+          aria-pressed={activeTab === 'trending'}
           onClick={() => setActiveTab('trending')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'trending' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
+          className={segmentClass(activeTab === 'trending')}
         >
           Trending on StockPulse
         </button>
@@ -80,16 +91,14 @@ function TrendingPage() {
       {activeTab === 'reddit' && (
         <div className="space-y-4">
           {/* Subreddit Selector */}
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-1 overflow-x-auto pb-1" role="group" aria-label="Subreddit">
             {SUBREDDITS.map(sub => (
               <button
                 key={sub.value}
+                type="button"
+                aria-pressed={activeSub === sub.value}
                 onClick={() => setActiveSub(sub.value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                  activeSub === sub.value
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                className={cn(segmentClass(activeSub === sub.value), 'whitespace-nowrap')}
               >
                 {sub.label}
               </button>
@@ -99,40 +108,34 @@ function TrendingPage() {
           {loadingReddit ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-20" />
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
               ))}
             </div>
           ) : redditData.length > 0 ? (
             <div className="space-y-3">
               {redditData.map((item, idx) => (
-                <div key={item.symbol} className="bg-white rounded-xl border border-gray-100 shadow-xs p-4">
-                  <div className="flex items-center justify-between mb-2">
+                <div key={item.symbol} className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center justify-between gap-3 mb-2">
                     <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-gray-300 w-6">{idx + 1}</span>
-                      <Link
-                        to={`/stock/${item.symbol}`}
-                        className="text-lg font-bold text-blue-600 hover:text-blue-800"
-                      >
+                      <span className="w-6 text-lg font-bold text-muted-foreground/50 tabular-nums">{idx + 1}</span>
+                      <Link to={`/stock/${item.symbol}`} className={cn('text-lg font-bold', LINK_CLASS)}>
                         {item.symbol}
                       </Link>
-                      <span className={`px-2 py-0.5 rounded-sm text-xs font-semibold ${getSentimentColor(item.sentiment_label)}`}>
+                      <Badge variant={getSentimentVariant(item.sentiment_label)}>
                         {item.sentiment_label}
-                      </span>
+                      </Badge>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-bold text-gray-900">{item.mentions} mentions</div>
-                      <div className="text-xs text-gray-400">sentiment: {item.sentiment?.toFixed(2)}</div>
+                      <Badge variant="secondary" className="tabular-nums">{item.mentions} mentions</Badge>
+                      <div className="mt-1 text-xs text-muted-foreground tabular-nums">sentiment: {item.sentiment?.toFixed(2)}</div>
                     </div>
                   </div>
 
                   {/* Mention bar */}
-                  <div className="h-2 bg-gray-100 rounded-full mb-3 overflow-hidden">
+                  <div className="h-2 bg-muted rounded-full mb-3 overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${(item.mentions / maxMentions) * 100}%`,
-                        backgroundColor: getSentimentBarColor(item.sentiment),
-                      }}
+                      className={cn('h-full rounded-full transition-all', getSentimentBarClass(item.sentiment))}
+                      style={{ width: `${(item.mentions / maxMentions) * 100}%` }}
                     />
                   </div>
 
@@ -140,7 +143,7 @@ function TrendingPage() {
                   {item.sample_titles?.length > 0 && (
                     <div className="space-y-1">
                       {item.sample_titles.map((title, i) => (
-                        <p key={i} className="text-xs text-gray-500 truncate">
+                        <p key={i} className="text-xs text-muted-foreground truncate">
                           "{title}"
                         </p>
                       ))}
@@ -150,10 +153,11 @@ function TrendingPage() {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-              <p className="text-gray-400">No stock mentions found in {SUBREDDITS.find(s => s.value === activeSub)?.label}</p>
-              <p className="text-xs text-gray-300 mt-1">Try a different subreddit or check back later</p>
-            </div>
+            <EmptyState
+              icon={MessageSquare}
+              title={`No stock mentions found in ${SUBREDDITS.find(s => s.value === activeSub)?.label}`}
+              description="Try a different subreddit or check back later"
+            />
           )}
         </div>
       )}
@@ -164,46 +168,41 @@ function TrendingPage() {
           {loadingLocal ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-12" />
+                <Skeleton key={i} className="h-12 w-full rounded-xl" />
               ))}
             </div>
           ) : trendingLocal.length > 0 ? (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-700">Most Viewed Stocks Today</h2>
-              </div>
-              <div className="divide-y divide-gray-50">
+            <SectionCard title="Most Viewed Stocks Today" contentClassName="p-0">
+              <div className="divide-y divide-border">
                 {trendingLocal.map((item, idx) => (
-                  <div key={item.symbol} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                  <div key={item.symbol} className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-gray-300 w-6">{idx + 1}</span>
-                      <Link
-                        to={`/stock/${item.symbol}`}
-                        className="text-sm font-semibold text-blue-600 hover:text-blue-800"
-                      >
+                      <span className="w-6 text-sm font-bold text-muted-foreground/50 tabular-nums">{idx + 1}</span>
+                      <Link to={`/stock/${item.symbol}`} className={cn('text-sm font-semibold', LINK_CLASS)}>
                         {item.symbol}
                       </Link>
                     </div>
-                    <span className="text-sm text-gray-500">{item.views} views</span>
+                    <Badge variant="secondary" className="tabular-nums">{item.views} views</Badge>
                   </div>
                 ))}
               </div>
-            </div>
+            </SectionCard>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-              <p className="text-gray-400">No trending data yet</p>
-              <p className="text-xs text-gray-300 mt-1">View some stock pages and they'll appear here</p>
-            </div>
+            <EmptyState
+              icon={Flame}
+              title="No trending data yet"
+              description="View some stock pages and they'll appear here"
+            />
           )}
         </div>
       )}
 
       {/* Disclaimer */}
-      <div className="mt-8 text-xs text-gray-400 text-center">
+      <p className="text-xs text-muted-foreground text-center">
         Reddit data from public subreddits. Sentiment analysis uses VADER NLP.
         Social mentions do not constitute investment advice.
-      </div>
-    </div>
+      </p>
+    </PageContainer>
   );
 }
 

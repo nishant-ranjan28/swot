@@ -63,7 +63,7 @@ const HoldersTab = ({ symbol }) => {
 
       {/* Institutional / Mutual Fund Toggle */}
       <div>
-        <div className="mb-4 inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+        <div className="mb-4 inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1" role="group" aria-label="Holder type">
           {['institutional', 'mutual_fund'].map((type) => (
             <button
               key={type}

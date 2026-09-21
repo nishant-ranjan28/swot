@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../api';
+import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import PriceChange from '@/components/common/PriceChange';
+import ErrorState from '@/components/common/ErrorState';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import { cn } from '@/lib/utils';
+import { segmentClass } from '@/lib/segment';
 
 const TIMEFRAMES = [
   { value: '1h', label: '1H', limit: 60 },
@@ -22,23 +33,19 @@ function formatPrice(price) {
   return `$${price.toFixed(6)}`;
 }
 
-function formatChange(pct) {
-  if (pct == null) return '-';
-  const sign = pct >= 0 ? '+' : '';
-  return `${sign}${pct.toFixed(2)}%`;
-}
+const headClass = 'px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
 
 // Loading skeleton rows
 function SkeletonRows({ count }) {
   return Array.from({ length: count }).map((_, i) => (
-    <tr key={i} className="animate-pulse">
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-8" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-16" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-24" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-16" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-20" /></td>
-      <td className="px-3 py-3"><div className="h-4 bg-gray-200 rounded-sm w-32" /></td>
-    </tr>
+    <TableRow key={i} className="hover:bg-transparent">
+      <TableCell className="px-3 py-3"><Skeleton className="h-4 w-8" /></TableCell>
+      <TableCell className="px-3 py-3"><Skeleton className="h-4 w-16" /></TableCell>
+      <TableCell className="px-3 py-3"><Skeleton className="ml-auto h-4 w-24" /></TableCell>
+      <TableCell className="px-3 py-3"><Skeleton className="ml-auto h-4 w-16" /></TableCell>
+      <TableCell className="px-3 py-3"><Skeleton className="ml-auto h-4 w-20" /></TableCell>
+      <TableCell className="px-3 py-3"><Skeleton className="ml-auto h-4 w-32" /></TableCell>
+    </TableRow>
   ));
 }
 
@@ -47,6 +54,7 @@ function CryptoChart({ symbol, timeframe, limit }) {
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const ct = useChartTheme();
 
   useEffect(() => {
     if (!symbol) return;
@@ -96,7 +104,7 @@ function CryptoChart({ symbol, timeframe, limit }) {
     ctx.clearRect(0, 0, W, H);
 
     // Grid lines
-    ctx.strokeStyle = '#f0f0f0';
+    ctx.strokeStyle = ct.grid;
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const y = pad.top + (cH / 4) * i;
@@ -105,7 +113,7 @@ function CryptoChart({ symbol, timeframe, limit }) {
       ctx.lineTo(W - pad.right, y);
       ctx.stroke();
       const val = maxP - (range / 4) * i;
-      ctx.fillStyle = '#999';
+      ctx.fillStyle = ct.text;
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText(formatPrice(val).replace('$', ''), pad.left - 5, y + 3);
@@ -123,8 +131,8 @@ function CryptoChart({ symbol, timeframe, limit }) {
       const lowY = pad.top + ((maxP - d.low) / range) * cH;
 
       const bullish = d.close >= d.open;
-      ctx.strokeStyle = bullish ? '#22c55e' : '#ef4444';
-      ctx.fillStyle = bullish ? '#22c55e' : '#ef4444';
+      ctx.strokeStyle = bullish ? ct.gain : ct.loss;
+      ctx.fillStyle = bullish ? ct.gain : ct.loss;
 
       // Wick
       ctx.beginPath();
@@ -140,7 +148,7 @@ function CryptoChart({ symbol, timeframe, limit }) {
     });
 
     // X-axis date labels
-    ctx.fillStyle = '#999';
+    ctx.fillStyle = ct.text;
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     const labelCount = Math.min(6, chartData.length);
@@ -151,7 +159,7 @@ function CryptoChart({ symbol, timeframe, limit }) {
     }
 
     // Close price line overlay
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = ct.isDark ? ct.primary : ct.foreground;
     ctx.lineWidth = 1.5;
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
@@ -163,21 +171,19 @@ function CryptoChart({ symbol, timeframe, limit }) {
     });
     ctx.stroke();
     ctx.globalAlpha = 1;
-  }, [chartData]);
+  }, [chartData, ct]);
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
-        <div className="animate-pulse">
-          <div className="h-64 bg-gray-100 rounded-sm" />
-        </div>
+      <div className="rounded-xl border border-border bg-card p-6">
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-red-500">
+      <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-loss">
         {error}
       </div>
     );
@@ -190,7 +196,7 @@ function CryptoChart({ symbol, timeframe, limit }) {
   return (
     <canvas
       ref={canvasRef}
-      className="w-full bg-white rounded-lg border border-gray-200"
+      className="w-full rounded-xl border border-border bg-card"
       style={{ height: '320px' }}
     />
   );
@@ -223,108 +229,94 @@ function CryptoPage() {
   const selectedTf = TIMEFRAMES.find(t => t.value === timeframe);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Crypto Market</h1>
-          <p className="text-sm text-gray-500 mt-1">Top 15 cryptocurrencies by 24h volume (prices update every 60s)</p>
-        </div>
-        <button
-          onClick={() => { setLoading(true); fetchPrices(); }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          Refresh
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Crypto Market"
+        description="Top 15 cryptocurrencies by 24h volume (prices update every 60s)"
+        actions={
+          <Button size="sm" onClick={() => { setLoading(true); fetchPrices(); }}>
+            <RefreshCw aria-hidden />
+            Refresh
+          </Button>
+        }
+      />
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState title={error} onRetry={() => { setLoading(true); fetchPrices(); }} />}
 
       {/* Crypto Prices Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-6">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-3 py-3 text-left font-semibold text-gray-600">#</th>
-                <th className="px-3 py-3 text-left font-semibold text-gray-600">Name</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-600">Price (USD)</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-600">24h Change</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-600">24h Volume</th>
-                <th className="px-3 py-3 text-right font-semibold text-gray-600">24h High / Low</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <SkeletonRows count={15} />
-              ) : cryptos.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-3 py-8 text-center text-gray-500">
-                    No crypto data available
-                  </td>
-                </tr>
-              ) : (
-                cryptos.map((c, idx) => {
-                  const isPositive = (c.change_pct_24h || 0) >= 0;
-                  const isSelected = selected?.symbol === c.symbol;
-                  return (
-                    <tr
-                      key={c.symbol}
-                      onClick={() => setSelected(c)}
-                      className={`border-b border-gray-100 cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'bg-blue-50 border-blue-200'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <td className="px-3 py-3 text-gray-500">{idx + 1}</td>
-                      <td className="px-3 py-3 font-medium text-gray-900">
-                        <span className="font-bold">{c.name}</span>
-                        <span className="text-gray-400 text-xs ml-1">/USDT</span>
-                      </td>
-                      <td className="px-3 py-3 text-right font-mono font-medium text-gray-900">
-                        {formatPrice(c.price)}
-                      </td>
-                      <td className={`px-3 py-3 text-right font-mono font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatChange(c.change_pct_24h)}
-                      </td>
-                      <td className="px-3 py-3 text-right text-gray-600">
-                        {formatVolume(c.volume_24h)}
-                      </td>
-                      <td className="px-3 py-3 text-right text-gray-600 text-xs">
-                        <span className="text-green-600">{formatPrice(c.high_24h)}</span>
-                        {' / '}
-                        <span className="text-red-600">{formatPrice(c.low_24h)}</span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead className={headClass}>#</TableHead>
+              <TableHead className={headClass}>Name</TableHead>
+              <TableHead className={cn(headClass, 'text-right')}>Price (USD)</TableHead>
+              <TableHead className={cn(headClass, 'text-right')}>24h Change</TableHead>
+              <TableHead className={cn(headClass, 'text-right')}>24h Volume</TableHead>
+              <TableHead className={cn(headClass, 'text-right')}>24h High / Low</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <SkeletonRows count={15} />
+            ) : cryptos.length === 0 ? (
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={6} className="px-3 py-8 text-center text-muted-foreground">
+                  No crypto data available
+                </TableCell>
+              </TableRow>
+            ) : (
+              cryptos.map((c, idx) => {
+                const isSelected = selected?.symbol === c.symbol;
+                return (
+                  <TableRow
+                    key={c.symbol}
+                    onClick={() => setSelected(c)}
+                    data-state={isSelected ? 'selected' : undefined}
+                    className="cursor-pointer"
+                  >
+                    <TableCell className="px-3 py-3 text-muted-foreground tabular-nums">{idx + 1}</TableCell>
+                    <TableCell className="px-3 py-3 font-medium">
+                      <span className="font-bold">{c.name}</span>
+                      <span className="ml-1 text-xs text-muted-foreground">/USDT</span>
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-right font-mono font-medium tabular-nums">
+                      {formatPrice(c.price)}
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-right font-mono font-medium">
+                      <PriceChange percent={c.change_pct_24h} />
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-right text-muted-foreground tabular-nums">
+                      {formatVolume(c.volume_24h)}
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-right text-xs text-muted-foreground tabular-nums">
+                      <span className="text-gain">{formatPrice(c.high_24h)}</span>
+                      {' / '}
+                      <span className="text-loss">{formatPrice(c.low_24h)}</span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* Chart Section */}
       {selected && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-900">
+        <div>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">
               {selected.name}/USDT Chart
             </h2>
-            <div className="flex gap-1">
+            <div className="inline-flex rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Timeframe">
               {TIMEFRAMES.map(tf => (
                 <button
                   key={tf.value}
+                  type="button"
+                  aria-pressed={timeframe === tf.value}
                   onClick={() => setTimeframe(tf.value)}
-                  className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-colors ${
-                    timeframe === tf.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                  className={segmentClass(timeframe === tf.value)}
                 >
                   {tf.label}
                 </button>
@@ -340,11 +332,11 @@ function CryptoPage() {
       )}
 
       {/* Disclaimer */}
-      <div className="text-xs text-gray-400 text-center mt-6">
+      <p className="text-center text-xs text-muted-foreground">
         Data sourced from Binance via CCXT. Prices are for informational purposes only and may be delayed.
         Not financial advice.
-      </div>
-    </div>
+      </p>
+    </PageContainer>
   );
 }
 

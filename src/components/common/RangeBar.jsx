@@ -18,7 +18,7 @@ export default function RangeBar({ low, high, value, lowLabel, highLabel, label,
       {(lowLabel || highLabel || label) && (
         <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
           <span>{lowLabel}</span>
-          {label && <span className="text-muted-foreground/70">{label}</span>}
+          {label && <span className="text-muted-foreground">{label}</span>}
           <span>{highLabel}</span>
         </div>
       )}

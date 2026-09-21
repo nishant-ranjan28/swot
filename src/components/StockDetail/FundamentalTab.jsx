@@ -68,7 +68,7 @@ const ScoreRing = ({ score, maxScore, label }) => {
         </div>
       </div>
       <div className="text-xs text-muted-foreground font-medium mt-2">{label}</div>
-      <div className="text-[10px] tabular-nums text-muted-foreground/70">{score}/{maxScore}</div>
+      <div className="text-[10px] tabular-nums text-muted-foreground">{score}/{maxScore}</div>
     </div>
   );
 };
@@ -109,7 +109,7 @@ const MetricRow = ({ item }) => (
     </div>
     <div className="flex justify-between items-center">
       <span className="text-xs text-muted-foreground">{item.description}</span>
-      <span className="text-xs tabular-nums text-muted-foreground/70">{item.score}/{item.max_score}</span>
+      <span className="text-xs tabular-nums text-muted-foreground">{item.score}/{item.max_score}</span>
     </div>
     {/* Score bar */}
     <div className="mt-1.5 h-1.5 bg-muted rounded-full">

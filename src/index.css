@@ -246,55 +246,6 @@
   }
 }
 
-/* Ensure TradingView widget is responsive */
-.tradingview-widget-container {
-  width: 100% !important;
-  height: 100% !important;
-  position: relative !important;
-}
-
-.tradingview-widget-container iframe {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 320px !important;
-  border: none !important;
-}
-
-/* Mobile-specific TradingView optimizations */
-@media (max-width: 768px) {
-  .tradingview-widget-container {
-    min-height: 320px !important;
-    max-height: 400px !important;
-  }
-
-  .tradingview-widget-container iframe {
-    min-height: 320px !important;
-    max-height: 400px !important;
-  }
-
-  /* Hide TradingView toolbar on very small screens */
-  #stock-chart-container .tradingview-widget-container div[class*="toolbar"] {
-    display: none !important;
-  }
-
-  /* Ensure proper scaling */
-  #stock-chart-container {
-    transform-origin: top left;
-    overflow: hidden;
-  }
-}
-
-/* Tablet optimizations */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .tradingview-widget-container {
-    min-height: 400px !important;
-  }
-
-  .tradingview-widget-container iframe {
-    min-height: 400px !important;
-  }
-}
-
 /* Loading states */
 .loading-skeleton {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -335,24 +286,3 @@
     font-size: 0.875rem;
   }
 }
-
-/* ---------- Legacy dark overrides — removed page by page in Phase 3 ---------- */
-.dark .min-h-screen, .dark .bg-gray-50 { background-color: var(--background); }
-.dark .bg-white { background-color: var(--card); }
-.dark .bg-gray-100 { background-color: var(--muted); }
-.dark .text-gray-900 { color: var(--foreground); }
-.dark .text-gray-800 { color: #d4d4d8; }
-.dark .text-gray-700 { color: #c4c4cc; }
-.dark .text-gray-600, .dark .text-gray-500, .dark .text-gray-400 { color: var(--muted-foreground); }
-.dark .border-gray-100, .dark .border-gray-200 { border-color: var(--border); }
-.dark .shadow-xs, .dark .shadow-sm { --tw-shadow: 0 1px 2px rgb(0 0 0 / 0.5); }
-.dark .shadow-lg { --tw-shadow: 0 4px 12px rgb(0 0 0 / 0.6); }
-.dark :is(input, select, textarea):not([data-slot]) { background-color: var(--muted); color: var(--foreground); border-color: var(--border); }
-.dark :is(input, textarea):not([data-slot])::placeholder { color: var(--muted-foreground); }
-.dark table thead { background-color: var(--card); }
-.dark table tbody tr:hover { background-color: color-mix(in srgb, var(--accent) 60%, transparent); }
-.dark .bg-blue-50, .dark .bg-blue-50\/50 { background-color: rgb(59 130 246 / 0.1); }
-.dark .bg-green-50 { background-color: rgb(22 163 74 / 0.1); }
-.dark .bg-red-50 { background-color: rgb(220 38 38 / 0.1); }
-.dark .bg-amber-50 { background-color: rgb(245 158 11 / 0.1); }
-.dark .bg-gray-50.rounded-lg, .dark .bg-gray-50.rounded-xl { background-color: var(--card); }

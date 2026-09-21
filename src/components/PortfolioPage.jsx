@@ -142,7 +142,7 @@ const PieLegend = ({ holdings, liveData }) => {
             style={{ backgroundColor: palette[i % palette.length] }}
           />
           <span className="truncate max-w-[90px]">{s.name}</span>
-          <span className="text-muted-foreground/70 tabular-nums">{total > 0 ? ((s.value / total) * 100).toFixed(1) : 0}%</span>
+          <span className="text-muted-foreground tabular-nums">{total > 0 ? ((s.value / total) * 100).toFixed(1) : 0}%</span>
         </div>
       ))}
     </div>
@@ -389,8 +389,8 @@ const PortfolioPage = () => {
   );
 
   const sortControl = (
-    <div className="flex items-center gap-1">
-      <span className="mr-1 text-xs text-muted-foreground/70">Sort:</span>
+    <div className="flex items-center gap-1" role="group" aria-label="Sort holdings">
+      <span className="mr-1 text-xs text-muted-foreground" aria-hidden>Sort:</span>
       {[
         { key: 'name', label: 'Name' },
         { key: 'value', label: 'Value' },
@@ -711,29 +711,29 @@ const PortfolioPage = () => {
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div>
-                          <span className="text-muted-foreground/70">Qty</span>
+                          <span className="text-muted-foreground">Qty</span>
                           <div className="font-medium tabular-nums text-foreground">{h.quantity}</div>
                         </div>
                         <div>
-                          <span className="text-muted-foreground/70">Avg Buy</span>
+                          <span className="text-muted-foreground">Avg Buy</span>
                           <div className="font-medium tabular-nums text-foreground">{h.buyPrice.toFixed(2)}</div>
                         </div>
                         <div>
-                          <span className="text-muted-foreground/70">CMP</span>
+                          <span className="text-muted-foreground">CMP</span>
                           <div className="font-medium tabular-nums text-foreground">
                             {loading ? '...' : currentPrice.toFixed(2)}
                           </div>
                         </div>
                         <div>
-                          <span className="text-muted-foreground/70">Invested</span>
+                          <span className="text-muted-foreground">Invested</span>
                           <div className="tabular-nums text-foreground/85">{formatNumber(invested)}</div>
                         </div>
                         <div>
-                          <span className="text-muted-foreground/70">Current</span>
+                          <span className="text-muted-foreground">Current</span>
                           <div className="font-medium tabular-nums text-foreground">{loading ? '...' : formatNumber(current)}</div>
                         </div>
                         <div>
-                          <span className="text-muted-foreground/70">Alloc</span>
+                          <span className="text-muted-foreground">Alloc</span>
                           <div className="tabular-nums text-foreground/85">{alloc.toFixed(1)}%</div>
                           <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
                             <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(alloc, 100)}%` }} />
@@ -742,13 +742,13 @@ const PortfolioPage = () => {
                       </div>
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                         <div>
-                          <span className="mr-1 text-xs text-muted-foreground/70">P&L:</span>
+                          <span className="mr-1 text-xs text-muted-foreground">P&L:</span>
                           <span className={cn('text-sm font-medium tabular-nums', plColor(pl))}>
                             {loading ? '...' : `${pl >= 0 ? '+' : ''}${formatNumber(pl)} (${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%)`}
                           </span>
                         </div>
                         <div>
-                          <span className="mr-1 text-xs text-muted-foreground/70">Day:</span>
+                          <span className="mr-1 text-xs text-muted-foreground">Day:</span>
                           <span className={cn('text-xs font-medium tabular-nums', plColor(dayChange))}>
                             {loading ? '...' : `${dayChange >= 0 ? '+' : ''}${formatNumber(dayChange)}`}
                           </span>
@@ -889,7 +889,7 @@ const RiskAnalysis = ({ symbols }) => {
             <div className={tile}>
               <div className={tileLabel}>VaR (95%)</div>
               <div className={cn(tileValue, 'text-loss')}>{riskData.var_95_daily_pct}%</div>
-              <div className="text-[10px] text-muted-foreground/70">Daily</div>
+              <div className="text-[10px] text-muted-foreground">Daily</div>
             </div>
             <div className={tile}>
               <div className={tileLabel}>Max Drawdown</div>
@@ -948,7 +948,7 @@ const RiskAnalysis = ({ symbols }) => {
                   );
                 })}
               </div>
-              <p className="mt-2 text-[10px] text-muted-foreground/70">
+              <p className="mt-2 text-[10px] text-muted-foreground">
                 Shows each stock's marginal contribution to total portfolio variance
               </p>
             </div>
@@ -992,7 +992,7 @@ const RiskAnalysis = ({ symbols }) => {
                   </tbody>
                 </table>
               </div>
-              <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground/70">
+              <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
                 <span className="inline-block size-3 rounded-sm bg-gain/30"></span> Low
                 <span className="inline-block size-3 rounded-sm border border-warning/30 bg-warning/10"></span> Moderate
                 <span className="inline-block size-3 rounded-sm bg-loss/30"></span> High
@@ -1390,7 +1390,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <div className="text-sm font-semibold text-foreground">{name}</div>
-                      <div className="text-[10px] text-muted-foreground/70">{sym.replace('.NS', '')}</div>
+                      <div className="text-[10px] text-muted-foreground">{sym.replace('.NS', '')}</div>
                     </div>
                     {data.recommendation && (
                       <Badge
@@ -1412,7 +1412,7 @@ const PortfolioInsights = ({ holdings, liveData, watchlist }) => {
                     </div>
                   )}
                   {data.number_of_analysts && (
-                    <div className="mt-1 text-[10px] text-muted-foreground/70">{data.number_of_analysts} analysts</div>
+                    <div className="mt-1 text-[10px] text-muted-foreground">{data.number_of_analysts} analysts</div>
                   )}
                 </Link>
               );

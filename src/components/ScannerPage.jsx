@@ -47,7 +47,7 @@ const StockCard = ({ stock, type, locale = 'en-IN', currencyCode = 'INR', market
           <div className="text-sm font-semibold truncate">{stock.name}</div>
           <div className="text-xs text-muted-foreground mt-0.5">{stock.symbol?.replace(/\.(NS|BO)$/, '')}</div>
           {stock.sector && (
-            <div className="text-[10px] text-muted-foreground/70 mt-0.5">{stock.sector}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">{stock.sector}</div>
           )}
         </div>
         <div className="text-right ml-3">
@@ -147,7 +147,7 @@ const ScannerPage = () => {
       />
 
       {/* Tabs */}
-      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1">
+      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1" role="group" aria-label="Scan type">
         <button
           type="button"
           aria-pressed={activeTab === 'high'}

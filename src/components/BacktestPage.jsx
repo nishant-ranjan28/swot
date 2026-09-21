@@ -1,6 +1,21 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import api from '../api';
 import { useMarket } from '../context/MarketContext';
+import { AlertTriangle, ChevronDown, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import SectionCard from '@/components/common/SectionCard';
+import StatCard from '@/components/common/StatCard';
+import PriceChange from '@/components/common/PriceChange';
+import ErrorState from '@/components/common/ErrorState';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import { withAlpha } from '@/lib/color';
+import { cn } from '@/lib/utils';
+import { selectClass } from '@/lib/select';
 
 const STRATEGIES = [
   { value: 'sma_crossover', label: 'SMA Crossover' },
@@ -25,17 +40,15 @@ function formatCurrency(value, currency) {
   return `${sym}${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+const TH_CLASS = 'px-3 text-xs font-medium text-muted-foreground';
+
 function SummaryCard({ label, value, color }) {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 text-center">
-      <div className="text-xs text-gray-500 font-medium mb-1">{label}</div>
-      <div className={`text-lg font-bold ${color || 'text-gray-900'}`}>{value}</div>
-    </div>
-  );
+  return <StatCard label={label} value={<span className={color}>{value}</span>} />;
 }
 
 function EquityChart({ data, initialCash }) {
   const canvasRef = useRef(null);
+  const ct = useChartTheme();
 
   useEffect(() => {
     if (!data || data.length < 2) return;
@@ -63,7 +76,7 @@ function EquityChart({ data, initialCash }) {
     ctx.clearRect(0, 0, W, H);
 
     // Grid lines
-    ctx.strokeStyle = '#f0f0f0';
+    ctx.strokeStyle = ct.grid;
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const y = pad.top + (cH / 4) * i;
@@ -72,7 +85,7 @@ function EquityChart({ data, initialCash }) {
       ctx.lineTo(W - pad.right, y);
       ctx.stroke();
       const val = maxE - (range / 4) * i;
-      ctx.fillStyle = '#999';
+      ctx.fillStyle = ct.text;
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText(val.toLocaleString(undefined, { maximumFractionDigits: 0 }), pad.left - 5, y + 3);
@@ -80,7 +93,7 @@ function EquityChart({ data, initialCash }) {
 
     // Initial cash line
     const cashY = pad.top + ((maxE - initialCash) / range) * cH;
-    ctx.strokeStyle = '#ddd';
+    ctx.strokeStyle = withAlpha(ct.text, 0.5);
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
     ctx.moveTo(pad.left, cashY);
@@ -90,7 +103,7 @@ function EquityChart({ data, initialCash }) {
 
     // Equity line
     const finalEquity = equities[equities.length - 1];
-    const lineColor = finalEquity >= initialCash ? '#22c55e' : '#ef4444';
+    const lineColor = finalEquity >= initialCash ? ct.gain : ct.loss;
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -108,11 +121,11 @@ function EquityChart({ data, initialCash }) {
     ctx.lineTo(lastX, baseY);
     ctx.lineTo(pad.left, baseY);
     ctx.closePath();
-    ctx.fillStyle = finalEquity >= initialCash ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
+    ctx.fillStyle = withAlpha(finalEquity >= initialCash ? ct.gain : ct.loss, 0.08);
     ctx.fill();
 
     // X-axis labels
-    ctx.fillStyle = '#999';
+    ctx.fillStyle = ct.text;
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     const labelCount = Math.min(6, data.length);
@@ -121,13 +134,12 @@ function EquityChart({ data, initialCash }) {
       const x = pad.left + (idx / (data.length - 1)) * cW;
       ctx.fillText(data[idx].date, x, H - 5);
     }
-  }, [data, initialCash]);
+  }, [data, initialCash, ct]);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Equity Curve</h3>
+    <SectionCard title="Equity Curve">
       <canvas ref={canvasRef} style={{ width: '100%', height: 250 }} />
-    </div>
+    </SectionCard>
   );
 }
 
@@ -206,34 +218,35 @@ function BacktestPage() {
   const strategyWins = result && result.total_return_pct > result.buy_hold_return_pct;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Strategy Backtester</h1>
-      <p className="text-sm text-gray-500 mb-6">Test trading strategies against historical data</p>
+    <PageContainer className="max-w-5xl">
+      <PageHeader title="Strategy Backtester" description="Test trading strategies against historical data" />
 
       {/* Controls */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+      <SectionCard>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Symbol Search */}
           <div className="relative lg:col-span-2" ref={dropdownRef}>
-            <label className="block text-xs text-gray-500 font-medium mb-1">Stock Symbol</label>
-            <input
+            <label htmlFor="bt-symbol" className="block text-xs font-medium text-muted-foreground mb-1">Stock Symbol</label>
+            <Input
+              id="bt-symbol"
               type="text"
               value={symbol}
               onChange={handleSymbolChange}
               onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
               placeholder="Search stock..."
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              autoComplete="off"
             />
             {showDropdown && searchResults.length > 0 && (
-              <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-40 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
                 {searchResults.map((r, i) => (
                   <button
                     key={i}
+                    type="button"
                     onClick={() => selectStock(r.symbol)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors border-b border-border last:border-0"
                   >
-                    <span className="font-medium text-gray-900">{r.symbol}</span>
-                    {r.name && <span className="text-gray-500 ml-2 text-xs">{r.name}</span>}
+                    <span className="font-medium">{r.symbol}</span>
+                    {r.name && <span className="text-muted-foreground ml-2 text-xs">{r.name}</span>}
                   </button>
                 ))}
               </div>
@@ -242,11 +255,12 @@ function BacktestPage() {
 
           {/* Strategy */}
           <div>
-            <label className="block text-xs text-gray-500 font-medium mb-1">Strategy</label>
+            <label htmlFor="bt-strategy" className="block text-xs font-medium text-muted-foreground mb-1">Strategy</label>
             <select
+              id="bt-strategy"
               value={strategy}
               onChange={(e) => setStrategy(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={cn(selectClass, 'w-full')}
             >
               {STRATEGIES.map(s => (
                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -256,17 +270,20 @@ function BacktestPage() {
 
           {/* Period */}
           <div>
-            <label className="block text-xs text-gray-500 font-medium mb-1">Period</label>
-            <div className="flex gap-1">
+            <span className="block text-xs font-medium text-muted-foreground mb-1">Period</span>
+            <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-1" role="group" aria-label="Period">
               {PERIODS.map(p => (
                 <button
                   key={p.value}
+                  type="button"
+                  aria-pressed={period === p.value}
                   onClick={() => setPeriod(p.value)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  className={cn(
+                    'flex-1 rounded-md py-1 text-xs font-medium transition-colors',
                     period === p.value
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
                 >
                   {p.label}
                 </button>
@@ -276,55 +293,55 @@ function BacktestPage() {
 
           {/* Cash */}
           <div>
-            <label className="block text-xs text-gray-500 font-medium mb-1">Initial Capital</label>
-            <input
+            <label htmlFor="bt-cash" className="block text-xs font-medium text-muted-foreground mb-1">Initial Capital</label>
+            <Input
+              id="bt-cash"
               type="number"
               value={cash}
               onChange={(e) => setCash(parseFloat(e.target.value) || 100000)}
               min={10000}
               max={10000000}
-              className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="tabular-nums"
             />
           </div>
         </div>
 
         {/* Quick Stocks */}
         <div className="mt-3 flex flex-wrap gap-2 items-center">
-          <span className="text-xs text-gray-400">Quick:</span>
+          <span className="text-xs text-muted-foreground">Quick:</span>
           {(POPULAR_STOCKS[market] || POPULAR_STOCKS.in).map(s => (
-            <button
+            <Button
               key={s}
+              type="button"
+              variant="secondary"
+              size="xs"
               onClick={() => setSymbol(s)}
-              className="text-xs px-2 py-1 rounded-sm bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
             >
               {s}
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* Run Button */}
-        <button
+        <Button
+          type="button"
           onClick={runBacktest}
           disabled={!symbol || loading}
-          className="mt-4 w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="mt-4 w-full sm:w-auto"
         >
           {loading ? 'Running Backtest...' : 'Run Backtest'}
-        </button>
-      </div>
+        </Button>
+      </SectionCard>
 
       {/* Error */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState title="Backtest failed" message={error} />}
 
       {/* Loading */}
       {loading && (
         <div className="text-center py-16">
-          <div className="inline-block w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3" />
-          <p className="text-sm text-gray-500">Running backtest on {symbol}...</p>
-          <p className="text-xs text-gray-400 mt-1">This may take a few seconds</p>
+          <Loader2 className="mx-auto mb-3 size-8 animate-spin text-muted-foreground" aria-hidden />
+          <p className="text-sm text-muted-foreground">Running backtest on {symbol}...</p>
+          <p className="text-xs text-muted-foreground mt-1">This may take a few seconds</p>
         </div>
       )}
 
@@ -334,15 +351,13 @@ function BacktestPage() {
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">{result.symbol} - {result.strategy}</h2>
-              <p className="text-xs text-gray-500">Period: {result.period} | Trades: {result.total_trades}</p>
+              <h2 className="text-lg font-bold">{result.symbol} - {result.strategy}</h2>
+              <p className="text-xs text-muted-foreground tabular-nums">Period: {result.period} | Trades: {result.total_trades}</p>
             </div>
             {result.total_trades > 0 && (
-              <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-                strategyWins ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              }`}>
+              <Badge variant={strategyWins ? 'gain' : 'loss'} className="px-3 py-1 font-semibold">
                 {strategyWins ? 'Strategy Beats Buy & Hold' : 'Buy & Hold Wins'}
-              </div>
+              </Badge>
             )}
           </div>
 
@@ -351,40 +366,32 @@ function BacktestPage() {
             <SummaryCard
               label="Final Equity"
               value={formatCurrency(result.final_equity, currency)}
-              color={result.final_equity >= result.initial_cash ? 'text-green-600' : 'text-red-600'}
+              color={result.final_equity >= result.initial_cash ? 'text-gain' : 'text-loss'}
             />
-            <SummaryCard
-              label="Total Return"
-              value={`${result.total_return_pct >= 0 ? '+' : ''}${result.total_return_pct}%`}
-              color={result.total_return_pct >= 0 ? 'text-green-600' : 'text-red-600'}
-            />
-            <SummaryCard
-              label="Buy & Hold"
-              value={`${result.buy_hold_return_pct >= 0 ? '+' : ''}${result.buy_hold_return_pct}%`}
-              color={result.buy_hold_return_pct >= 0 ? 'text-green-600' : 'text-red-600'}
-            />
+            <StatCard label="Total Return" value={<PriceChange percent={result.total_return_pct} />} />
+            <StatCard label="Buy & Hold" value={<PriceChange percent={result.buy_hold_return_pct} />} />
             <SummaryCard
               label="Max Drawdown"
               value={`${result.max_drawdown_pct}%`}
-              color="text-red-600"
+              color="text-loss"
             />
             <SummaryCard
               label="Sharpe Ratio"
               value={result.sharpe_ratio != null ? result.sharpe_ratio : 'N/A'}
-              color={result.sharpe_ratio > 1 ? 'text-green-600' : result.sharpe_ratio > 0 ? 'text-yellow-600' : 'text-red-600'}
+              color={result.sharpe_ratio > 1 ? 'text-gain' : result.sharpe_ratio > 0 ? 'text-warning' : 'text-loss'}
             />
             <SummaryCard
               label="Win Rate"
               value={`${result.win_rate_pct}%`}
-              color={result.win_rate_pct >= 50 ? 'text-green-600' : 'text-red-600'}
+              color={result.win_rate_pct >= 50 ? 'text-gain' : 'text-loss'}
             />
           </div>
 
           {/* Extra Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryCard label="Avg Trade" value={`${result.avg_trade_pct}%`} />
-            <SummaryCard label="Best Trade" value={`${result.best_trade_pct}%`} color="text-green-600" />
-            <SummaryCard label="Worst Trade" value={`${result.worst_trade_pct}%`} color="text-red-600" />
+            <SummaryCard label="Best Trade" value={`${result.best_trade_pct}%`} color="text-gain" />
+            <SummaryCard label="Worst Trade" value={`${result.worst_trade_pct}%`} color="text-loss" />
             <SummaryCard label="Profit Factor" value={result.profit_factor != null ? result.profit_factor : 'N/A'} />
           </div>
 
@@ -395,73 +402,74 @@ function BacktestPage() {
 
           {/* Trade Log */}
           {result.trades && result.trades.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200">
+            <section className="overflow-hidden rounded-xl border border-border bg-card">
               <button
+                type="button"
+                aria-expanded={showTrades}
                 onClick={() => setShowTrades(!showTrades)}
-                className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50 flex items-center justify-between transition-colors"
+                className="w-full px-4 py-3 text-left text-sm font-semibold hover:bg-muted/50 flex items-center justify-between transition-colors"
               >
                 <span>Trade Log ({result.trades.length} trades)</span>
-                <svg
-                  className={`w-4 h-4 transition-transform ${showTrades ? 'rotate-180' : ''}`}
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
+                <ChevronDown
+                  className={cn('size-4 text-muted-foreground transition-transform', showTrades && 'rotate-180')}
+                  aria-hidden
+                />
               </button>
               {showTrades && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-gray-50 text-gray-500">
-                        <th className="px-3 py-2 text-left font-medium">#</th>
-                        <th className="px-3 py-2 text-left font-medium">Type</th>
-                        <th className="px-3 py-2 text-left font-medium">Entry Date</th>
-                        <th className="px-3 py-2 text-left font-medium">Exit Date</th>
-                        <th className="px-3 py-2 text-right font-medium">Entry Price</th>
-                        <th className="px-3 py-2 text-right font-medium">Exit Price</th>
-                        <th className="px-3 py-2 text-right font-medium">P&L</th>
-                        <th className="px-3 py-2 text-right font-medium">Return %</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <div className="border-t border-border">
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead className={TH_CLASS}>#</TableHead>
+                        <TableHead className={TH_CLASS}>Type</TableHead>
+                        <TableHead className={TH_CLASS}>Entry Date</TableHead>
+                        <TableHead className={TH_CLASS}>Exit Date</TableHead>
+                        <TableHead className={cn(TH_CLASS, 'text-right')}>Entry Price</TableHead>
+                        <TableHead className={cn(TH_CLASS, 'text-right')}>Exit Price</TableHead>
+                        <TableHead className={cn(TH_CLASS, 'text-right')}>P&L</TableHead>
+                        <TableHead className={cn(TH_CLASS, 'text-right')}>Return %</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {result.trades.map((t, i) => (
-                        <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
-                          <td className="px-3 py-2 text-gray-400">{i + 1}</td>
-                          <td className="px-3 py-2">
-                            <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-medium ${
-                              t.type === 'Long' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                            }`}>
+                        <TableRow key={i}>
+                          <TableCell className="px-3 text-muted-foreground/70 tabular-nums">{i + 1}</TableCell>
+                          <TableCell className="px-3">
+                            <Badge variant={t.type === 'Long' ? 'gain' : 'loss'} className="rounded-sm px-1.5 text-[10px]">
                               {t.type}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-gray-600">{t.entry_date?.slice(0, 10)}</td>
-                          <td className="px-3 py-2 text-gray-600">{t.exit_date?.slice(0, 10)}</td>
-                          <td className="px-3 py-2 text-right text-gray-700">{t.entry_price}</td>
-                          <td className="px-3 py-2 text-right text-gray-700">{t.exit_price}</td>
-                          <td className={`px-3 py-2 text-right font-medium ${t.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-3 text-muted-foreground tabular-nums">{t.entry_date?.slice(0, 10)}</TableCell>
+                          <TableCell className="px-3 text-muted-foreground tabular-nums">{t.exit_date?.slice(0, 10)}</TableCell>
+                          <TableCell className="px-3 text-right tabular-nums text-foreground/85">{t.entry_price}</TableCell>
+                          <TableCell className="px-3 text-right tabular-nums text-foreground/85">{t.exit_price}</TableCell>
+                          <TableCell className={cn('px-3 text-right font-medium tabular-nums', t.pnl >= 0 ? 'text-gain' : 'text-loss')}>
                             {t.pnl >= 0 ? '+' : ''}{t.pnl.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className={`px-3 py-2 text-right font-medium ${t.return_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {t.return_pct >= 0 ? '+' : ''}{t.return_pct}%
-                          </td>
-                        </tr>
+                          </TableCell>
+                          <TableCell className="px-3 text-right font-medium">
+                            <PriceChange percent={t.return_pct} />
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
-            </div>
+            </section>
           )}
 
           {/* Disclaimer */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800">
-            <strong>Disclaimer:</strong> Backtesting results are based on historical data and do not guarantee future performance.
-            Past performance is not indicative of future results. Trading involves risk, and you may lose more than your initial investment.
-            This tool is for educational purposes only and should not be considered as financial advice.
+          <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-muted-foreground">
+            <AlertTriangle className="size-4 shrink-0 mt-0.5 text-warning" aria-hidden />
+            <p>
+              <strong className="text-foreground">Disclaimer:</strong> Backtesting results are based on historical data and do not guarantee future performance.
+              Past performance is not indicative of future results. Trading involves risk, and you may lose more than your initial investment.
+              This tool is for educational purposes only and should not be considered as financial advice.
+            </p>
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

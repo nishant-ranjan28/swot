@@ -209,7 +209,7 @@ const GeneratedSwot = ({ symbol }) => {
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground/70 text-center mt-4">
+      <p className="text-xs text-muted-foreground text-center mt-4">
         Auto-generated from financial data, technical indicators, and analyst ratings. Not investment advice.
       </p>
     </div>

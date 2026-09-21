@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { useChartTheme } from '@/hooks/useChartTheme';
 import { withAlpha } from '@/lib/color';
+import { segmentClass } from '@/lib/segment';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PERIODS = [
   { value: '1mo', label: '1M' },
@@ -135,18 +137,16 @@ function PriceChart({ symbol, title, decimals = 2 }) {
 
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-        <div className="flex gap-1">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <div role="group" aria-label="Chart period" className="flex gap-1">
           {PERIODS.map(p => (
             <button
               key={p.value}
+              type="button"
+              aria-pressed={period === p.value}
               onClick={() => setPeriod(p.value)}
-              className={`px-3 py-1.5 rounded-sm text-sm font-medium transition-colors ${
-                period === p.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={segmentClass(period === p.value)}
             >
               {p.label}
             </button>
@@ -154,12 +154,12 @@ function PriceChart({ symbol, title, decimals = 2 }) {
         </div>
       </div>
       {loading && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
-          <div className="animate-pulse"><div className="h-64 bg-gray-100 rounded-sm" /></div>
+        <div className="rounded-lg border border-border bg-card p-6">
+          <Skeleton className="h-64 w-full" />
         </div>
       )}
       {error && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-red-500">
+        <div className="rounded-lg border border-border bg-card p-6 text-center text-sm text-loss">
           {error}
         </div>
       )}

@@ -17,6 +17,7 @@ import EmptyState from '@/components/common/EmptyState';
 import PriceChange from '@/components/common/PriceChange';
 import RangeBar from '@/components/common/RangeBar';
 import { cn } from '@/lib/utils';
+import { selectClass } from '@/lib/select';
 
 const MAX_WATCHLIST = 20;
 
@@ -26,8 +27,6 @@ const SORT_OPTIONS = [
   { key: 'price', label: 'Price' },
   { key: 'changePercent', label: 'Change%' },
 ];
-
-const SELECT_CLASS = 'h-9 rounded-md border border-input bg-card px-2 text-sm transition-colors';
 
 const SkeletonRow = () => (
   <TableRow>
@@ -285,7 +284,7 @@ const WatchlistPage = () => {
               id="watchlist-sort"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className={SELECT_CLASS}
+              className={selectClass}
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.key} value={opt.key}>{opt.label}</option>
@@ -370,7 +369,7 @@ const WatchlistPage = () => {
                         <span className="text-xs text-muted-foreground">({stock.symbol})</span>
                       </div>
                       {exists ? (
-                        <span className="text-xs text-muted-foreground/70 font-medium ml-2">Added</span>
+                        <span className="text-xs text-muted-foreground font-medium ml-2">Added</span>
                       ) : (
                         <Plus className="size-5 text-muted-foreground ml-2 shrink-0" aria-hidden />
                       )}
@@ -431,14 +430,14 @@ const WatchlistPage = () => {
                               {'\u20B9'}{price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground/70">--</span>
+                            <span className="text-muted-foreground">--</span>
                           )}
                         </TableCell>
                         <TableCell className="px-4 py-3 text-right">
                           {change != null ? (
                             <PriceChange value={change} percent={changePercent} className="font-semibold" />
                           ) : (
-                            <span className="text-muted-foreground/70">--</span>
+                            <span className="text-muted-foreground">--</span>
                           )}
                         </TableCell>
                         <TableCell className="px-4 py-3">
@@ -454,7 +453,7 @@ const WatchlistPage = () => {
                           <div className="flex justify-center">
                             {/* Same guard as RangeBar; the N/A fallback is Watchlist-specific. */}
                             {!low52 || !high52 || !price || high52 === low52 ? (
-                              <span className="text-xs text-muted-foreground/70">N/A</span>
+                              <span className="text-xs text-muted-foreground">N/A</span>
                             ) : (
                               <RangeBar
                                 className="w-28"

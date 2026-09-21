@@ -13,7 +13,7 @@ export function SidebarNav({ collapsed = false, onNavigate }) {
       {NAV_GROUPS.map(group => (
         <div key={group.label}>
           {!collapsed && (
-            <div className="px-3 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+            <div className="px-3 pb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               {group.label}
             </div>
           )}

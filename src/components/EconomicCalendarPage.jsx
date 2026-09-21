@@ -1,5 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { ECONOMIC_EVENTS } from '../data/economicEvents';
+import { CalendarX } from 'lucide-react';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import EmptyState from '@/components/common/EmptyState';
+import { Badge } from '@/components/ui/badge';
+import { segmentClass } from '@/lib/segment';
+import { cn } from '@/lib/utils';
 
 const COUNTRY_FLAGS = { IN: '\ud83c\uddee\ud83c\uddf3', US: '\ud83c\uddfa\ud83c\uddf8', EU: '\ud83c\uddea\ud83c\uddfa', JP: '\ud83c\uddef\ud83c\uddf5' };
 const COUNTRY_FILTERS = ['All', 'India', 'US', 'EU', 'Japan'];
@@ -48,6 +55,12 @@ function isPast(dateStr) {
   return new Date(dateStr + 'T00:00:00') < today;
 }
 
+const impactVariant = (impact) => {
+  if (impact === 'High') return 'loss';
+  if (impact === 'Medium') return 'warning';
+  return 'secondary';
+};
+
 const EconomicCalendarPage = () => {
   const [countryFilter, setCountryFilter] = useState('All');
   const [impactFilter, setImpactFilter] = useState('All');
@@ -83,24 +96,21 @@ const EconomicCalendarPage = () => {
   }, [countryFilter, impactFilter]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Economic Calendar</h1>
-      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Key economic events and data releases</p>
+    <PageContainer className="max-w-4xl">
+      <PageHeader title="Economic Calendar" description="Key economic events and data releases" />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="flex flex-wrap gap-4">
         <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Country</label>
-          <div className="flex gap-2">
+          <span id="econ-country-label" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Country</span>
+          <div role="group" aria-labelledby="econ-country-label" className="inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1">
             {COUNTRY_FILTERS.map(f => (
               <button
                 key={f}
+                type="button"
+                aria-pressed={countryFilter === f}
                 onClick={() => setCountryFilter(f)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  countryFilter === f
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
+                className={segmentClass(countryFilter === f)}
               >
                 {f}
               </button>
@@ -108,17 +118,15 @@ const EconomicCalendarPage = () => {
           </div>
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-2">Impact</label>
-          <div className="flex gap-2">
+          <span id="econ-impact-label" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Impact</span>
+          <div role="group" aria-labelledby="econ-impact-label" className="inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1">
             {IMPACT_FILTERS.map(f => (
               <button
                 key={f}
+                type="button"
+                aria-pressed={impactFilter === f}
                 onClick={() => setImpactFilter(f)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  impactFilter === f
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
+                className={segmentClass(impactFilter === f)}
               >
                 {f}
               </button>
@@ -129,21 +137,23 @@ const EconomicCalendarPage = () => {
 
       {/* Events List */}
       {events.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          <p className="font-medium">No events match your filters</p>
-          <p className="text-sm mt-1">Try adjusting country or impact filters</p>
-        </div>
+        <EmptyState
+          icon={CalendarX}
+          title="No events match your filters"
+          description="Try adjusting country or impact filters"
+        />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {events.map((ev, idx) => {
             const displayDate = ev.nextDate || ev.pastDate;
             const past = displayDate ? isPast(displayDate) : true;
             return (
               <div
                 key={`${ev.name}-${idx}`}
-                className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 transition-shadow hover:shadow-xs ${
-                  past ? 'opacity-50' : ''
-                }`}
+                className={cn(
+                  'rounded-lg border border-border bg-card p-3 transition-colors hover:border-foreground/20',
+                  past && 'opacity-50',
+                )}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -151,32 +161,25 @@ const EconomicCalendarPage = () => {
                       <span className="text-lg" role="img" aria-label={ev.country}>
                         {COUNTRY_FLAGS[ev.country] || ev.country}
                       </span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{ev.name}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        ev.impact === 'High'
-                          ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                          : 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                      }`}>
-                        {ev.impact}
-                      </span>
+                      <span className="font-semibold">{ev.name}</span>
+                      <Badge variant={impactVariant(ev.impact)}>{ev.impact}</Badge>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{ev.description}</p>
+                    <p className="text-sm text-muted-foreground">{ev.description}</p>
                   </div>
                   <div className="text-right shrink-0">
                     {displayDate && (
                       <>
-                        <div className="text-sm text-gray-700 dark:text-gray-300">{formatDate(displayDate)}</div>
-                        <div className={`text-xs font-medium mt-0.5 ${
-                          past
-                            ? 'text-gray-400 dark:text-gray-500'
-                            : 'text-blue-600 dark:text-blue-400'
-                        }`}>
+                        <div className="text-sm text-foreground/85 tabular-nums">{formatDate(displayDate)}</div>
+                        <div className={cn(
+                          'text-xs font-medium mt-0.5 tabular-nums',
+                          past ? 'text-muted-foreground' : 'text-foreground',
+                        )}>
                           {daysUntil(displayDate)}
                         </div>
                       </>
                     )}
                     {!displayDate && (
-                      <span className="text-xs text-gray-400">No upcoming dates</span>
+                      <span className="text-xs text-muted-foreground">No upcoming dates</span>
                     )}
                   </div>
                 </div>
@@ -185,7 +188,7 @@ const EconomicCalendarPage = () => {
           })}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

@@ -359,7 +359,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
                 >
                   Download CSV template
                 </a>
-                <span className="text-muted-foreground/70">Max 1 MB, 5,000 rows</span>
+                <span className="text-muted-foreground">Max 1 MB, 5,000 rows</span>
               </div>
 
               <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
@@ -405,7 +405,7 @@ const PortfolioImport = ({ open, onClose, market, holdings, onImport }) => {
                     <TableBody>
                       {classified.map((c) => (
                         <TableRow key={c.lineNumber}>
-                          <TableCell className="py-1.5 text-muted-foreground/70 tabular-nums">{c.lineNumber}</TableCell>
+                          <TableCell className="py-1.5 text-muted-foreground tabular-nums">{c.lineNumber}</TableCell>
                           <TableCell className="py-1.5"><StatusPill status={c.status} /></TableCell>
                           <TableCell className="py-1.5 font-mono">{c.row?.symbol || '-'}</TableCell>
                           <TableCell className="py-1.5 text-right tabular-nums">{c.row?.quantity ?? '-'}</TableCell>

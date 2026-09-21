@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useMarket } from '../context/MarketContext';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import PriceChange from '@/components/common/PriceChange';
+import ErrorState from '@/components/common/ErrorState';
+import EmptyState from '@/components/common/EmptyState';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import { withAlpha } from '@/lib/color';
+import { cn } from '@/lib/utils';
+import { segmentClass } from '@/lib/segment';
 
 const formatMarketCap = (value) => {
   if (!value) return 'N/A';
@@ -11,25 +22,59 @@ const formatMarketCap = (value) => {
   return value.toLocaleString();
 };
 
-const getChangeColor = (change, alpha = 1) => {
-  if (change > 3) return `rgba(22, 163, 74, ${alpha})`;
-  if (change > 1.5) return `rgba(34, 197, 94, ${alpha})`;
-  if (change > 0) return `rgba(134, 239, 172, ${alpha})`;
-  if (change === 0) return `rgba(156, 163, 175, ${alpha})`;
-  if (change > -1.5) return `rgba(252, 165, 165, ${alpha})`;
-  if (change > -3) return `rgba(239, 68, 68, ${alpha})`;
-  return `rgba(185, 28, 28, ${alpha})`;
+// Heat scale: the original thresholds, mapped to a tone (gain/loss/neutral) and an intensity step.
+// Comparison order is unchanged, so non-numeric input still falls through to the strongest loss step.
+const getHeatLevel = (change) => {
+  if (change > 3) return { tone: 'gain', step: 'strong' };
+  if (change > 1.5) return { tone: 'gain', step: 'mid' };
+  if (change > 0) return { tone: 'gain', step: 'weak' };
+  if (change === 0) return { tone: 'neutral', step: null };
+  if (change > -1.5) return { tone: 'loss', step: 'weak' };
+  if (change > -3) return { tone: 'loss', step: 'mid' };
+  return { tone: 'loss', step: 'strong' };
 };
 
-const getTextColor = (change) => {
-  if (Math.abs(change) > 1) return '#ffffff';
-  return '#1f2937';
+const HEAT_ALPHA = { weak: 0.45, mid: 0.7, strong: 0.9 };
+
+// Literal class names so Tailwind picks them up; opacity matches HEAT_ALPHA.
+const HEAT_CLASS = {
+  gain: { weak: 'bg-gain/45', mid: 'bg-gain/70', strong: 'bg-gain/90' },
+  loss: { weak: 'bg-loss/45', mid: 'bg-loss/70', strong: 'bg-loss/90' },
 };
+
+// Canvas fill for a change value.
+const getHeatFill = (change, ct) => {
+  const { tone, step } = getHeatLevel(change);
+  return tone === 'neutral' ? ct.grid : withAlpha(ct[tone], HEAT_ALPHA[step]);
+};
+
+// DOM class for a change value.
+const getHeatClass = (change) => {
+  const { tone, step } = getHeatLevel(change);
+  return tone === 'neutral' ? 'bg-muted' : HEAT_CLASS[tone][step];
+};
+
+// White on the mid/strong steps, theme foreground on weak/neutral tiles.
+const getHeatTextColor = (change, ct) => {
+  const { step } = getHeatLevel(change);
+  return step === 'mid' || step === 'strong' ? 'white' : ct.foreground;
+};
+
+const LEGEND = [
+  { cls: HEAT_CLASS.loss.strong, label: '< -3%' },
+  { cls: HEAT_CLASS.loss.mid, label: '-3% to -1.5%' },
+  { cls: HEAT_CLASS.loss.weak, label: '-1.5% to 0%' },
+  { cls: HEAT_CLASS.gain.weak, label: '0% to 1.5%' },
+  { cls: HEAT_CLASS.gain.mid, label: '1.5% to 3%' },
+  { cls: HEAT_CLASS.gain.strong, label: '> 3%' },
+];
+
+const headClass = 'px-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
 
 const SkeletonHeatmap = () => (
   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
     {[...Array(10)].map((_, i) => (
-      <div key={i} className="animate-pulse bg-gray-200 rounded-xl h-28"></div>
+      <Skeleton key={i} className="h-28 rounded-xl" />
     ))}
   </div>
 );
@@ -41,6 +86,7 @@ const SectorHeatmapPage = () => {
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('heatmap');
   const canvasRef = useRef(null);
+  const ct = useChartTheme();
 
   useEffect(() => {
     const fetchSectors = async () => {
@@ -170,7 +216,7 @@ const SectorHeatmapPage = () => {
     // Draw rectangles
     rects.forEach(({ x, y, w, h, sector }) => {
       const change = sector.avg_change_percent || 0;
-      ctx.fillStyle = getChangeColor(change, 0.85);
+      ctx.fillStyle = getHeatFill(change, ct);
       ctx.beginPath();
       const r = 6;
       ctx.moveTo(x + r, y);
@@ -186,7 +232,7 @@ const SectorHeatmapPage = () => {
       ctx.fill();
 
       // Text
-      const textColor = getTextColor(change);
+      const textColor = getHeatTextColor(change, ct);
       const centerX = x + w / 2;
       const centerY = y + h / 2;
 
@@ -211,7 +257,7 @@ const SectorHeatmapPage = () => {
         ctx.fillText(`${sign}${change.toFixed(1)}%`, centerX, centerY + 8);
       }
     });
-  }, [sectors]);
+  }, [sectors, ct]);
 
   useEffect(() => {
     if (viewMode === 'heatmap' && !loading) {
@@ -274,226 +320,168 @@ const SectorHeatmapPage = () => {
       const change = stock.change_percent || 0;
 
       // Color by change
-      ctx.fillStyle = getChangeColor(change, 0.85);
+      ctx.fillStyle = getHeatFill(change, ct);
       ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
 
       // Border
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.strokeStyle = ct.background;
       ctx.lineWidth = 1;
       ctx.strokeRect(x + 1, y + 1, cellW - 2, cellH - 2);
 
       // Text
       const sym = stock.symbol.replace('.NS', '').replace('.BO', '');
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = getHeatTextColor(change, ct);
       ctx.textAlign = 'center';
       ctx.font = `bold ${Math.min(11, cellW / 6)}px system-ui`;
       ctx.fillText(sym, x + cellW / 2, y + cellH / 2 - 4);
       ctx.font = `${Math.min(10, cellW / 7)}px system-ui`;
       ctx.fillText(`${change >= 0 ? '+' : ''}${change.toFixed(2)}%`, x + cellW / 2, y + cellH / 2 + 10);
     });
-  }, [indexStocks, heatmapTab]);
+  }, [indexStocks, heatmapTab, ct]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Market Heatmap</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {heatmapTab === 'sector' ? 'Sector' : market === 'in' ? 'NIFTY 50' : 'S&P 500'} performance for {market === 'in' ? 'Indian' : 'US'} market
-            </p>
+    <PageContainer>
+      <PageHeader
+        title="Market Heatmap"
+        description={`${heatmapTab === 'sector' ? 'Sector' : market === 'in' ? 'NIFTY 50' : 'S&P 500'} performance for ${market === 'in' ? 'Indian' : 'US'} market`}
+        actions={heatmapTab === 'sector' && (
+          <div className="inline-flex rounded-lg border border-border bg-card p-0.5" role="group" aria-label="View mode">
+            <button type="button" aria-pressed={viewMode === 'heatmap'} onClick={() => setViewMode('heatmap')}
+              className={segmentClass(viewMode === 'heatmap')}>
+              Heatmap
+            </button>
+            <button type="button" aria-pressed={viewMode === 'table'} onClick={() => setViewMode('table')}
+              className={segmentClass(viewMode === 'table')}>
+              Table
+            </button>
           </div>
-          {heatmapTab === 'sector' && (
-            <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setViewMode('heatmap')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  viewMode === 'heatmap'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                Heatmap
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  viewMode === 'table'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                Table
-              </button>
+        )}
+      />
+
+      {/* Sector vs Stocks Tab */}
+      <div className="inline-flex rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Heatmap type">
+        <button type="button" aria-pressed={heatmapTab === 'sector'} onClick={() => setHeatmapTab('sector')}
+          className={segmentClass(heatmapTab === 'sector')}>
+          Sectors
+        </button>
+        <button type="button" aria-pressed={heatmapTab === 'stocks'} onClick={() => setHeatmapTab('stocks')}
+          className={segmentClass(heatmapTab === 'stocks')}>
+          {market === 'in' ? 'NIFTY 50' : 'S&P 500'} Stocks
+        </button>
+      </div>
+
+      {/* Stock-level Heatmap */}
+      {heatmapTab === 'stocks' && (
+        <div>
+          {loadingIndex ? (
+            <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+              <Skeleton className="h-[420px] w-full" />
+              <p className="text-center text-sm text-muted-foreground">Loading stock data...</p>
             </div>
+          ) : indexStocks.length > 0 ? (
+            <div className="overflow-hidden rounded-xl border border-border bg-card">
+              <div style={{ width: '100%', height: 500 }}>
+                <canvas ref={indexCanvasRef} style={{ width: '100%', height: '100%' }} />
+              </div>
+            </div>
+          ) : (
+            <EmptyState title="No stock data available." />
           )}
         </div>
+      )}
 
-        {/* Sector vs Stocks Tab */}
-        <div className="flex gap-2">
-          <button onClick={() => setHeatmapTab('sector')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-hidden ${
-              heatmapTab === 'sector' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}>
-            Sectors
-          </button>
-          <button onClick={() => setHeatmapTab('stocks')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-hidden ${
-              heatmapTab === 'stocks' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}>
-            {market === 'in' ? 'NIFTY 50' : 'S&P 500'} Stocks
-          </button>
+      {/* Sector Heatmap Content */}
+      {heatmapTab === 'sector' && error && <ErrorState title={error} />}
+
+      {/* Loading */}
+      {heatmapTab === 'sector' && loading && <SkeletonHeatmap />}
+
+      {/* Heatmap View */}
+      {heatmapTab === 'sector' && !loading && !error && viewMode === 'heatmap' && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <canvas
+            ref={canvasRef}
+            className="w-full"
+            style={{ height: '420px' }}
+          />
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-4 border-t border-border pt-3">
+            {LEGEND.map(({ cls, label }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <div className={cn('h-3 w-4 rounded-sm', cls)}></div>
+                <span className="text-xs text-muted-foreground">{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
+      )}
 
-        {/* Stock-level Heatmap */}
-        {heatmapTab === 'stocks' && (
-          <div>
-            {loadingIndex ? (
-              <div className="bg-white rounded-xl shadow-xs p-8 text-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                <p className="text-gray-500 text-sm">Loading stock data...</p>
-              </div>
-            ) : indexStocks.length > 0 ? (
-              <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
-                <div style={{ width: '100%', height: 500 }}>
-                  <canvas ref={indexCanvasRef} style={{ width: '100%', height: '100%' }} />
-                </div>
-              </div>
-            ) : (
-              <div className="text-gray-500 text-center py-8">No stock data available.</div>
-            )}
-          </div>
-        )}
+      {/* Table View */}
+      {heatmapTab === 'sector' && !loading && !error && viewMode === 'table' && (
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className={headClass}>Sector</TableHead>
+                <TableHead className={cn(headClass, 'text-right')}>Avg Change%</TableHead>
+                <TableHead className={headClass}>Top Gainer</TableHead>
+                <TableHead className={headClass}>Top Loser</TableHead>
+                <TableHead className={cn(headClass, 'text-right')}>Market Cap</TableHead>
+                <TableHead className={cn(headClass, 'text-right')}>Stocks</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sectors.map((sector) => (
+                <TableRow key={sector.sector}>
+                  <TableCell className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className={cn('size-3 shrink-0 rounded-full', getHeatClass(sector.avg_change_percent))}></div>
+                      <span className="font-semibold">{sector.sector}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right">
+                    <PriceChange percent={sector.avg_change_percent} className="font-bold" />
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    {sector.top_gainer && (
+                      <Link
+                        to={`/stock/${sector.top_gainer.symbol}`}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        <span className="text-sm">{sector.top_gainer.name}</span>
+                        <PriceChange percent={sector.top_gainer.change_percent} className="ml-1.5 text-xs font-medium" />
+                      </Link>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    {sector.top_loser && (
+                      <Link
+                        to={`/stock/${sector.top_loser.symbol}`}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        <span className="text-sm">{sector.top_loser.name}</span>
+                        <PriceChange percent={sector.top_loser.change_percent} className="ml-1.5 text-xs font-medium" />
+                      </Link>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right text-foreground/85 tabular-nums">
+                    {formatMarketCap(sector.total_market_cap)}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right text-muted-foreground tabular-nums">
+                    {sector.stock_count}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-        {/* Sector Heatmap Content */}
-        {heatmapTab === 'sector' && error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* Loading */}
-        {heatmapTab === 'sector' && loading && <SkeletonHeatmap />}
-
-        {/* Heatmap View */}
-        {heatmapTab === 'sector' && !loading && !error && viewMode === 'heatmap' && (
-          <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-            <canvas
-              ref={canvasRef}
-              className="w-full"
-              style={{ height: '420px' }}
-            />
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-4 mt-4 pt-3 border-t border-gray-100">
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(185, 28, 28, 0.85)' }}></div>
-                <span className="text-xs text-gray-500">&lt; -3%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.85)' }}></div>
-                <span className="text-xs text-gray-500">-3% to -1.5%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(252, 165, 165, 0.85)' }}></div>
-                <span className="text-xs text-gray-500">-1.5% to 0%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(134, 239, 172, 0.85)' }}></div>
-                <span className="text-xs text-gray-500">0% to 1.5%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(34, 197, 94, 0.85)' }}></div>
-                <span className="text-xs text-gray-500">1.5% to 3%</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-3 rounded-sm" style={{ backgroundColor: 'rgba(22, 163, 74, 0.85)' }}></div>
-                <span className="text-xs text-gray-500">&gt; 3%</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Table View */}
-        {heatmapTab === 'sector' && !loading && !error && viewMode === 'table' && (
-          <div className="bg-white rounded-xl shadow-xs border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Sector</th>
-                    <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Avg Change%</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Top Gainer</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Top Loser</th>
-                    <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Market Cap</th>
-                    <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wider">Stocks</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {sectors.map((sector) => (
-                    <tr key={sector.sector} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full shrink-0"
-                            style={{ backgroundColor: getChangeColor(sector.avg_change_percent) }}
-                          ></div>
-                          <span className="font-semibold text-gray-900">{sector.sector}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`font-bold ${sector.avg_change_percent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {sector.avg_change_percent >= 0 ? '+' : ''}{sector.avg_change_percent.toFixed(2)}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {sector.top_gainer && (
-                          <Link
-                            to={`/stock/${sector.top_gainer.symbol}`}
-                            className="hover:text-blue-600 transition-colors"
-                          >
-                            <span className="text-gray-900 text-sm">{sector.top_gainer.name}</span>
-                            <span className="text-green-600 text-xs ml-1.5 font-medium">
-                              +{sector.top_gainer.change_percent?.toFixed(2)}%
-                            </span>
-                          </Link>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {sector.top_loser && (
-                          <Link
-                            to={`/stock/${sector.top_loser.symbol}`}
-                            className="hover:text-blue-600 transition-colors"
-                          >
-                            <span className="text-gray-900 text-sm">{sector.top_loser.name}</span>
-                            <span className="text-red-600 text-xs ml-1.5 font-medium">
-                              {sector.top_loser.change_percent?.toFixed(2)}%
-                            </span>
-                          </Link>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-700">
-                        {formatMarketCap(sector.total_market_cap)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-gray-500">
-                        {sector.stock_count}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {heatmapTab === 'sector' && !loading && !error && sectors.length === 0 && (
-          <div className="bg-white rounded-xl p-12 shadow-xs border border-gray-100 text-center">
-            <p className="text-gray-500">No sector data available.</p>
-          </div>
-        )}
-      </main>
-    </div>
+      {/* Empty state */}
+      {heatmapTab === 'sector' && !loading && !error && sectors.length === 0 && (
+        <EmptyState title="No sector data available." />
+      )}
+    </PageContainer>
   );
 };
 

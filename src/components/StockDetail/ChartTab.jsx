@@ -73,7 +73,7 @@ const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 1];
 
 const DrawingToolbar = ({ activeTool, setActiveTool, drawingColor, setDrawingColor, onClearAll, drawingCount }) => (
   <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 bg-muted/40 border-b border-border text-xs">
-    <span className="text-muted-foreground/70 font-medium mr-1">Draw:</span>
+    <span className="text-muted-foreground font-medium mr-1">Draw:</span>
     {[
       { tool: null, label: 'Off', icon: '↗' },
       { tool: 'hline', label: 'H-Line', icon: '─' },
@@ -321,7 +321,7 @@ const MiniChart = ({ symbol, range, label, height = 250 }) => {
           <StockChart data={historyData} height={height} />
         </div>
       ) : (
-        <div className="text-muted-foreground/70 text-xs text-center py-8">No data</div>
+        <div className="text-muted-foreground text-xs text-center py-8">No data</div>
       )}
     </div>
   );
@@ -369,7 +369,7 @@ const ChartTab = ({ symbol }) => {
     <div className="space-y-4">
       {/* Range Selector + View Mode */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className={pillGroup}>
+        <div className={pillGroup} role="group" aria-label="Chart range">
           {RANGES.map((r) => (
             <button
               key={r.value}
@@ -382,7 +382,7 @@ const ChartTab = ({ symbol }) => {
             </button>
           ))}
         </div>
-        <div className={cn(pillGroup, 'hidden md:inline-flex')}>
+        <div className={cn(pillGroup, 'hidden md:inline-flex')} role="group" aria-label="Chart view">
           {VIEW_MODES.map(m => (
             <button
               key={m.value}

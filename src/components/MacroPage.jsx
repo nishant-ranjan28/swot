@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../api';
+import { AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import StatCard from '@/components/common/StatCard';
+import ErrorState from '@/components/common/ErrorState';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import { cn } from '@/lib/utils';
 
 const YIELD_SYMBOLS = [
   { symbol: '^IRX', label: '13-Week T-Bill', tenor: '3M' },
@@ -12,12 +20,22 @@ const FOREX_SYMBOLS = [
   { symbol: 'USDINR=X', label: 'USD/INR' },
 ];
 
+const sectionTitleClass = 'mb-3 text-lg font-semibold';
+
+// Change line kept verbatim (3-decimal change, colored by change sign) — PriceChange only formats 2 decimals.
+const ChangeLine = ({ change, changePct }) => (
+  <div className={cn('mt-0.5 text-xs tabular-nums', change >= 0 ? 'text-gain' : 'text-loss')}>
+    {change >= 0 ? '+' : ''}{change?.toFixed(3) || '0'} ({changePct >= 0 ? '+' : ''}{changePct?.toFixed(2) || '0'}%)
+  </div>
+);
+
 function MacroPage() {
   const [yields, setYields] = useState({});
   const [forex, setForex] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const canvasRef = useRef(null);
+  const ct = useChartTheme();
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -78,8 +96,10 @@ function MacroPage() {
 
     const getY = (val) => padding.top + chartH - ((val - minY) / (maxY - minY)) * chartH;
 
+    const lineColor = ct.isDark ? ct.primary : ct.foreground;
+
     // Grid lines
-    ctx.strokeStyle = '#374151';
+    ctx.strokeStyle = ct.grid;
     ctx.lineWidth = 0.5;
     const steps = 5;
     for (let i = 0; i <= steps; i++) {
@@ -89,7 +109,7 @@ function MacroPage() {
       ctx.moveTo(padding.left, y);
       ctx.lineTo(w - padding.right, y);
       ctx.stroke();
-      ctx.fillStyle = '#9CA3AF';
+      ctx.fillStyle = ct.text;
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText(val.toFixed(2) + '%', padding.left - 5, y + 3);
@@ -97,7 +117,7 @@ function MacroPage() {
 
     // Draw curve
     ctx.beginPath();
-    ctx.strokeStyle = '#3B82F6';
+    ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2.5;
     points.forEach((p, i) => {
       const y = getY(p.yield);
@@ -111,24 +131,24 @@ function MacroPage() {
       const y = getY(p.yield);
       ctx.beginPath();
       ctx.arc(p.x, y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#3B82F6';
+      ctx.fillStyle = lineColor;
       ctx.fill();
-      ctx.strokeStyle = '#1E3A5F';
+      ctx.strokeStyle = ct.background;
       ctx.lineWidth = 2;
       ctx.stroke();
 
       // Label
-      ctx.fillStyle = '#E5E7EB';
+      ctx.fillStyle = ct.foreground;
       ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(p.yield.toFixed(2) + '%', p.x, y - 12);
-      ctx.fillStyle = '#9CA3AF';
+      ctx.fillStyle = ct.text;
       ctx.font = '10px sans-serif';
       ctx.fillText(p.tenor, p.x, h - 10);
     });
 
     // Title
-    ctx.fillStyle = '#D1D5DB';
+    ctx.fillStyle = ct.foreground;
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('US Treasury Yield Curve', w / 2, 15);
@@ -137,11 +157,11 @@ function MacroPage() {
     const threeM = yields['^IRX']?.price || 0;
     const tenY = yields['^TNX']?.price || 0;
     if (threeM > 0 && tenY > 0 && threeM > tenY) {
-      ctx.fillStyle = '#EF4444';
+      ctx.fillStyle = ct.loss;
       ctx.font = 'bold 11px sans-serif';
       ctx.fillText('INVERTED YIELD CURVE', w / 2, 28);
     }
-  }, [yields]);
+  }, [yields, ct]);
 
   useEffect(() => {
     if (!loading) drawYieldCurve();
@@ -149,22 +169,22 @@ function MacroPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-700 rounded-sm w-1/3"></div>
+      <PageContainer className="max-w-6xl">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-1/3" />
           <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => <div key={i} className="h-32 bg-gray-700 rounded-sm"></div>)}
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-32" />)}
           </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-400">{error}</div>
-      </div>
+      <PageContainer className="max-w-6xl">
+        <ErrorState title={error} />
+      </PageContainer>
     );
   }
 
@@ -173,43 +193,43 @@ function MacroPage() {
   const isInverted = threeM > 0 && tenY > 0 && threeM > tenY;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-white mb-2">Macro Dashboard</h1>
-      <p className="text-gray-400 text-sm mb-6">Treasury yields, dollar index, and key macro indicators</p>
+    <PageContainer className="max-w-6xl">
+      <PageHeader title="Macro Dashboard" description="Treasury yields, dollar index, and key macro indicators" />
 
       {/* Yield Cards */}
-      <h2 className="text-lg font-semibold text-white mb-3">US Treasury Yields</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {YIELD_SYMBOLS.map((y) => {
-          const q = yields[y.symbol];
-          const price = q?.price || q?.regularMarketPrice || 0;
-          const change = q?.change || q?.regularMarketChange || 0;
-          const changePct = q?.changePercent || q?.regularMarketChangePercent || 0;
-          return (
-            <div key={y.symbol} className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div className="text-gray-400 text-xs mb-1">{y.label}</div>
-              <div className="text-2xl font-bold text-white">{price ? price.toFixed(2) + '%' : 'N/A'}</div>
-              <div className={`text-sm mt-1 ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {change >= 0 ? '+' : ''}{change?.toFixed(3) || '0'} ({changePct >= 0 ? '+' : ''}{changePct?.toFixed(2) || '0'}%)
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <section>
+        <h2 className={sectionTitleClass}>US Treasury Yields</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {YIELD_SYMBOLS.map((y) => {
+            const q = yields[y.symbol];
+            const price = q?.price || q?.regularMarketPrice || 0;
+            const change = q?.change || q?.regularMarketChange || 0;
+            const changePct = q?.changePercent || q?.regularMarketChangePercent || 0;
+            return (
+              <StatCard key={y.symbol} label={y.label} value={price ? price.toFixed(2) + '%' : 'N/A'}>
+                <ChangeLine change={change} changePct={changePct} />
+              </StatCard>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Yield Curve Inversion Alert */}
       {isInverted && (
-        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6">
-          <div className="text-red-400 font-semibold">Yield Curve Inverted</div>
-          <p className="text-red-300 text-sm mt-1">
-            The 3-month yield ({threeM.toFixed(2)}%) exceeds the 10-year yield ({tenY.toFixed(2)}%).
-            An inverted yield curve has historically been a recession indicator.
-          </p>
+        <div role="status" className="flex gap-3 rounded-lg border border-loss/30 bg-loss/5 p-4">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-loss" aria-hidden />
+          <div>
+            <div className="font-semibold text-loss">Yield Curve Inverted</div>
+            <p className="mt-1 text-sm text-foreground/85">
+              The 3-month yield ({threeM.toFixed(2)}%) exceeds the 10-year yield ({tenY.toFixed(2)}%).
+              An inverted yield curve has historically been a recession indicator.
+            </p>
+          </div>
         </div>
       )}
 
       {/* Yield Curve Chart */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
+      <div className="rounded-xl border border-border bg-card p-4">
         <canvas
           ref={canvasRef}
           width={600}
@@ -220,52 +240,41 @@ function MacroPage() {
       </div>
 
       {/* Forex / Dollar Index */}
-      <h2 className="text-lg font-semibold text-white mb-3">Currency & Dollar Index</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {FOREX_SYMBOLS.map((f) => {
-          const q = forex[f.symbol];
-          const price = q?.price || q?.regularMarketPrice || 0;
-          const change = q?.change || q?.regularMarketChange || 0;
-          const changePct = q?.changePercent || q?.regularMarketChangePercent || 0;
-          return (
-            <div key={f.symbol} className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-              <div className="text-gray-400 text-xs mb-1">{f.label}</div>
-              <div className="text-2xl font-bold text-white">{price ? price.toFixed(2) : 'N/A'}</div>
-              <div className={`text-sm mt-1 ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {change >= 0 ? '+' : ''}{change?.toFixed(3) || '0'} ({changePct >= 0 ? '+' : ''}{changePct?.toFixed(2) || '0'}%)
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <section>
+        <h2 className={sectionTitleClass}>Currency &amp; Dollar Index</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {FOREX_SYMBOLS.map((f) => {
+            const q = forex[f.symbol];
+            const price = q?.price || q?.regularMarketPrice || 0;
+            const change = q?.change || q?.regularMarketChange || 0;
+            const changePct = q?.changePercent || q?.regularMarketChangePercent || 0;
+            return (
+              <StatCard key={f.symbol} label={f.label} value={price ? price.toFixed(2) : 'N/A'}>
+                <ChangeLine change={change} changePct={changePct} />
+              </StatCard>
+            );
+          })}
+        </div>
+      </section>
 
       {/* India Rates */}
-      <h2 className="text-lg font-semibold text-white mb-3">India Key Rates</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-xs mb-1">RBI Repo Rate</div>
-          <div className="text-2xl font-bold text-white">6.25%</div>
-          <div className="text-gray-500 text-xs mt-1">Last updated: Feb 2025</div>
+      <section>
+        <h2 className={sectionTitleClass}>India Key Rates</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <StatCard label="RBI Repo Rate" value="6.25%" sub="Last updated: Feb 2025" />
+          <StatCard label="RBI Reverse Repo Rate" value="3.35%" sub="Standing Deposit Facility" />
+          <StatCard label="CPI Inflation (YoY)" value="~4.5%" sub="Approximate (static)" />
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-xs mb-1">RBI Reverse Repo Rate</div>
-          <div className="text-2xl font-bold text-white">3.35%</div>
-          <div className="text-gray-500 text-xs mt-1">Standing Deposit Facility</div>
-        </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-          <div className="text-gray-400 text-xs mb-1">CPI Inflation (YoY)</div>
-          <div className="text-2xl font-bold text-white">~4.5%</div>
-          <div className="text-gray-500 text-xs mt-1">Approximate (static)</div>
-        </div>
-      </div>
+      </section>
 
       {/* Disclaimer */}
-      <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-lg p-3">
-        <p className="text-yellow-500 text-xs">
+      <div className="flex gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-xs text-foreground/85">
+        <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" aria-hidden />
+        <p>
           Note: Yield data is from Yahoo Finance and may be delayed. India rates are static reference values and may not reflect the latest RBI announcements.
         </p>
       </div>
-    </div>
+    </PageContainer>
   );
 }
 

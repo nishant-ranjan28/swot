@@ -22,6 +22,11 @@ test('PriceChange negative percent-only', () => {
   expect(el.closest('[data-trend]')).toHaveClass('text-loss');
 });
 
+test('PriceChange respects decimals', () => {
+  render(<PriceChange percent={12.345} decimals={1} />);
+  expect(screen.getByText('+12.3%')).toBeInTheDocument();
+});
+
 test('PriceChange never shows -0.00', () => {
   render(<PriceChange percent={-0.001} />);
   expect(screen.getByText('0.00%')).toBeInTheDocument();

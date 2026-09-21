@@ -28,7 +28,7 @@ const OptionsTab = ({ symbol }) => {
           <>
             Yahoo Finance does not provide options chain data for NSE/BSE listed stocks.
             Options data is available for US-listed stocks (e.g., AAPL, MSFT, TSLA).
-            <span className="mt-3 block text-xs text-muted-foreground/70">
+            <span className="mt-3 block text-xs text-muted-foreground">
               Try switching to the US market and searching for a US stock to view options.
             </span>
           </>
@@ -61,7 +61,7 @@ const OptionsTab = ({ symbol }) => {
 
   const renderTable = (options, type) => {
     if (!options || options.length === 0) {
-      return <div className="text-muted-foreground/70 text-center py-4">No {type} data.</div>;
+      return <div className="text-muted-foreground text-center py-4">No {type} data.</div>;
     }
 
     return (
@@ -127,7 +127,7 @@ const OptionsTab = ({ symbol }) => {
                   'px-3 py-1 rounded-full text-xs font-medium tabular-nums cursor-default',
                   exp === data.selected_expiration
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground/70'
+                    : 'bg-muted text-muted-foreground'
                 )}
               >
                 {exp}
@@ -160,7 +160,7 @@ const OptionsTab = ({ symbol }) => {
             title={`Puts: ${putPct}%`}
           />
         </div>
-        <div className="flex justify-between text-xs tabular-nums text-muted-foreground/70 mt-1">
+        <div className="flex justify-between text-xs tabular-nums text-muted-foreground mt-1">
           <span>Calls {callPct}%</span>
           <span>Puts {putPct}%</span>
         </div>
@@ -175,7 +175,7 @@ const OptionsTab = ({ symbol }) => {
       )}
 
       {/* View Toggle */}
-      <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
+      <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit" role="group" aria-label="Option side">
         {[
           { id: 'calls', label: 'Calls' },
           { id: 'puts', label: 'Puts' },

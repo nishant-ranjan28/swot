@@ -1,6 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { AlertTriangle, ChevronLeft } from 'lucide-react';
 import api from '../api';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import { cn } from '@/lib/utils';
+import { selectClass } from '@/lib/select';
+import { segmentClass } from '@/lib/segment';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import PageContainer from './common/PageContainer';
+import PageHeader from './common/PageHeader';
+import StatCard from './common/StatCard';
 
 const formatINR = (num) => {
   if (num == null) return '-';
@@ -27,35 +38,54 @@ const POPULAR_MFS = [
   { symbol: '0P0001BA79.BO', name: 'HDFC Flexi Cap Dir' },
 ];
 
-const InputField = ({ label, value, onChange, type = 'number', prefix, suffix, ...props }) => (
-  <div>
-    <label className="block text-xs text-gray-500 font-medium mb-1">{label}</label>
-    <div className="relative">
-      {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{prefix}</span>}
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
-        className={`w-full border border-gray-200 rounded-lg py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${prefix ? 'pl-7' : 'pl-3'} ${suffix ? 'pr-10' : 'pr-3'}`}
-        {...props}
-      />
-      {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{suffix}</span>}
+const LABEL_CLASS = 'mb-1 block text-xs font-medium text-muted-foreground';
+
+const InputField = ({ label, value, onChange, type = 'number', prefix, suffix, ...props }) => {
+  const id = useId();
+  return (
+    <div>
+      <label htmlFor={id} className={LABEL_CLASS}>{label}</label>
+      <div className="relative">
+        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{prefix}</span>}
+        <Input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value)}
+          className={cn('tabular-nums', prefix ? 'pl-7' : 'pl-3', suffix ? 'pr-10' : 'pr-3')}
+          {...props}
+        />
+        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{suffix}</span>}
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const SelectField = ({ label, children, ...props }) => {
+  const id = useId();
+  return (
+    <div>
+      <label htmlFor={id} className={LABEL_CLASS}>{label}</label>
+      <select id={id} className={cn(selectClass, 'w-full')} {...props}>{children}</select>
+    </div>
+  );
+};
 
 const ResultCard = ({ label, value, sub, color }) => (
-  <div className="bg-gray-50 rounded-lg p-4 text-center">
-    <div className="text-xs text-gray-500 mb-1">{label}</div>
-    <div className={`text-lg font-bold ${color || 'text-gray-900'}`}>{value}</div>
-    {sub && <div className="text-[10px] text-gray-400 mt-0.5">{sub}</div>}
-  </div>
+  <StatCard label={label} value={<span className={color}>{value}</span>} sub={sub} />
 );
+
+// Tone classes for result values (were green/red/blue text).
+const tone = (positive) => (positive ? 'text-gain' : 'text-loss');
+const EMPHASIS = 'text-foreground dark:text-primary';
+
+const QUICK_PICK_CLASS = 'h-7 px-2 text-xs font-normal';
 
 const GrowthChart = ({ data, width = 600, height = 200 }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [dims, setDims] = useState({ w: width, h: height });
+  const ct = useChartTheme();
 
   useEffect(() => {
     if (containerRef.current) setDims({ w: containerRef.current.offsetWidth, h: height });
@@ -86,25 +116,25 @@ const GrowthChart = ({ data, width = 600, height = 200 }) => {
     const y = (v) => pad.t + ch - ((v - minV) / (maxV - minV)) * ch;
 
     // Grid
-    ctx.strokeStyle = '#f3f4f6';
+    ctx.strokeStyle = ct.grid;
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const yy = pad.t + (ch / 4) * i;
       ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(dims.w - pad.r, yy); ctx.stroke();
-      ctx.fillStyle = '#9ca3af'; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+      ctx.fillStyle = ct.text; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
       ctx.fillText(formatINR(maxV - (maxV / 4) * i), pad.l - 5, yy + 3);
     }
 
     // Date labels
-    ctx.fillStyle = '#9ca3af'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+    ctx.fillStyle = ct.text; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
     const step = Math.max(1, Math.floor(data.length / 6));
     for (let i = 0; i < data.length; i += step) {
       ctx.fillText(data[i].label || '', x(i), dims.h - 5);
     }
 
-    // Invested line (blue dashed)
+    // Invested line (dashed, chart-2)
     ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+    ctx.strokeStyle = ct.palette[1]; ctx.lineWidth = 2;
     ctx.beginPath();
     data.forEach((d, i) => i === 0 ? ctx.moveTo(x(i), y(d.invested)) : ctx.lineTo(x(i), y(d.invested)));
     ctx.stroke();
@@ -112,14 +142,14 @@ const GrowthChart = ({ data, width = 600, height = 200 }) => {
 
     // Value line
     const isPos = data[data.length - 1].value >= data[data.length - 1].invested;
-    ctx.strokeStyle = isPos ? '#16a34a' : '#dc2626'; ctx.lineWidth = 2;
+    ctx.strokeStyle = isPos ? ct.gain : ct.loss; ctx.lineWidth = 2;
     ctx.beginPath();
     data.forEach((d, i) => i === 0 ? ctx.moveTo(x(i), y(d.value)) : ctx.lineTo(x(i), y(d.value)));
     ctx.stroke();
 
     // Fill
     ctx.globalAlpha = 0.05;
-    ctx.fillStyle = isPos ? '#16a34a' : '#dc2626';
+    ctx.fillStyle = isPos ? ct.gain : ct.loss;
     ctx.beginPath();
     data.forEach((d, i) => i === 0 ? ctx.moveTo(x(i), y(d.value)) : ctx.lineTo(x(i), y(d.value)));
     ctx.lineTo(x(data.length - 1), y(0)); ctx.lineTo(x(0), y(0)); ctx.closePath(); ctx.fill();
@@ -128,14 +158,14 @@ const GrowthChart = ({ data, width = 600, height = 200 }) => {
     // Value2 line (for compare mode)
     if (data[0].value2 !== undefined) {
       const isPos2 = data[data.length - 1].value2 >= data[data.length - 1].invested;
-      ctx.strokeStyle = isPos2 ? '#f59e0b' : '#ec4899'; ctx.lineWidth = 2;
+      ctx.strokeStyle = isPos2 ? ct.warning : ct.palette[5]; ctx.lineWidth = 2;
       ctx.setLineDash([6, 3]);
       ctx.beginPath();
       data.forEach((d, i) => i === 0 ? ctx.moveTo(x(i), y(d.value2)) : ctx.lineTo(x(i), y(d.value2)));
       ctx.stroke();
       ctx.setLineDash([]);
     }
-  }, [data, dims]);
+  }, [data, dims, ct]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -148,6 +178,7 @@ const GrowthChart = ({ data, width = 600, height = 200 }) => {
 
 // ===== Search Input with Dropdown =====
 const SearchInput = ({ label, value, onChange, onSelect, placeholder, searchEndpoint, searchBoth }) => {
+  const id = useId();
   const [query, setQuery] = useState(value || '');
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -208,22 +239,23 @@ const SearchInput = ({ label, value, onChange, onSelect, placeholder, searchEndp
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <label className="block text-xs text-gray-500 font-medium mb-1">{label}</label>
-      <input
+      <label htmlFor={id} className={LABEL_CLASS}>{label}</label>
+      <Input
+        id={id}
         type="text"
         value={query}
         onChange={(e) => handleChange(e.target.value)}
         onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
         placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         autoComplete="off"
       />
       {showDropdown && suggestions.length > 0 && (
-        <ul className="absolute z-50 bg-white border border-gray-200 rounded-lg w-full max-h-56 overflow-auto mt-1 shadow-lg">
+        <ul className="absolute z-40 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
           {suggestions.map((item) => (
             <li key={item.symbol}>
               <button
-                className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors focus:outline-hidden border-b border-gray-50 last:border-0"
+                type="button"
+                className="w-full border-b border-border px-3 py-2 text-left transition-colors last:border-0 hover:bg-muted/50 focus:outline-hidden focus-visible:bg-muted/50"
                 onClick={() => {
                   setQuery(item.name || item.symbol);
                   onChange(item.symbol);
@@ -231,15 +263,16 @@ const SearchInput = ({ label, value, onChange, onSelect, placeholder, searchEndp
                   setShowDropdown(false);
                 }}
               >
-                <div className="flex justify-between items-start">
-                  <div className="text-sm font-medium text-gray-900 truncate flex-1">{item.name || item.symbol}</div>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 truncate text-sm font-medium">{item.name || item.symbol}</div>
                   {item.category && (
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-sm ml-2 shrink-0 ${
-                      item.category === 'Mutual Fund' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
-                    }`}>{item.category}</span>
+                    <Badge
+                      variant={item.category === 'Mutual Fund' ? 'outline' : 'secondary'}
+                      className="ml-2 rounded-sm px-1.5 text-[9px]"
+                    >{item.category}</Badge>
                   )}
                 </div>
-                <div className="text-[10px] text-gray-400">{item.symbol}</div>
+                <div className="text-[10px] text-muted-foreground">{item.symbol}</div>
               </button>
             </li>
           ))}
@@ -280,13 +313,15 @@ const SipTool = () => {
   return (
     <div className="space-y-4">
       {/* Mode toggle */}
-      <div className="flex gap-2">
-        <button onClick={() => { setMode('stock'); setSymbol(''); setDisplayName(''); setResult(null); }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-hidden ${mode === 'stock' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+      <div className="inline-flex rounded-lg border border-border bg-card p-0.5" role="group" aria-label="Instrument type">
+        <button type="button" aria-pressed={mode === 'stock'}
+          onClick={() => { setMode('stock'); setSymbol(''); setDisplayName(''); setResult(null); }}
+          className={segmentClass(mode === 'stock')}>
           Stocks
         </button>
-        <button onClick={() => { setMode('mf'); setSymbol(''); setDisplayName(''); setResult(null); }}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium focus:outline-hidden ${mode === 'mf' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+        <button type="button" aria-pressed={mode === 'mf'}
+          onClick={() => { setMode('mf'); setSymbol(''); setDisplayName(''); setResult(null); }}
+          className={segmentClass(mode === 'mf')}>
           Mutual Funds
         </button>
       </div>
@@ -312,18 +347,13 @@ const SipTool = () => {
           />
         )}
         <InputField label="Monthly Amount" value={amount} onChange={setAmount} prefix="₹" min={100} step={500} />
-        <div>
-          <label className="block text-xs text-gray-500 font-medium mb-1">Period</label>
-          <select value={years} onChange={e => setYears(parseInt(e.target.value))}
-            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm">
-            {[1,2,3,5,7,10,15,20].map(y => <option key={y} value={y}>{y} Years</option>)}
-          </select>
-        </div>
+        <SelectField label="Period" value={years} onChange={e => setYears(parseInt(e.target.value))}>
+          {[1,2,3,5,7,10,15,20].map(y => <option key={y} value={y}>{y} Years</option>)}
+        </SelectField>
         <div className="flex items-end">
-          <button onClick={() => calculate()} disabled={loading || !symbol}
-            className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" onClick={() => calculate()} disabled={loading || !symbol} className="w-full">
             {loading ? 'Calculating...' : 'Calculate'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -331,32 +361,32 @@ const SipTool = () => {
       <div className="flex flex-wrap gap-2">
         {mode === 'stock'
           ? POPULAR_STOCKS.map(s => (
-            <button key={s} onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
-              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-hidden">
+            <Button key={s} type="button" variant="secondary" size="xs" onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
+              className={QUICK_PICK_CLASS}>
               {s.replace('.NS', '')}
-            </button>
+            </Button>
           ))
           : POPULAR_MFS.map(mf => (
-            <button key={mf.symbol} onClick={() => { setSymbol(mf.symbol); setDisplayName(mf.name); calculate(mf.symbol); }}
-              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-hidden">
+            <Button key={mf.symbol} type="button" variant="secondary" size="xs" onClick={() => { setSymbol(mf.symbol); setDisplayName(mf.name); calculate(mf.symbol); }}
+              className={QUICK_PICK_CLASS}>
               {mf.name}
-            </button>
+            </Button>
           ))
         }
       </div>
 
-      {error && <div className="text-red-600 text-sm text-center py-4">{error}</div>}
+      {error && <div role="alert" className="py-4 text-center text-sm text-loss">{error}</div>}
 
       {result && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <ResultCard label="Total Invested" value={formatINR(result.total_invested)} />
             <ResultCard label="Current Value" value={formatINR(result.current_value)}
-              color={result.total_return >= 0 ? 'text-green-600' : 'text-red-600'} />
+              color={tone(result.total_return >= 0)} />
             <ResultCard label="Total Returns" value={`${result.total_return_pct >= 0 ? '+' : ''}${result.total_return_pct}%`}
-              sub={formatINR(result.total_return)} color={result.total_return >= 0 ? 'text-green-600' : 'text-red-600'} />
+              sub={formatINR(result.total_return)} color={tone(result.total_return >= 0)} />
             <ResultCard label="CAGR" value={`${result.cagr}%`}
-              color={result.cagr >= 0 ? 'text-green-600' : 'text-red-600'} />
+              color={tone(result.cagr >= 0)} />
           </div>
           {chartData && <GrowthChart data={chartData} />}
         </div>
@@ -417,41 +447,36 @@ const LumpsumTool = () => {
           searchBoth
         />
         <InputField label="Investment Amount" value={amount} onChange={setAmount} prefix="₹" min={1000} step={10000} />
-        <div>
-          <label className="block text-xs text-gray-500 font-medium mb-1">Period</label>
-          <select value={years} onChange={e => setYears(parseInt(e.target.value))}
-            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm">
-            {[1,2,3,5,7,10].map(y => <option key={y} value={y}>{y} Years</option>)}
-          </select>
-        </div>
+        <SelectField label="Period" value={years} onChange={e => setYears(parseInt(e.target.value))}>
+          {[1,2,3,5,7,10].map(y => <option key={y} value={y}>{y} Years</option>)}
+        </SelectField>
         <div className="flex items-end">
-          <button onClick={() => calculate()} disabled={loading || !symbol}
-            className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" onClick={() => calculate()} disabled={loading || !symbol} className="w-full">
             {loading ? 'Calculating...' : 'Calculate'}
-          </button>
+          </Button>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {POPULAR_STOCKS.map(s => (
-          <button key={s} onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
-            className="px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-hidden">
+          <Button key={s} type="button" variant="secondary" size="xs" onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
+            className={QUICK_PICK_CLASS}>
             {s.replace('.NS', '')}
-          </button>
+          </Button>
         ))}
       </div>
-      {error && <div className="text-red-600 text-sm text-center py-4">{error}</div>}
+      {error && <div role="alert" className="py-4 text-center text-sm text-loss">{error}</div>}
       {result && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <ResultCard label="Invested" value={formatINR(result.amount)} />
             <ResultCard label="Current Value" value={formatINR(result.currentValue)}
-              color={result.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'} />
+              color={tone(result.totalReturn >= 0)} />
             <ResultCard label="Returns" value={`${result.totalReturnPct >= 0 ? '+' : ''}${result.totalReturnPct.toFixed(2)}%`}
-              sub={formatINR(result.totalReturn)} color={result.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'} />
+              sub={formatINR(result.totalReturn)} color={tone(result.totalReturn >= 0)} />
             <ResultCard label="CAGR" value={`${result.cagr.toFixed(2)}%`}
-              color={result.cagr >= 0 ? 'text-green-600' : 'text-red-600'} />
+              color={tone(result.cagr >= 0)} />
           </div>
-          <div className="text-xs text-gray-400 text-center">
+          <div className="text-center text-xs text-muted-foreground tabular-nums">
             {result.startDate} to {result.endDate} | Buy: ₹{result.startPrice.toFixed(2)} | Now: ₹{result.endPrice.toFixed(2)} | Units: {result.units.toFixed(2)}
           </div>
           {result.chartData && <GrowthChart data={result.chartData} />}
@@ -470,6 +495,7 @@ const CompareTool = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const ct = useChartTheme();
 
   const calculate = (sym) => {
     const s = sym || symbol;
@@ -512,6 +538,13 @@ const CompareTool = () => {
       .finally(() => setLoading(false));
   };
 
+  // Swatch colors follow GrowthChart's rule: each line is judged at its last point against invested.
+  const lastPoint = result?.chartData?.[result.chartData.length - 1];
+  const sipUp = !lastPoint || lastPoint.value >= lastPoint.invested;
+  const lumpsumUp = !lastPoint || lastPoint.value2 >= lastPoint.invested;
+  const sipBg = sipUp ? 'bg-gain' : 'bg-loss';
+  const lumpsumColor = lumpsumUp ? null : ct.palette[5]; // null → token class (warning)
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -524,64 +557,59 @@ const CompareTool = () => {
           searchEndpoint="/api/stocks/search"
         />
         <InputField label="Monthly SIP Amount" value={amount} onChange={setAmount} prefix="₹" min={100} step={500} />
-        <div>
-          <label className="block text-xs text-gray-500 font-medium mb-1">Period</label>
-          <select value={years} onChange={e => setYears(parseInt(e.target.value))}
-            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm">
-            {[1,2,3,5,7,10].map(y => <option key={y} value={y}>{y} Years</option>)}
-          </select>
-        </div>
+        <SelectField label="Period" value={years} onChange={e => setYears(parseInt(e.target.value))}>
+          {[1,2,3,5,7,10].map(y => <option key={y} value={y}>{y} Years</option>)}
+        </SelectField>
         <div className="flex items-end">
-          <button onClick={() => calculate()} disabled={loading || !symbol}
-            className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+          <Button type="button" onClick={() => calculate()} disabled={loading || !symbol} className="w-full">
             {loading ? 'Comparing...' : 'Compare'}
-          </button>
+          </Button>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {POPULAR_STOCKS.map(s => (
-          <button key={s} onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
-            className="px-2 py-1 bg-gray-100 text-gray-600 rounded-sm text-xs hover:bg-blue-100 hover:text-blue-700 focus:outline-hidden">
+          <Button key={s} type="button" variant="secondary" size="xs" onClick={() => { setSymbol(s); setDisplayName(s.replace('.NS', '')); calculate(s); }}
+            className={QUICK_PICK_CLASS}>
             {s.replace('.NS', '')}
-          </button>
+          </Button>
         ))}
       </div>
-      {error && <div className="text-red-600 text-sm text-center py-4">{error}</div>}
+      {error && <div role="alert" className="py-4 text-center text-sm text-loss">{error}</div>}
       {result && (
         <div className="space-y-4">
           {result.winner && (
             <div className="text-center py-2">
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+              <Badge variant="gain" className="px-3 py-1 text-sm font-semibold tabular-nums">
                 {result.winner} wins by {formatINR(Math.abs(result.sip.value - result.lumpsum.value))}
-              </span>
+              </Badge>
             </div>
           )}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-blue-800 mb-2">SIP (Monthly ₹{amount.toLocaleString('en-IN')})</h4>
+            <div className="rounded-lg border border-border bg-muted/40 p-4">
+              <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold"><span className={cn('size-2 shrink-0 rounded-full', sipBg)} aria-hidden />SIP (Monthly ₹{amount.toLocaleString('en-IN')})</h4>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-gray-600">Invested</span><span className="font-medium">{formatINR(result.sip.invested)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-600">Value</span><span className="font-bold text-green-600">{formatINR(result.sip.value)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-600">Returns</span><span className={result.sip.returnPct >= 0 ? 'text-green-600' : 'text-red-600'}>{result.sip.returnPct.toFixed(2)}%</span></div>
-                <div className="flex justify-between"><span className="text-gray-600">CAGR</span><span>{result.sip.cagr.toFixed(2)}%</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Invested</span><span className="font-medium tabular-nums">{formatINR(result.sip.invested)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Value</span><span className="font-bold text-gain tabular-nums">{formatINR(result.sip.value)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Returns</span><span className={cn('tabular-nums', tone(result.sip.returnPct >= 0))}>{result.sip.returnPct.toFixed(2)}%</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">CAGR</span><span className="tabular-nums">{result.sip.cagr.toFixed(2)}%</span></div>
               </div>
             </div>
-            <div className="bg-amber-50 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-amber-800 mb-2">Lumpsum ({formatINR(result.lumpsum.invested)})</h4>
+            <div className="rounded-lg border border-border bg-muted/40 p-4">
+              <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold"><span className={cn('size-2 shrink-0 rounded-full', !lumpsumColor && 'bg-warning')} style={lumpsumColor ? { backgroundColor: lumpsumColor } : undefined} aria-hidden />Lumpsum ({formatINR(result.lumpsum.invested)})</h4>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-gray-600">Invested</span><span className="font-medium">{formatINR(result.lumpsum.invested)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-600">Value</span><span className="font-bold text-green-600">{formatINR(result.lumpsum.value)}</span></div>
-                <div className="flex justify-between"><span className="text-gray-600">Returns</span><span className={result.lumpsum.returnPct >= 0 ? 'text-green-600' : 'text-red-600'}>{result.lumpsum.returnPct.toFixed(2)}%</span></div>
-                <div className="flex justify-between"><span className="text-gray-600">CAGR</span><span>{result.lumpsum.cagr.toFixed(2)}%</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Invested</span><span className="font-medium tabular-nums">{formatINR(result.lumpsum.invested)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Value</span><span className="font-bold text-gain tabular-nums">{formatINR(result.lumpsum.value)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Returns</span><span className={cn('tabular-nums', tone(result.lumpsum.returnPct >= 0))}>{result.lumpsum.returnPct.toFixed(2)}%</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">CAGR</span><span className="tabular-nums">{result.lumpsum.cagr.toFixed(2)}%</span></div>
               </div>
             </div>
           </div>
           {result.chartData && (
             <div>
               <div className="flex gap-4 justify-center mb-2 text-xs">
-                <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-blue-500 inline-block" style={{borderBottom: '2px dashed #3b82f6'}}></span> Invested</span>
-                <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-green-600 inline-block"></span> SIP Value</span>
-                <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-amber-500 inline-block" style={{borderBottom: '2px dashed #f59e0b'}}></span> Lumpsum Value</span>
+                <span className="flex items-center gap-1"><span className="inline-block w-4 border-b-2 border-dashed border-chart-2" aria-hidden /> Invested</span>
+                <span className="flex items-center gap-1"><span className={cn('inline-block h-0.5 w-4', sipBg)} aria-hidden /> SIP Value</span>
+                <span className="flex items-center gap-1"><span className={cn('inline-block w-4 border-b-2 border-dashed', !lumpsumColor && 'border-warning')} style={lumpsumColor ? { borderColor: lumpsumColor } : undefined} aria-hidden /> Lumpsum Value</span>
               </div>
               <GrowthChart data={result.chartData} />
             </div>
@@ -609,7 +637,7 @@ const CagrTool = () => {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <ResultCard label="CAGR" value={`${cagr.toFixed(2)}%`}
-          color={cagr >= 0 ? 'text-green-600' : 'text-red-600'} />
+          color={tone(cagr >= 0)} />
         <ResultCard label="Total Return" value={`${((endVal / beginVal - 1) * 100).toFixed(2)}%`} />
         <ResultCard label="Multiplier" value={`${(endVal / beginVal).toFixed(2)}x`} />
       </div>
@@ -639,19 +667,19 @@ const GoalTool = () => {
         <InputField label="Expected Return % (p.a.)" value={rate} onChange={setRate} suffix="%" min={1} max={30} step={0.5} />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <ResultCard label="Monthly SIP Needed" value={formatINR(Math.ceil(sipNeeded))} color="text-blue-600" />
+        <ResultCard label="Monthly SIP Needed" value={formatINR(Math.ceil(sipNeeded))} color={EMPHASIS} />
         <ResultCard label="Total Investment" value={formatINR(Math.ceil(totalInvested))} />
-        <ResultCard label="Wealth Gain" value={formatINR(Math.ceil(wealthGain))} color="text-green-600" />
+        <ResultCard label="Wealth Gain" value={formatINR(Math.ceil(wealthGain))} color="text-gain" />
         <ResultCard label="Target" value={formatINR(target)} />
       </div>
-      <div className="bg-gray-50 rounded-lg p-4">
-        <div className="flex h-6 rounded-full overflow-hidden">
-          <div className="bg-blue-500" style={{ width: `${(totalInvested / target) * 100}%` }}></div>
-          <div className="bg-green-500" style={{ width: `${(wealthGain / target) * 100}%` }}></div>
+      <div className="rounded-lg border border-border bg-muted/40 p-4">
+        <div className="flex h-6 overflow-hidden rounded-full">
+          <div className="bg-chart-2" style={{ width: `${(totalInvested / target) * 100}%` }}></div>
+          <div className="bg-gain" style={{ width: `${(wealthGain / target) * 100}%` }}></div>
         </div>
-        <div className="flex justify-between mt-2 text-xs text-gray-500">
-          <span>Investment: {((totalInvested / target) * 100).toFixed(0)}%</span>
-          <span>Growth: {((wealthGain / target) * 100).toFixed(0)}%</span>
+        <div className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
+          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-chart-2" aria-hidden />Investment: {((totalInvested / target) * 100).toFixed(0)}%</span>
+          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-gain" aria-hidden />Growth: {((wealthGain / target) * 100).toFixed(0)}%</span>
         </div>
       </div>
     </div>
@@ -680,19 +708,19 @@ const EmiTool = () => {
         <InputField label="Tenure (Years)" value={tenure} onChange={setTenure} min={1} max={30} />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <ResultCard label="Monthly EMI" value={formatINR(Math.ceil(emi))} color="text-blue-600" />
-        <ResultCard label="Total Interest" value={formatINR(Math.ceil(totalInterest))} color="text-red-600" />
+        <ResultCard label="Monthly EMI" value={formatINR(Math.ceil(emi))} color={EMPHASIS} />
+        <ResultCard label="Total Interest" value={formatINR(Math.ceil(totalInterest))} color="text-loss" />
         <ResultCard label="Total Payment" value={formatINR(Math.ceil(totalPayment))} />
         <ResultCard label="Principal" value={formatINR(principal)} />
       </div>
-      <div className="bg-gray-50 rounded-lg p-4">
-        <div className="flex h-6 rounded-full overflow-hidden">
-          <div className="bg-blue-500" style={{ width: `${(principal / totalPayment) * 100}%` }}></div>
-          <div className="bg-red-400" style={{ width: `${(totalInterest / totalPayment) * 100}%` }}></div>
+      <div className="rounded-lg border border-border bg-muted/40 p-4">
+        <div className="flex h-6 overflow-hidden rounded-full">
+          <div className="bg-chart-2" style={{ width: `${(principal / totalPayment) * 100}%` }}></div>
+          <div className="bg-loss/70" style={{ width: `${(totalInterest / totalPayment) * 100}%` }}></div>
         </div>
-        <div className="flex justify-between mt-2 text-xs text-gray-500">
-          <span>Principal: {((principal / totalPayment) * 100).toFixed(0)}%</span>
-          <span>Interest: {((totalInterest / totalPayment) * 100).toFixed(0)}%</span>
+        <div className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
+          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-chart-2" aria-hidden />Principal: {((principal / totalPayment) * 100).toFixed(0)}%</span>
+          <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-loss/70" aria-hidden />Interest: {((totalInterest / totalPayment) * 100).toFixed(0)}%</span>
         </div>
       </div>
     </div>
@@ -721,20 +749,16 @@ const CiTool = () => {
         <InputField label="Principal Amount" value={principal} onChange={setPrincipal} prefix="₹" min={1000} step={50000} />
         <InputField label="Interest Rate (% p.a.)" value={rate} onChange={setRate} suffix="%" min={1} max={20} step={0.1} />
         <InputField label="Period (Years)" value={years} onChange={setYears} min={1} max={30} />
-        <div>
-          <label className="block text-xs text-gray-500 font-medium mb-1">Compounding</label>
-          <select value={frequency} onChange={e => setFrequency(parseInt(e.target.value))}
-            className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm">
-            <option value={1}>Yearly</option>
-            <option value={2}>Half-Yearly</option>
-            <option value={4}>Quarterly</option>
-            <option value={12}>Monthly</option>
-          </select>
-        </div>
+        <SelectField label="Compounding" value={frequency} onChange={e => setFrequency(parseInt(e.target.value))}>
+          <option value={1}>Yearly</option>
+          <option value={2}>Half-Yearly</option>
+          <option value={4}>Quarterly</option>
+          <option value={12}>Monthly</option>
+        </SelectField>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <ResultCard label="Maturity Amount" value={formatINR(Math.ceil(amount))} color="text-green-600" />
-        <ResultCard label="Interest Earned" value={formatINR(Math.ceil(interest))} color="text-blue-600" />
+        <ResultCard label="Maturity Amount" value={formatINR(Math.ceil(amount))} color="text-gain" />
+        <ResultCard label="Interest Earned" value={formatINR(Math.ceil(interest))} color={EMPHASIS} />
         <ResultCard label="Effective Return" value={`${((amount / principal - 1) * 100).toFixed(2)}%`} />
       </div>
       <GrowthChart data={chartData} height={180} />
@@ -771,77 +795,68 @@ const CalculatorPage = () => {
   const activeToolData = TOOLS.find(t => t.id === activeTool);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-3 sm:p-4 md:p-6 space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Financial Calculators</h1>
-          <p className="text-sm text-gray-500 mt-1">Investment planning and analysis tools</p>
-        </div>
+    <PageContainer className="max-w-5xl">
+      <PageHeader title="Financial Calculators" description="Investment planning and analysis tools" />
 
-        {/* Tool selector grid */}
-        {!activeTool ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Tool selector grid */}
+      {!activeTool ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {TOOLS.map(tool => (
+            <button
+              key={tool.id}
+              type="button"
+              onClick={() => setTool(tool.id)}
+              className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/20 focus:outline-hidden focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              <div className="mb-2 text-2xl" aria-hidden>{tool.icon}</div>
+              <h3 className="text-sm font-semibold">{tool.label}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{tool.desc}</p>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <>
+          {/* Back + tool header */}
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="ghost" size="icon" onClick={() => setTool(null)} aria-label="All calculators">
+              <ChevronLeft className="size-5" aria-hidden />
+            </Button>
+            <div>
+              <h2 className="text-lg font-semibold">{activeToolData?.icon} {activeToolData?.label}</h2>
+              <p className="text-xs text-muted-foreground">{activeToolData?.desc}</p>
+            </div>
+          </div>
+
+          {/* Tool switcher pills */}
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-card p-0.5 sm:w-fit" role="group" aria-label="Calculator type">
             {TOOLS.map(tool => (
               <button
                 key={tool.id}
+                type="button"
+                aria-pressed={activeTool === tool.id}
                 onClick={() => setTool(tool.id)}
-                className="bg-white rounded-xl p-5 shadow-xs border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all text-left focus:outline-hidden"
+                className={cn(segmentClass(activeTool === tool.id), 'whitespace-nowrap')}
               >
-                <div className="text-2xl mb-2">{tool.icon}</div>
-                <h3 className="text-sm font-bold text-gray-900">{tool.label}</h3>
-                <p className="text-xs text-gray-500 mt-1">{tool.desc}</p>
+                {tool.label}
               </button>
             ))}
           </div>
-        ) : (
-          <>
-            {/* Back + tool header */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setTool(null)}
-                className="p-2 hover:bg-gray-200 rounded-lg transition-colors focus:outline-hidden"
-              >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">{activeToolData?.icon} {activeToolData?.label}</h2>
-                <p className="text-xs text-gray-500">{activeToolData?.desc}</p>
-              </div>
-            </div>
 
-            {/* Tool switcher pills */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {TOOLS.map(tool => (
-                <button
-                  key={tool.id}
-                  onClick={() => setTool(tool.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors focus:outline-hidden ${
-                    activeTool === tool.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {tool.label}
-                </button>
-              ))}
-            </div>
+          {/* Calculator content */}
+          <div className="rounded-xl border border-border bg-card p-4 md:p-6">
+            {renderTool()}
+          </div>
 
-            {/* Calculator content */}
-            <div className="bg-white rounded-xl shadow-xs border border-gray-100 p-4 md:p-6">
-              {renderTool()}
-            </div>
-
-            {/* Disclaimer */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-xs text-amber-700">
-                <span className="font-semibold">Disclaimer:</span> These calculators are for informational and educational purposes only. Past performance does not guarantee future results. Calculations are based on historical data and assumed rates. Consult a qualified financial advisor for personalized advice.
-              </p>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+          {/* Disclaimer */}
+          <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+            <p className="text-xs text-foreground/85">
+              <span className="font-semibold">Disclaimer:</span> These calculators are for informational and educational purposes only. Past performance does not guarantee future results. Calculations are based on historical data and assumed rates. Consult a qualified financial advisor for personalized advice.
+            </p>
+          </div>
+        </>
+      )}
+    </PageContainer>
   );
 };
 

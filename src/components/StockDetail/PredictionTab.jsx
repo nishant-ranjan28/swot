@@ -167,7 +167,7 @@ const PredictionTab = ({ symbol }) => {
       {/* Day Selector */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground font-medium">Prediction Period:</span>
-        <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+        <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1" role="group" aria-label="Prediction period">
           {DAY_OPTIONS.map((d) => (
             <button
               key={d}

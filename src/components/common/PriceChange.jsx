@@ -6,7 +6,7 @@ const fmt = (n, d = 2) => {
   return `${r > 0 ? '+' : ''}${r.toFixed(d)}`;
 };
 
-export default function PriceChange({ value, percent, showIcon = false, className }) {
+export default function PriceChange({ value, percent, decimals = 2, showIcon = false, className }) {
   const basis = percent ?? value;
   if (basis === null || basis === undefined || Number.isNaN(Number(basis))) {
     return <span className={cn('text-muted-foreground', className)}>—</span>;
@@ -21,9 +21,9 @@ export default function PriceChange({ value, percent, showIcon = false, classNam
       className={cn('inline-flex items-center gap-0.5 tabular-nums', up ? 'text-gain' : 'text-loss', className)}
     >
       {showIcon && <Icon className="size-3.5" aria-hidden />}
-      {hasValue && <span>{fmt(value)}</span>}
-      {hasValue && hasPct && <span>{` (${fmt(percent)}%)`}</span>}
-      {!hasValue && hasPct && <span>{`${fmt(percent)}%`}</span>}
+      {hasValue && <span>{fmt(value, decimals)}</span>}
+      {hasValue && hasPct && <span>{` (${fmt(percent, decimals)}%)`}</span>}
+      {!hasValue && hasPct && <span>{`${fmt(percent, decimals)}%`}</span>}
     </span>
   );
 }

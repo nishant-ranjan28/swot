@@ -17,6 +17,8 @@ import PriceChange from '@/components/common/PriceChange';
 import ErrorState from '@/components/common/ErrorState';
 import EmptyState from '@/components/common/EmptyState';
 import { cn } from '@/lib/utils';
+import { selectClass } from '@/lib/select';
+import { segmentClass } from '@/lib/segment';
 
 const formatNumber = (num) => {
   if (num == null) return 'N/A';
@@ -154,7 +156,7 @@ const RATING_BADGE = {
 };
 
 const RatingBadge = ({ rating }) => {
-  if (!rating) return <span className="text-muted-foreground/70">-</span>;
+  if (!rating) return <span className="text-muted-foreground">-</span>;
   const style = RATING_BADGE[rating] || { variant: 'secondary' };
   return (
     <Badge variant={style.variant} className={cn('rounded-sm px-1.5 text-[10px] font-semibold uppercase', style.className)}>
@@ -162,13 +164,6 @@ const RatingBadge = ({ rating }) => {
     </Badge>
   );
 };
-
-const SELECT_CLASS = 'h-9 w-full rounded-md border border-input bg-card px-2 text-sm transition-colors';
-
-const segmentClass = (active) => cn(
-  'rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
-  active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-);
 
 const alignClass = (col) => (col.align === 'right' ? 'text-right tabular-nums' : col.align === 'center' ? 'text-center' : 'text-left');
 
@@ -263,7 +258,7 @@ const ScreenerPage = () => {
         return (
           <Link to={`/stock/${stock.symbol}`} className="underline-offset-4 hover:underline">
             <div className="text-sm font-semibold text-foreground">{stock.name}</div>
-            <div className="text-[10px] text-muted-foreground/70">{stock.symbol}</div>
+            <div className="text-[10px] text-muted-foreground">{stock.symbol}</div>
           </Link>
         );
       case 'price': return val != null ? <span className="font-medium">₹{val.toFixed(2)}</span> : <span>-</span>;
@@ -365,7 +360,7 @@ const ScreenerPage = () => {
                       className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{filter.label}</label>
                     <select id={`screener-${filter.key}`}
                       value={filters[filter.key] || 'all'} onChange={(e) => setFilter(filter.key, e.target.value)}
-                      className={cn(SELECT_CLASS,
+                      className={cn(selectClass, 'w-full',
                         filters[filter.key] && filters[filter.key] !== 'all' && 'border-primary ring-1 ring-primary/30')}>
                       {filter.options.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
@@ -382,7 +377,7 @@ const ScreenerPage = () => {
         <span className="text-sm text-muted-foreground tabular-nums">
           {loading ? 'Searching...' : `${sortedStocks.length} stocks shown (${total.toLocaleString('en-IN')} matched)`}
         </span>
-        <span className="text-[10px] text-muted-foreground/70">Click column headers to sort</span>
+        <span className="text-[10px] text-muted-foreground">Click column headers to sort</span>
       </div>
 
       {/* Table */}

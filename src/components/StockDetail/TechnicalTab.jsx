@@ -114,7 +114,7 @@ const TechnicalTab = ({ symbol }) => {
           }`}>
             {data.oscillators?.rsi || 'N/A'}
           </div>
-          <div className="text-[10px] text-muted-foreground/70">
+          <div className="text-[10px] text-muted-foreground">
             {data.oscillators?.rsi < 30 ? 'Oversold' : data.oscillators?.rsi > 70 ? 'Overbought' : 'Normal'}
           </div>
         </div>
@@ -125,19 +125,19 @@ const TechnicalTab = ({ symbol }) => {
           }`}>
             {data.oscillators?.macd?.line || 'N/A'}
           </div>
-          <div className="text-[10px] text-muted-foreground/70">
+          <div className="text-[10px] text-muted-foreground">
             Signal: {data.oscillators?.macd?.signal || 'N/A'}
           </div>
         </div>
         <div className={tileClass}>
           <div className="text-xs text-muted-foreground">Volatility</div>
           <div className="text-lg font-semibold tabular-nums text-foreground">{data.volatility}%</div>
-          <div className="text-[10px] text-muted-foreground/70">Annualized</div>
+          <div className="text-[10px] text-muted-foreground">Annualized</div>
         </div>
         <div className={tileClass}>
           <div className="text-xs text-muted-foreground">ATR</div>
           <div className="text-lg font-semibold tabular-nums text-foreground">{data.atr || 'N/A'}</div>
-          <div className="text-[10px] text-muted-foreground/70">Avg True Range</div>
+          <div className="text-[10px] text-muted-foreground">Avg True Range</div>
         </div>
       </div>
 
@@ -150,7 +150,7 @@ const TechnicalTab = ({ symbol }) => {
           }`}>
             {data.stochastic?.k != null ? data.stochastic.k : 'N/A'} / {data.stochastic?.d != null ? data.stochastic.d : 'N/A'}
           </div>
-          <div className="text-[10px] text-muted-foreground/70">
+          <div className="text-[10px] text-muted-foreground">
             {data.stochastic?.k < 20 ? 'Oversold' : data.stochastic?.k > 80 ? 'Overbought' : 'Normal'}
           </div>
         </div>
@@ -161,7 +161,7 @@ const TechnicalTab = ({ symbol }) => {
           }`}>
             {data.adx != null ? data.adx : 'N/A'}
           </div>
-          <div className="text-[10px] text-muted-foreground/70">
+          <div className="text-[10px] text-muted-foreground">
             {data.adx >= 50 ? 'Very Strong Trend' : data.adx >= 25 ? 'Strong Trend' : data.adx != null ? 'Weak Trend' : ''}
           </div>
         </div>
@@ -172,7 +172,7 @@ const TechnicalTab = ({ symbol }) => {
           }`}>
             {data.williams_r != null ? data.williams_r : 'N/A'}
           </div>
-          <div className="text-[10px] text-muted-foreground/70">
+          <div className="text-[10px] text-muted-foreground">
             {data.williams_r < -80 ? 'Oversold' : data.williams_r > -20 ? 'Overbought' : data.williams_r != null ? 'Normal' : ''}
           </div>
         </div>

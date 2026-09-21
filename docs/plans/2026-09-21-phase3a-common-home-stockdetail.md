@@ -38,7 +38,7 @@
 | `text-gray-900` / `text-gray-800` | `text-foreground` |
 | `text-gray-700` | `text-foreground/85` |
 | `text-gray-600` / `text-gray-500` | `text-muted-foreground` |
-| `text-gray-400` | `text-muted-foreground/70` |
+| `text-gray-400` | `text-muted-foreground` (see note below) |
 | `bg-gray-50` inner sections / `bg-gray-100` chips | `bg-muted/40` / `bg-muted` |
 | `border-gray-100/200/300` | `border-border` |
 | `hover:bg-gray-50/100` | `hover:bg-muted/50` |
@@ -54,6 +54,8 @@
 | `shadow-md` / `hover:shadow-md` on cards | drop the shadow; use `hover:border-foreground/20` for interactive cards |
 
 Keep responsive grid classes as they are. Keep `sticky top-16`.
+
+**Note (Phase 3c):** gray-400 was first mapped to `text-muted-foreground/70`, but that is only about 2.9:1 on white, below the 4.5:1 WCAG AA minimum for text. Readable text (labels, hints, captions, prefixes/suffixes, disclaimers, metadata) uses plain `text-muted-foreground`. Keep `/50`–`/70` only for purely decorative marks: rank numbers, `aria-hidden` icons, separators.
 
 ---
 

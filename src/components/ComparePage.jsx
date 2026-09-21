@@ -423,7 +423,7 @@ const ComparePage = () => {
                         <button
                           type="button"
                           onClick={() => removeStockColumn(sym)}
-                          className="ml-1 rounded-sm p-0.5 text-muted-foreground/70 hover:text-loss transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50"
+                          className="ml-1 rounded-sm p-0.5 text-muted-foreground hover:text-loss transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50"
                           title="Remove"
                           aria-label={`Remove ${sym}`}
                         >
@@ -431,7 +431,7 @@ const ComparePage = () => {
                         </button>
                       </div>
                       {quote?.name && (
-                        <div className="text-[11px] text-muted-foreground/70 font-normal mt-0.5 truncate max-w-[140px] mx-auto">
+                        <div className="text-[11px] text-muted-foreground font-normal mt-0.5 truncate max-w-[140px] mx-auto">
                           {quote.name}
                         </div>
                       )}
@@ -488,7 +488,7 @@ const ComparePage = () => {
 
           {/* Disclaimer */}
           <div className="border-t border-border px-4 py-3 bg-muted/40">
-            <p className="text-[11px] text-muted-foreground/70 text-center">
+            <p className="text-[11px] text-muted-foreground text-center">
               Green highlights indicate the best value in each row. Data sourced from market feeds and may be delayed.
             </p>
           </div>
@@ -659,7 +659,7 @@ const ComparisonVerdict = ({ data, symbols }) => {
             <div key={cat} className={cn('rounded-lg border border-border border-l-2 bg-card p-3 text-center', CAT_COLORS[cat].border)}>
               <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{catLabels[cat]}</div>
               <div className="text-sm font-bold mt-1 text-foreground">{catWinner.name}</div>
-              <div className="text-[10px] text-muted-foreground/70 mt-0.5 tabular-nums">{catWinner[cat]} pts</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{catWinner[cat]} pts</div>
             </div>
           );
         })}

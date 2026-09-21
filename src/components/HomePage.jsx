@@ -340,7 +340,7 @@ const HomePage = () => {
                 sentiment.overall.includes('Bullish') ? 'text-gain' :
                 sentiment.overall.includes('Bearish') ? 'text-loss' : 'text-warning'
               )}>{sentiment.overall}</div>
-              <div className="text-[10px] text-muted-foreground/70 mt-0.5">Sentiment Score</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Sentiment Score</div>
             </div>
 
             {/* India VIX */}
@@ -353,7 +353,7 @@ const HomePage = () => {
               <Badge variant={VIX_SIGNAL_VARIANT[sentiment.vix?.signal] || 'gain'} className="mt-1">
                 {sentiment.vix?.signal}
               </Badge>
-              <div className="text-[10px] text-muted-foreground/70 mt-1">High VIX = High Fear</div>
+              <div className="text-[10px] text-muted-foreground mt-1">High VIX = High Fear</div>
             </div>
 
             {/* NIFTY Trend */}
@@ -396,7 +396,7 @@ const HomePage = () => {
                   <span className="text-xs text-loss font-medium">{sentiment.breadth?.losers} Declining</span>
                 </div>
               </div>
-              <div className="text-[10px] text-muted-foreground/70 mt-2">
+              <div className="text-[10px] text-muted-foreground mt-2">
                 Based on {sentiment.breadth?.total} tracked stocks
               </div>
             </div>
@@ -486,7 +486,7 @@ const HomePage = () => {
       <section>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h2 className="text-base font-semibold">Popular Stocks</h2>
-          <div className="flex gap-1 overflow-x-auto pb-1">
+          <div className="flex gap-1 overflow-x-auto pb-1" role="group" aria-label="Sector">
             {(SECTORS_BY_MARKET[market] || SECTORS_BY_MARKET.in).map((sector) => (
               <button
                 key={sector}

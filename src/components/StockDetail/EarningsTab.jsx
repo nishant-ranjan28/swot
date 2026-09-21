@@ -118,7 +118,7 @@ const EarningsTab = ({ symbol }) => {
                   )}>
                     {beat ? '✓' : miss ? '✗' : '-'}
                   </div>
-                  <div className="text-[10px] tabular-nums text-muted-foreground/70 mt-1">{entry.date?.substring(0, 7)}</div>
+                  <div className="text-[10px] tabular-nums text-muted-foreground mt-1">{entry.date?.substring(0, 7)}</div>
                   {entry.surprise_percent != null && (
                     <div className={cn('text-[10px] font-semibold tabular-nums', entry.surprise_percent >= 0 ? 'text-gain' : 'text-loss')}>
                       {entry.surprise_percent >= 0 ? '+' : ''}{entry.surprise_percent.toFixed(1)}%
@@ -166,7 +166,7 @@ const EarningsTab = ({ symbol }) => {
         <SectionCard
           title={`${showAnnual ? 'Annual' : 'Quarterly'} Results`}
           action={
-            <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
+            <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1" role="group" aria-label="Results period">
               <button type="button" aria-pressed={!showAnnual} onClick={() => setShowAnnual(false)} className={pillClass(!showAnnual)}>
                 Quarterly
               </button>

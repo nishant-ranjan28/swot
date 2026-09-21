@@ -1,5 +1,13 @@
 import React, { useState, useMemo } from 'react';
+import { ChevronDown, Search } from 'lucide-react';
 import { GLOSSARY, CATEGORIES } from '../data/glossary';
+import { cn } from '@/lib/utils';
+import { segmentClass } from '@/lib/segment';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import PageContainer from './common/PageContainer';
+import PageHeader from './common/PageHeader';
+import EmptyState from './common/EmptyState';
 
 const GlossaryPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,92 +30,85 @@ const GlossaryPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Stock Glossary</h1>
-      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Learn key finance and investing terms</p>
+    <PageContainer className="max-w-4xl">
+      <PageHeader title="Stock Glossary" description="Learn key finance and investing terms" />
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          type="text"
-          placeholder="Search terms..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-hidden"
-        />
-      </div>
-
-      {/* Category Pills */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat}
-            onClick={() => { setActiveCategory(cat); setExpandedIndex(null); }}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              activeCategory === cat
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Results count */}
-      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{filtered.length} term{filtered.length !== 1 ? 's' : ''} found</p>
-
-      {/* Terms */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          <p className="font-medium">No terms match your search</p>
-          <p className="text-sm mt-1">Try a different keyword or category</p>
+      <div className="space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/70" aria-hidden />
+          <Input
+            type="text"
+            placeholder="Search terms..."
+            aria-label="Search terms"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="h-10 bg-card pl-10 pr-4"
+          />
         </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((item, idx) => {
-            const isExpanded = expandedIndex === idx;
-            return (
-              <div
-                key={item.term}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden transition-shadow hover:shadow-xs"
-              >
-                <button
-                  onClick={() => toggleExpand(idx)}
-                  className="w-full px-4 py-3 flex items-center justify-between text-left"
+
+        {/* Category Pills */}
+        <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-card p-0.5 sm:w-fit" role="group" aria-label="Category">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              type="button"
+              aria-pressed={activeCategory === cat}
+              onClick={() => { setActiveCategory(cat); setExpandedIndex(null); }}
+              className={segmentClass(activeCategory === cat)}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Results count */}
+        <p className="text-xs text-muted-foreground">{filtered.length} term{filtered.length !== 1 ? 's' : ''} found</p>
+
+        {/* Terms */}
+        {filtered.length === 0 ? (
+          <EmptyState icon={Search} title="No terms match your search" description="Try a different keyword or category" />
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((item, idx) => {
+              const isExpanded = expandedIndex === idx;
+              return (
+                <div
+                  key={item.term}
+                  className="overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-foreground/20"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-gray-900 dark:text-white">{item.term}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium">
-                        {item.category}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{item.short}</p>
-                  </div>
-                  <svg
-                    className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleExpand(idx)}
+                    className="flex w-full items-center justify-between p-4 text-left"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {isExpanded && (
-                  <div className="px-4 pb-4 pt-0">
-                    <div className="border-t border-gray-100 dark:border-gray-700 pt-3">
-                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{item.detail}</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">{item.term}</span>
+                        <Badge variant="secondary">{item.category}</Badge>
+                      </div>
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">{item.short}</p>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                    <ChevronDown
+                      className={cn('ml-2 size-4 shrink-0 text-muted-foreground/70 transition-transform', isExpanded && 'rotate-180')}
+                      aria-hidden
+                    />
+                  </button>
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-0">
+                      <div className="border-t border-border pt-3">
+                        <p className="text-sm leading-relaxed text-foreground/85">{item.detail}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </PageContainer>
   );
 };
 

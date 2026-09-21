@@ -3,6 +3,22 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import { useMarket } from '../context/MarketContext';
 import PriceChart from './PriceChart';
+import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import SectionCard from '@/components/common/SectionCard';
+import StatCard from '@/components/common/StatCard';
+import PriceChange from '@/components/common/PriceChange';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorState from '@/components/common/ErrorState';
+import { cn } from '@/lib/utils';
+import { selectClass } from '@/lib/select';
+
+const TH_CLASS = 'px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
 
 function EtfPage() {
   const { market } = useMarket();
@@ -54,48 +70,47 @@ function EtfPage() {
   const currency = market === 'in' ? '₹' : '$';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">ETF Screener</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Popular {market === 'in' ? 'Indian' : 'US'} ETFs with holdings & overlap analysis
-          </p>
-        </div>
-        <button
-          onClick={() => { setOverlapMode(!overlapMode); setSelectedEtf(null); }}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            overlapMode ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          {overlapMode ? 'Back to ETFs' : 'Overlap Checker'}
-        </button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="ETF Screener"
+        description={`Popular ${market === 'in' ? 'Indian' : 'US'} ETFs with holdings & overlap analysis`}
+        actions={
+          <Button
+            type="button"
+            variant={overlapMode ? 'default' : 'secondary'}
+            aria-pressed={overlapMode}
+            onClick={() => { setOverlapMode(!overlapMode); setSelectedEtf(null); }}
+          >
+            {overlapMode ? 'Back to ETFs' : 'Overlap Checker'}
+          </Button>
+        }
+      />
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
-      )}
+      {error && <ErrorState title={error} />}
 
       {/* Overlap Checker */}
       {overlapMode && (
-        <div className="mb-6 space-y-4">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">ETF Overlap Checker</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Compare holdings of two ETFs to find common positions
-            </p>
+        <div className="space-y-4">
+          <SectionCard
+            title="ETF Overlap Checker"
+            description="Compare holdings of two ETFs to find common positions"
+          >
             {market === 'in' && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 text-sm text-orange-700">
-                Holdings and overlap data is only available for US ETFs. Switch to US market to use this feature.
+              <div className="mb-4 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
+                <AlertTriangle className="size-4 shrink-0 mt-0.5 text-warning" aria-hidden />
+                <span className="text-foreground/85">
+                  Holdings and overlap data is only available for US ETFs. Switch to US market to use this feature.
+                </span>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
               <div>
-                <label className="block text-xs text-gray-500 font-medium mb-1">ETF 1</label>
+                <label htmlFor="etf-overlap-1" className="block text-xs font-medium text-muted-foreground mb-1">ETF 1</label>
                 <select
+                  id="etf-overlap-1"
                   value={overlapEtf1}
                   onChange={e => setOverlapEtf1(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-purple-500"
+                  className={cn(selectClass, 'w-full')}
                 >
                   <option value="">Select ETF</option>
                   {etfs.map(e => (
@@ -104,11 +119,12 @@ function EtfPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 font-medium mb-1">ETF 2</label>
+                <label htmlFor="etf-overlap-2" className="block text-xs font-medium text-muted-foreground mb-1">ETF 2</label>
                 <select
+                  id="etf-overlap-2"
                   value={overlapEtf2}
                   onChange={e => setOverlapEtf2(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-purple-500"
+                  className={cn(selectClass, 'w-full')}
                 >
                   <option value="">Select ETF</option>
                   {etfs.map(e => (
@@ -116,179 +132,175 @@ function EtfPage() {
                   ))}
                 </select>
               </div>
-              <button
+              <Button
+                type="button"
                 onClick={checkOverlap}
                 disabled={!overlapEtf1 || !overlapEtf2 || overlapEtf1 === overlapEtf2 || loadingOverlap}
-                className="px-6 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors"
               >
                 {loadingOverlap ? 'Analyzing...' : 'Check Overlap'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </SectionCard>
 
           {overlapResult && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">Overlap Results</h3>
-                <span className="text-sm font-bold text-purple-600">
+            <SectionCard
+              title="Overlap Results"
+              action={
+                <span className="text-sm font-semibold tabular-nums">
                   {overlapResult.overlap_count || 0} common holdings
                 </span>
-              </div>
-              <div className="grid grid-cols-3 gap-4 mb-4 text-center">
-                <div className="bg-blue-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-500">{overlapResult.etf1?.symbol}</div>
-                  <div className="font-bold text-gray-900">{overlapResult.etf1_total || 0} holdings</div>
-                </div>
-                <div className="bg-purple-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-500">Common</div>
-                  <div className="font-bold text-purple-700">{overlapResult.overlap_count || 0}</div>
-                </div>
-                <div className="bg-green-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-500">{overlapResult.etf2?.symbol}</div>
-                  <div className="font-bold text-gray-900">{overlapResult.etf2_total || 0} holdings</div>
-                </div>
+              }
+              contentClassName="space-y-4"
+            >
+              <div className="grid grid-cols-3 gap-3">
+                <StatCard
+                  label={
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-chart-1" aria-hidden />
+                      {overlapResult.etf1?.symbol}
+                    </span>
+                  }
+                  value={`${overlapResult.etf1_total || 0} holdings`}
+                  className="bg-muted/40"
+                />
+                <StatCard label="Common" value={overlapResult.overlap_count || 0} className="bg-muted/40" />
+                <StatCard
+                  label={
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-chart-2" aria-hidden />
+                      {overlapResult.etf2?.symbol}
+                    </span>
+                  }
+                  value={`${overlapResult.etf2_total || 0} holdings`}
+                  className="bg-muted/40"
+                />
               </div>
               {overlapResult.common_holdings?.length > 0 && (
                 <div>
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Common Holdings</h4>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Common Holdings</h4>
                   <div className="flex flex-wrap gap-2">
                     {overlapResult.common_holdings.map((h, i) => (
-                      <span key={i} className="px-2 py-1 bg-purple-100 text-purple-700 rounded-sm text-xs font-medium">
-                        {h}
-                      </span>
+                      <Badge key={i} variant="secondary">{h}</Badge>
                     ))}
                   </div>
                 </div>
               )}
               {(!overlapResult.common_holdings || overlapResult.common_holdings.length === 0) && (
-                <p className="text-gray-400 text-sm text-center">No common holdings found (holdings data may be limited)</p>
+                <p className="text-muted-foreground text-sm text-center">No common holdings found (holdings data may be limited)</p>
               )}
-            </div>
+            </SectionCard>
           )}
         </div>
       )}
 
       {/* ETF Detail */}
       {selectedEtf && !overlapMode && (
-        <div className="mb-6 space-y-4">
-          <button
+        <div className="space-y-4">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="-ml-2"
             onClick={() => { setSelectedEtf(null); setHoldings(null); }}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
           >
-            &larr; Back to all ETFs
-          </button>
+            <ArrowLeft aria-hidden />
+            Back to all ETFs
+          </Button>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
-            <div className="flex items-start justify-between">
+          <section className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">{selectedEtf.name}</h2>
-                <Link to={`/stock/${selectedEtf.symbol}`} className="text-sm text-blue-600 hover:underline">
+                <h2 className="text-lg font-bold">{selectedEtf.name}</h2>
+                <Link to={`/stock/${selectedEtf.symbol}`} className="text-sm font-medium text-foreground underline-offset-4 hover:underline dark:text-primary">
                   {selectedEtf.symbol}
                 </Link>
-                <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-sm">{selectedEtf.category}</span>
+                <Badge variant="secondary" className="ml-2">{selectedEtf.category}</Badge>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold tabular-nums">
                   {currency}{selectedEtf.price?.toFixed(2) || 'N/A'}
                 </div>
-                <div className={`text-sm font-medium ${(selectedEtf.change_percent || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {(selectedEtf.change_percent || 0) >= 0 ? '+' : ''}{selectedEtf.change_percent?.toFixed(2) || '0'}%
-                </div>
+                <PriceChange percent={selectedEtf.change_percent || 0} className="text-sm font-medium" />
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Price Chart */}
           <PriceChart symbol={selectedEtf.symbol} title={`${selectedEtf.name} Price Chart`} decimals={2} />
 
           {/* Holdings */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-xs p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Fund Details & Holdings</h3>
+          <SectionCard title="Fund Details & Holdings">
             {loadingHoldings ? (
-              <div className="animate-pulse space-y-2">
-                {[...Array(5)].map((_, i) => <div key={i} className="h-4 bg-gray-100 rounded-sm w-3/4" />)}
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-4 w-3/4" />)}
               </div>
             ) : holdings ? (
               <div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                   {holdings.total_assets && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500">Total Assets</div>
-                      <div className="font-bold text-gray-900 text-sm">
-                        {holdings.total_assets >= 1e9
-                          ? `${currency}${(holdings.total_assets / 1e9).toFixed(2)}B`
-                          : holdings.total_assets >= 1e6
-                            ? `${currency}${(holdings.total_assets / 1e6).toFixed(1)}M`
-                            : `${currency}${holdings.total_assets?.toLocaleString()}`}
-                      </div>
-                    </div>
+                    <StatCard
+                      label="Total Assets"
+                      className="bg-muted/40"
+                      value={holdings.total_assets >= 1e9
+                        ? `${currency}${(holdings.total_assets / 1e9).toFixed(2)}B`
+                        : holdings.total_assets >= 1e6
+                          ? `${currency}${(holdings.total_assets / 1e6).toFixed(1)}M`
+                          : `${currency}${holdings.total_assets?.toLocaleString()}`}
+                    />
                   )}
                   {holdings.expense_ratio != null && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500">Expense Ratio</div>
-                      <div className="font-bold text-gray-900 text-sm">{(holdings.expense_ratio * 100).toFixed(2)}%</div>
-                    </div>
+                    <StatCard label="Expense Ratio" className="bg-muted/40" value={`${(holdings.expense_ratio * 100).toFixed(2)}%`} />
                   )}
                   {holdings.ytd_return != null && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500">YTD Return</div>
-                      <div className={`font-bold text-sm ${holdings.ytd_return >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {(holdings.ytd_return * 100).toFixed(2)}%
-                      </div>
-                    </div>
+                    <StatCard label="YTD Return" className="bg-muted/40" value={<PriceChange percent={holdings.ytd_return * 100} />} />
                   )}
                   {holdings.three_year_return != null && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-500">3Y Return</div>
-                      <div className={`font-bold text-sm ${holdings.three_year_return >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {(holdings.three_year_return * 100).toFixed(2)}%
-                      </div>
-                    </div>
+                    <StatCard label="3Y Return" className="bg-muted/40" value={<PriceChange percent={holdings.three_year_return * 100} />} />
                   )}
                 </div>
 
                 {holdings.top_holdings?.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Top Holdings</h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-gray-50 text-gray-500 text-xs uppercase">
-                            <th className="text-left px-3 py-2 font-medium">Symbol</th>
-                            <th className="text-left px-3 py-2 font-medium">Name</th>
-                            <th className="text-right px-3 py-2 font-medium">Weight</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Top Holdings</h4>
+                    <div className="overflow-hidden rounded-lg border border-border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/40 hover:bg-muted/40">
+                            <TableHead className={TH_CLASS}>Symbol</TableHead>
+                            <TableHead className={TH_CLASS}>Name</TableHead>
+                            <TableHead className={cn(TH_CLASS, 'text-right')}>Weight</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {holdings.top_holdings.map((h, i) => (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="px-3 py-2">
-                                <Link to={`/stock/${h.symbol}`} className="text-blue-600 hover:text-blue-800 font-medium">
+                            <TableRow key={i}>
+                              <TableCell className="px-3">
+                                <Link to={`/stock/${h.symbol}`} className="font-medium text-foreground underline-offset-4 hover:underline dark:text-primary">
                                   {h.symbol || '-'}
                                 </Link>
-                              </td>
-                              <td className="px-3 py-2 text-gray-900">{h.name || '-'}</td>
-                              <td className="px-3 py-2 text-right text-gray-600 font-medium">
+                              </TableCell>
+                              <TableCell className="px-3">{h.name || '-'}</TableCell>
+                              <TableCell className="px-3 text-right font-medium tabular-nums text-muted-foreground">
                                 {h.weight != null ? `${h.weight}%` : '-'}
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
                 )}
                 {(!holdings.top_holdings || holdings.top_holdings.length === 0) && (
-                  <p className="text-gray-400 text-sm text-center py-4">
-                Holdings data not available for this ETF.
-                {market === 'in' && ' Indian ETF holdings are not provided by Yahoo Finance.'}
-              </p>
+                  <p className="text-muted-foreground text-sm text-center py-4">
+                    Holdings data not available for this ETF.
+                    {market === 'in' && ' Indian ETF holdings are not provided by Yahoo Finance.'}
+                  </p>
                 )}
               </div>
             ) : (
-              <p className="text-gray-400 text-sm text-center py-4">Failed to load holdings data</p>
+              <ErrorState title="Failed to load holdings data" />
             )}
-          </div>
+          </SectionCard>
         </div>
       )}
 
@@ -298,55 +310,50 @@ function EtfPage() {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-32" />
+                <Skeleton key={i} className="h-32 rounded-xl" />
               ))}
             </div>
           ) : etfs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {etfs.map(etf => {
-                const isPositive = (etf.change_percent || 0) >= 0;
-                return (
-                  <button
-                    key={etf.symbol}
-                    type="button"
-                    onClick={() => selectEtf(etf)}
-                    className="bg-white rounded-xl p-4 border border-gray-100 shadow-xs hover:shadow-md transition-all text-left"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <div className="text-sm font-bold text-gray-900">{etf.symbol.replace('.NS', '')}</div>
-                        <div className="text-xs text-gray-500 line-clamp-1">{etf.name}</div>
-                      </div>
-                      <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-sm">{etf.category}</span>
+              {etfs.map(etf => (
+                <button
+                  key={etf.symbol}
+                  type="button"
+                  onClick={() => selectEtf(etf)}
+                  className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-foreground/20"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold">{etf.symbol.replace('.NS', '')}</div>
+                      <div className="text-xs text-muted-foreground line-clamp-1">{etf.name}</div>
                     </div>
-                    <div className="flex items-baseline justify-between mt-2">
-                      <span className="text-lg font-bold text-gray-900">
-                        {etf.price ? `${currency}${etf.price.toFixed(2)}` : 'N/A'}
-                      </span>
-                      <span className={`text-sm font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                        {isPositive ? '+' : ''}{etf.change_percent?.toFixed(2) || '0'}%
-                      </span>
+                    <Badge variant="secondary" className="text-[10px]">{etf.category}</Badge>
+                  </div>
+                  <div className="flex items-baseline justify-between mt-2">
+                    <span className="text-lg font-bold tabular-nums">
+                      {etf.price ? `${currency}${etf.price.toFixed(2)}` : 'N/A'}
+                    </span>
+                    <PriceChange percent={etf.change_percent || 0} className="text-sm font-semibold" />
+                  </div>
+                  {etf.volume && (
+                    <div className="text-xs text-muted-foreground mt-1 tabular-nums">
+                      Vol: {(etf.volume / 1000).toFixed(0)}K
                     </div>
-                    {etf.volume && (
-                      <div className="text-xs text-gray-400 mt-1">
-                        Vol: {(etf.volume / 1000).toFixed(0)}K
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+                  )}
+                </button>
+              ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-400">No ETF data available</div>
+            <EmptyState title="No ETF data available" />
           )}
         </>
       )}
 
       {/* Disclaimer */}
-      <div className="mt-8 text-xs text-gray-400 text-center">
+      <p className="pt-2 text-xs text-muted-foreground text-center">
         Data sourced from Yahoo Finance. ETF prices and holdings may be delayed. Not financial advice.
-      </div>
-    </div>
+      </p>
+    </PageContainer>
   );
 }
 

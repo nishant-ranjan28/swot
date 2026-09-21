@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { UPCOMING_IPOS, RECENT_LISTINGS } from '../data/ipoData';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import SectionCard from '@/components/common/SectionCard';
+import PriceChange from '@/components/common/PriceChange';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { segmentClass } from '@/lib/segment';
 
 function IpoPage() {
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -8,29 +16,24 @@ function IpoPage() {
   const currentGainPct = (issue, cmp) => (((cmp - issue) / issue) * 100).toFixed(1);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-white mb-2">IPO Tracker</h1>
-      <p className="text-gray-400 text-sm mb-6">Track upcoming IPOs and recent listing performance</p>
+    <PageContainer>
+      <PageHeader title="IPO Tracker" description="Track upcoming IPOs and recent listing performance" />
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-border bg-card p-1" role="group" aria-label="View">
         <button
+          type="button"
+          aria-pressed={activeTab === 'upcoming'}
           onClick={() => setActiveTab('upcoming')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'upcoming'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
+          className={segmentClass(activeTab === 'upcoming')}
         >
           Upcoming IPOs ({UPCOMING_IPOS.length})
         </button>
         <button
+          type="button"
+          aria-pressed={activeTab === 'recent'}
           onClick={() => setActiveTab('recent')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            activeTab === 'recent'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-          }`}
+          className={segmentClass(activeTab === 'recent')}
         >
           Recent Listings ({RECENT_LISTINGS.length})
         </button>
@@ -40,29 +43,29 @@ function IpoPage() {
       {activeTab === 'upcoming' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {UPCOMING_IPOS.map((ipo, i) => (
-            <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:border-gray-600 transition-colors">
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-white font-semibold text-sm">{ipo.name}</h3>
-                <span className="text-xs bg-blue-900/50 text-blue-400 px-2 py-0.5 rounded-sm">{ipo.sector}</span>
+            <div key={i} className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20">
+              <div className="flex justify-between items-start gap-2 mb-3">
+                <h3 className="font-semibold text-sm">{ipo.name}</h3>
+                <Badge variant="secondary">{ipo.sector}</Badge>
               </div>
-              <div className="space-y-2 text-sm">
+              <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Expected Date</span>
-                  <span className="text-gray-200">{ipo.dates}</span>
+                  <dt className="text-muted-foreground">Expected Date</dt>
+                  <dd>{ipo.dates}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Price Band</span>
-                  <span className="text-gray-200">{ipo.priceRange}</span>
+                  <dt className="text-muted-foreground">Price Band</dt>
+                  <dd className="tabular-nums">{ipo.priceRange}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Lot Size</span>
-                  <span className="text-gray-200">{ipo.lotSize}</span>
+                  <dt className="text-muted-foreground">Lot Size</dt>
+                  <dd className="tabular-nums">{ipo.lotSize}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Exchange</span>
-                  <span className="text-gray-200">{ipo.exchange}</span>
+                  <dt className="text-muted-foreground">Exchange</dt>
+                  <dd>{ipo.exchange}</dd>
                 </div>
-              </div>
+              </dl>
             </div>
           ))}
         </div>
@@ -70,55 +73,54 @@ function IpoPage() {
 
       {/* Recent Listings */}
       {activeTab === 'recent' && (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-900/50">
-                  <th className="text-left text-gray-400 py-3 px-4">Company</th>
-                  <th className="text-left text-gray-400 py-3 px-3">Sector</th>
-                  <th className="text-center text-gray-400 py-3 px-3">List Date</th>
-                  <th className="text-right text-gray-400 py-3 px-3">Issue Price</th>
-                  <th className="text-right text-gray-400 py-3 px-3">List Price</th>
-                  <th className="text-right text-gray-400 py-3 px-3">List Gain%</th>
-                  <th className="text-right text-gray-400 py-3 px-3">CMP</th>
-                  <th className="text-right text-gray-400 py-3 px-4">Current Gain%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {RECENT_LISTINGS.map((ipo, i) => {
-                  const lg = listingGainPct(ipo.issuePrice, ipo.listingPrice);
-                  const cg = currentGainPct(ipo.issuePrice, ipo.cmp);
-                  return (
-                    <tr key={i} className="border-t border-gray-700/50 hover:bg-gray-700/30">
-                      <td className="py-3 px-4 text-white font-medium">{ipo.name}</td>
-                      <td className="py-3 px-3 text-gray-400">{ipo.sector}</td>
-                      <td className="py-3 px-3 text-center text-gray-300">{ipo.listDate}</td>
-                      <td className="py-3 px-3 text-right text-gray-300">{'\u20b9'}{ipo.issuePrice}</td>
-                      <td className="py-3 px-3 text-right text-gray-300">{'\u20b9'}{ipo.listingPrice}</td>
-                      <td className={`py-3 px-3 text-right font-medium ${parseFloat(lg) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {parseFloat(lg) >= 0 ? '+' : ''}{lg}%
-                      </td>
-                      <td className="py-3 px-3 text-right text-gray-300">{'\u20b9'}{ipo.cmp}</td>
-                      <td className={`py-3 px-4 text-right font-medium ${parseFloat(cg) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {parseFloat(cg) >= 0 ? '+' : ''}{cg}%
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <SectionCard contentClassName="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <TableHead className="px-4 text-muted-foreground">Company</TableHead>
+                <TableHead className="px-3 text-muted-foreground">Sector</TableHead>
+                <TableHead className="px-3 text-center text-muted-foreground">List Date</TableHead>
+                <TableHead className="px-3 text-right text-muted-foreground">Issue Price</TableHead>
+                <TableHead className="px-3 text-right text-muted-foreground">List Price</TableHead>
+                <TableHead className="px-3 text-right text-muted-foreground">List Gain%</TableHead>
+                <TableHead className="px-3 text-right text-muted-foreground">CMP</TableHead>
+                <TableHead className="px-4 text-right text-muted-foreground">Current Gain%</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {RECENT_LISTINGS.map((ipo, i) => {
+                const lg = listingGainPct(ipo.issuePrice, ipo.listingPrice);
+                const cg = currentGainPct(ipo.issuePrice, ipo.cmp);
+                return (
+                  <TableRow key={i}>
+                    <TableCell className="px-4 py-3 font-medium">{ipo.name}</TableCell>
+                    <TableCell className="px-3 py-3 text-muted-foreground">{ipo.sector}</TableCell>
+                    <TableCell className="px-3 py-3 text-center tabular-nums text-foreground/85">{ipo.listDate}</TableCell>
+                    <TableCell className="px-3 py-3 text-right tabular-nums">{'₹'}{ipo.issuePrice}</TableCell>
+                    <TableCell className="px-3 py-3 text-right tabular-nums">{'₹'}{ipo.listingPrice}</TableCell>
+                    <TableCell className="px-3 py-3 text-right font-medium">
+                      <PriceChange percent={Number(lg)} decimals={1} />
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-right tabular-nums">{'₹'}{ipo.cmp}</TableCell>
+                    <TableCell className="px-4 py-3 text-right font-medium">
+                      <PriceChange percent={Number(cg)} decimals={1} />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </SectionCard>
       )}
 
       {/* Disclaimer */}
-      <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-lg p-3 mt-6">
-        <p className="text-yellow-500 text-xs">
+      <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
+        <p className="text-xs text-muted-foreground">
           Note: IPO data is manually curated and may not be real-time. Verify details from official sources (SEBI, stock exchanges) before making investment decisions.
         </p>
       </div>
-    </div>
+    </PageContainer>
   );
 }
 
