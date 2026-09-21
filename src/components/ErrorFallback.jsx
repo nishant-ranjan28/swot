@@ -20,7 +20,7 @@ const ErrorFallback = ({ error, resetErrorBoundary, componentName = 'Widget' }) 
                     Try Again
                 </button>
             )}
-            {process.env.NODE_ENV === 'development' && (
+            {import.meta.env.DEV && (
                 <details className="mt-4 w-full">
                     <summary className="text-sm text-red-600 cursor-pointer">Error Details</summary>
                     <pre className="mt-2 text-xs text-red-500 bg-red-100 p-2 rounded overflow-auto">

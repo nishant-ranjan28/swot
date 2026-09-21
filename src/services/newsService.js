@@ -1,7 +1,7 @@
 // News service to handle API calls with fallback options
 class NewsService {
     constructor() {
-        const newsApiKey = process.env.REACT_APP_NEWSAPI_KEY;
+        const newsApiKey = import.meta.env.REACT_APP_NEWSAPI_KEY;
         if (!newsApiKey) {
             console.warn('REACT_APP_NEWSAPI_KEY environment variable is not set. Falling back to "demo" key (limited functionality).');
         }
