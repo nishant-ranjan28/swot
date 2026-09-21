@@ -32,17 +32,16 @@ HTTP 207 when ``errors`` is non-empty.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Callable
 
 from services.alert_engine import evaluate, group_events_by_user, is_market_open
 from services.mailer import render_alert_email
+from services.quotes import QUOTE_CHUNK, fetch_quotes
 
 logger = logging.getLogger(__name__)
 
-QUOTE_CHUNK = 20
 CLOSE_GRACE_MINUTES = 20  # GitHub cron runs are often late (10-20 minutes is common)
 RETRY_WINDOW = timedelta(hours=24)
 CLAIM_TTL = timedelta(minutes=10)  # a claim older than this is stale and can be retaken
@@ -61,21 +60,6 @@ def quote_key(market: str, symbol) -> str:
     return f"{s}.NS"
 
 
-async def _fetch_quotes(symbols: list[str], get_quotes: Callable, errors: list[str]) -> dict:
-    quotes: dict = {}
-    for i in range(0, len(symbols), QUOTE_CHUNK):
-        chunk = symbols[i:i + QUOTE_CHUNK]
-        try:
-            result = await asyncio.to_thread(get_quotes, chunk)
-        except Exception as exc:  # one bad chunk must not abort the run
-            logger.warning("alert job: quote fetch failed: %s", type(exc).__name__)
-            errors.append(f"quotes:{type(exc).__name__}")
-            continue
-        if isinstance(result, dict):
-            quotes.update(result)
-    return quotes
-
-
 async def _evaluate(market: str, admin, get_quotes: Callable, errors: list[str]):
     """Phase 1. Returns (alerts checked, unique symbols quoted, events recorded)."""
     alerts = await admin.active_alerts(market)
@@ -89,7 +73,11 @@ async def _evaluate(market: str, admin, get_quotes: Callable, errors: list[str])
             continue
         keyed.append((alert, quote_key(market, raw)))
     symbols = list(dict.fromkeys(key for _, key in keyed))
-    quotes = await _fetch_quotes(symbols, get_quotes, errors) if symbols else {}
+    quotes: dict = {}
+    if symbols:
+        quotes, quote_errors = await fetch_quotes(get_quotes, symbols, chunk=QUOTE_CHUNK,
+                                                  label="alert job")
+        errors.extend(quote_errors)
 
     triggers = []
     for alert, key in keyed:

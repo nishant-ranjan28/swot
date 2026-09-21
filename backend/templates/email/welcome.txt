@@ -1,0 +1,15 @@
+$heading
+
+$greeting
+
+$intro
+
+- Build your watchlist: $watchlist_url
+  Track the Indian and US stocks you care about.
+- Set price alerts: $alerts_url
+  Get an email when a stock crosses your target.
+- Choose your daily digest: $settings_url
+  Pick the market for your after-close watchlist summary, or turn it off.
+
+--
+$footer

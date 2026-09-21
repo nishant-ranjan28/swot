@@ -1,0 +1,36 @@
+name: welcome-email
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # every 30 minutes, every day (also keeps Supabase active)
+  workflow_dispatch:
+
+permissions: {}
+
+# Never run two at once; a queued run waits. The backend claims each profile
+# (welcome_sent_at) before sending, so overlapping runs are safe anyway.
+concurrency:
+  group: welcome-email
+  cancel-in-progress: false
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Send welcome emails
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          JOB_SECRET: ${{ secrets.JOB_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${API_BASE_URL}" ] || [ -z "${JOB_SECRET}" ]; then echo "API_BASE_URL/JOB_SECRET not set"; exit 1; fi
+          body="$RUNNER_TEMP/body"
+          rm -f "$body"
+          # Anything but 200 fails the step, including 207 (the run finished with errors).
+          code=$(curl -s -o "$body" -w "%{http_code}" -X POST \
+            --max-time 60 --retry 2 --retry-connrefused --retry-delay 15 \
+            -H "X-Job-Secret: ${JOB_SECRET}" \
+            "${API_BASE_URL%/}/api/jobs/send-welcome") || true
+          echo "HTTP $code"; cat "$body" 2>/dev/null || true; echo
+          [ "$code" = "200" ]

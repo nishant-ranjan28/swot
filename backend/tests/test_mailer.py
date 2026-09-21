@@ -90,6 +90,14 @@ async def test_send_without_name_omits_recipient_name():
     assert json.loads(requests[0].content)["to"] == [{"email": "u@example.com"}]
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tag", ["daily-digest", "welcome"])
+async def test_send_custom_tag_sets_mailin_header(tag):
+    mailer, requests = make_mailer(lambda r: httpx.Response(201))
+    assert await mailer.send("u@example.com", "U", "s", "h", "t", tag=tag) == "sent"
+    assert json.loads(requests[0].content)["headers"] == {"X-Mailin-Tag": tag}
+
+
 # ---- render_alert_email -----------------------------------------------------
 
 

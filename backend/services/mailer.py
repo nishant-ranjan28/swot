@@ -9,23 +9,28 @@ from __future__ import annotations
 
 import html
 import logging
-import math
-from functools import lru_cache
-from pathlib import Path
 from string import Template
 
 import httpx
 
+# Formatting helpers live in email_format (shared with the daily digest); the old
+# private names are kept as aliases so this module's behaviour is unchanged.
+from services.email_format import (  # noqa: F401  (re-exported)
+    CURRENCY,
+    NAME_MAX,
+    RECIPIENT_NAME_MAX,
+    SYMBOL_MAX,
+    TEMPLATE_DIR,
+    fmt_amount as _fmt_amount,
+    fmt_pct as _fmt_pct,
+    num as _num,
+    single_line as _single_line,
+    template as _template,
+)
+
 logger = logging.getLogger(__name__)
 
 BREVO_URL = "https://api.brevo.com/v3/smtp/email"
-TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates" / "email"
-
-CURRENCY = {"in": "₹", "us": "$"}
-SYMBOL_MAX = 32
-NAME_MAX = 120
-RECIPIENT_NAME_MAX = 100
-
 CONDITION_LABEL = {
     "above": "price above",
     "below": "price below",
@@ -45,8 +50,11 @@ class Mailer:
         return f"Mailer(sender={self._sender['email']!r})"
 
     async def send(self, to_email: str, to_name: str | None, subject: str,
-                   html: str, text: str) -> str:
+                   html: str, text: str, tag: str = "price-alert") -> str:
         """Send one email. Never raises.
+
+        ``tag`` is sent as Brevo's ``X-Mailin-Tag`` header (for filtering the logs):
+        'price-alert' (default), 'daily-digest' or 'welcome'.
 
         Returns 'sent' | 'rate_limited' (429) | 'invalid' (400: permanent, don't retry)
         | 'auth_error' (401/403: bad key or unauthorised sender) | 'failed' (retryable).
@@ -61,7 +69,7 @@ class Mailer:
             "subject": subject,
             "htmlContent": html,
             "textContent": text,
-            "headers": {"X-Mailin-Tag": "price-alert"},
+            "headers": {"X-Mailin-Tag": tag},
         }
         headers = {
             "api-key": self._api_key,
@@ -92,38 +100,6 @@ class Mailer:
 # ---- rendering --------------------------------------------------------------
 
 
-@lru_cache(maxsize=None)
-def _template(name: str) -> Template:
-    return Template((TEMPLATE_DIR / name).read_text(encoding="utf-8"))
-
-
-def _num(value) -> float | None:
-    if value is None or isinstance(value, bool):
-        return None
-    try:
-        f = float(value)
-    except (TypeError, ValueError):
-        return None
-    return f if math.isfinite(f) else None
-
-
-def _fmt_amount(value, currency: str, *, always_decimals: bool) -> str:
-    """₹2,500 / $180.50 (targets drop '.00'); prices always show 2 decimals."""
-    n = _num(value)
-    if n is None:
-        return "-"
-    if not always_decimals and n == int(n):
-        return f"{currency}{int(n):,}"
-    return f"{currency}{n:,.2f}"
-
-
-def _fmt_pct(value) -> str:
-    n = _num(value)
-    if n is None:
-        return "-"
-    return f"{n:g}%"
-
-
 def _condition_text(condition: str, target, currency: str) -> str:
     if condition == "above":
         return f"rose above {_fmt_amount(target, currency, always_decimals=False)}"
@@ -134,10 +110,6 @@ def _condition_text(condition: str, target, currency: str) -> str:
     if condition == "pct_down":
         return f"down {_fmt_pct(target)} today"
     return str(condition or "")
-
-
-def _single_line(value: str) -> str:
-    return " ".join(str(value).split())
 
 
 def _describe(event: dict) -> dict:

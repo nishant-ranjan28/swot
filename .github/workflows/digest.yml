@@ -1,0 +1,68 @@
+name: daily-digest
+
+on:
+  schedule:
+    # UTC. GitHub doesn't say which cron fired, so the step maps github.event.schedule
+    # to the market below; keep these strings identical to the case patterns
+    # (tests/test_workflows.py checks both directions).
+    # Each market runs twice: the second run, about an hour later on the same local
+    # date, retries users the first one didn't reach (failed sends, a Brevo 429, the
+    # time budget). Users already sent are skipped by their digest_sends claim.
+    - cron: '0 11 * * 1-5'    # IN: 16:30 IST (close 15:30)
+    - cron: '0 12 * * 1-5'    # IN retry: 17:30 IST
+    - cron: '30 21 * * 1-5'   # US: 17:30 EDT / 16:30 EST (close 16:00 ET)
+    - cron: '30 22 * * 1-5'   # US retry: 18:30 EDT / 17:30 EST
+  workflow_dispatch:
+    inputs:
+      market: { description: 'in | us', default: 'in' }
+      force: { description: 'bypass the after-close check', default: 'false' }
+
+permissions: {}
+
+# Never run two digests at once; a queued run waits. The backend is also safe to re-run:
+# each (user, market, date) is claimed in digest_sends before sending.
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    # curl worst case: 3 attempts x 300s + 2 x 15s retry delay = 930s (15.5 min), so
+    # leave headroom above that for runner start-up.
+    timeout-minutes: 20
+    steps:
+      - name: Send daily digest
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          JOB_SECRET: ${{ secrets.JOB_SECRET }}
+          EVENT_NAME: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          MARKET_INPUT: ${{ github.event.inputs.market }}
+          FORCE_INPUT: ${{ github.event.inputs.force || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${API_BASE_URL}" ] || [ -z "${JOB_SECRET}" ]; then echo "API_BASE_URL/JOB_SECRET not set"; exit 1; fi
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            case "$SCHEDULE" in
+              '0 11 * * 1-5') market=in;;
+              '0 12 * * 1-5') market=in;;
+              '30 21 * * 1-5') market=us;;
+              '30 22 * * 1-5') market=us;;
+              *) echo "unknown schedule"; exit 1;;
+            esac
+            force=false
+          else
+            case "$MARKET_INPUT" in in|us) market="$MARKET_INPUT";; *) echo "bad market"; exit 1;; esac
+            case "$FORCE_INPUT" in true|false) force="$FORCE_INPUT";; *) echo "bad force"; exit 1;; esac
+          fi
+          body="$RUNNER_TEMP/body"
+          rm -f "$body"
+          # Anything but 200 fails the step, including 207 (the run finished with errors).
+          # A digest run makes LLM calls, so allow up to 5 minutes per attempt.
+          code=$(curl -s -o "$body" -w "%{http_code}" -X POST \
+            --max-time 300 --retry 2 --retry-connrefused --retry-delay 15 \
+            -H "X-Job-Secret: ${JOB_SECRET}" \
+            "${API_BASE_URL%/}/api/jobs/daily-digest?market=${market}&force=${force}") || true
+          echo "market=$market HTTP $code"; cat "$body" 2>/dev/null || true; echo
+          [ "$code" = "200" ]
