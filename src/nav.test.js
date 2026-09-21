@@ -2,7 +2,7 @@
 import { NAV_ITEMS, isNavActive } from './nav';
 import { PAGE_ROUTES } from './routes';
 
-const NON_NAV = new Set(['/stock/:symbol']);
+const NON_NAV = new Set(['/stock/:symbol', '/login', '/signup', '/forgot-password', '/reset-password', '/settings']);
 
 test('every page route appears in nav exactly once', () => {
   const navPaths = NAV_ITEMS.map(i => i.to);

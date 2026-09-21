@@ -24,6 +24,11 @@ import MacroPage from './components/MacroPage';
 import MutualFundPage from './components/MutualFundPage';
 import EtfPage from './components/EtfPage';
 import TrendingPage from './components/TrendingPage';
+import SettingsPage from './components/SettingsPage';
+import LoginPage from './components/auth/LoginPage';
+import SignupPage from './components/auth/SignupPage';
+import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
+import ResetPasswordPage from './components/auth/ResetPasswordPage';
 
 export const PAGE_ROUTES = [
   { path: '/', element: <HomePage /> },
@@ -51,4 +56,10 @@ export const PAGE_ROUTES = [
   { path: '/etf', element: <EtfPage /> },
   { path: '/trending', element: <TrendingPage /> },
   { path: '/news', element: <NewsPage /> },
+  // Account pages (reached from the TopBar user menu, not the sidebar nav).
+  { path: '/login', element: <LoginPage /> },
+  { path: '/signup', element: <SignupPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
+  { path: '/settings', element: <SettingsPage /> },
 ];

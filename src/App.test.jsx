@@ -36,3 +36,11 @@ test('renders glossary route', async () => {
   renderAt('/glossary');
   expect(await screen.findByRole('heading', { name: /stock glossary/i })).toBeInTheDocument();
 });
+
+test('without Supabase there is no auth UI, and /login explains accounts are off', async () => {
+  renderAt('/login');
+  expect(await screen.findByText("Accounts aren't configured on this deployment.")).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Account menu' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});

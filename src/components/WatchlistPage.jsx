@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useWatchlist } from '../context/UserDataContext';
 import { useMarket } from '../context/MarketContext';
 import Sparkline from './Sparkline';
 import { AlertTriangle, Newspaper, Plus, Search, Star, Trash2, X, Zap } from 'lucide-react';
@@ -123,7 +123,7 @@ const TechnicalSignals = ({ watchlist }) => {
 
 const WatchlistPage = () => {
   const { market } = useMarket();
-  const [watchlist, setWatchlist] = useLocalStorage(`stockpulse_watchlist_${market}`, []);
+  const [watchlist, setWatchlist] = useWatchlist(market);
   const [quotes, setQuotes] = useState({});
   const [sparklineData, setSparklineData] = useState({});
   const [loadingQuotes, setLoadingQuotes] = useState(false);

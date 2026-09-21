@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useHoldings, useUserDataStatus, useWatchlist } from '../context/UserDataContext';
 import { useMarket } from '../context/MarketContext';
 import Sparkline from './Sparkline';
 import { exportPortfolio } from '../utils/exportUtils';
@@ -151,10 +152,12 @@ const PieLegend = ({ holdings, liveData }) => {
 
 const PortfolioPage = () => {
   const { market } = useMarket();
-  const [holdings, setHoldings] = useLocalStorage(`stockpulse_portfolio_${market}`, []);
+  const [holdings, setHoldings] = useHoldings(market);
   const [seen, setSeen] = useLocalStorage(SEEN_FLAG_KEY(market), false);
-  const [watchlist] = useLocalStorage(`stockpulse_watchlist_${market}`, []);
-  const isDemoMode = holdings.length === 0 && !seen;
+  const [watchlist] = useWatchlist(market);
+  const { status: dataStatus } = useUserDataStatus();
+  // No sample portfolio while account data is still loading.
+  const isDemoMode = dataStatus === 'ready' && holdings.length === 0 && !seen;
   const displayHoldings = useMemo(
     () => (isDemoMode ? getSampleHoldings(market) : holdings),
     [isDemoMode, market, holdings],

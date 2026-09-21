@@ -9,6 +9,7 @@ import { Toaster } from './components/ui/sonner';
 import HomePage from './components/HomePage';
 import { useAlertNotifications } from './hooks/useAlertNotifications';
 import { PAGE_ROUTES } from './routes';
+import ImportLocalDataDialog from './components/auth/ImportLocalDataDialog';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -34,15 +35,21 @@ function MarketHomePage() {
   return <HomePage />;
 }
 
-function App() {
+// Its own component, so watchlist changes re-render nothing but this null element.
+function AlertNotifications() {
   useAlertNotifications();
+  return null;
+}
 
+function App() {
   useEffect(() => {
     api.get('/api/health', { timeout: 90000 }).catch(() => {});
   }, []);
 
   return (
     <AppShell>
+      <AlertNotifications />
+      <ImportLocalDataDialog />
       <ScrollToTop />
       <Routes>
         <Route path="/in" element={<MarketHomePage />} />

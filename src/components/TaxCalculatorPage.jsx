@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useId } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, Calculator } from 'lucide-react';
 import api from '../api';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useHoldings } from '../context/UserDataContext';
 import { useMarket } from '../context/MarketContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -55,7 +55,7 @@ const RateInput = ({ label, hint, ...props }) => {
 
 const TaxCalculatorPage = () => {
   const { market, currency } = useMarket();
-  const [holdings] = useLocalStorage(`stockpulse_portfolio_${market}`, []);
+  const [holdings] = useHoldings(market);
   const [liveData, setLiveData] = useState({});
   const [loading, setLoading] = useState(false);
 

@@ -5,6 +5,8 @@ import App from './App';
 import { StockProvider } from './context/StockContext';
 import { MarketProvider } from './context/MarketContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider } from './context/AuthContext';
+import { UserDataProvider } from './context/UserDataContext';
 import '@fontsource-variable/inter';
 import './index.css';
 
@@ -13,9 +15,13 @@ root.render(
   <Router>
     <MarketProvider>
       <ThemeProvider>
-        <StockProvider>
-          <App />
-        </StockProvider>
+        <AuthProvider>
+          <UserDataProvider>
+            <StockProvider>
+              <App />
+            </StockProvider>
+          </UserDataProvider>
+        </AuthProvider>
       </ThemeProvider>
     </MarketProvider>
   </Router>,

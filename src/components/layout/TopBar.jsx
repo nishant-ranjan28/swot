@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useMarket } from '@/context/MarketContext';
 import { useTheme } from '@/context/ThemeContext';
 import { cn } from '@/lib/utils';
+import UserMenu from './UserMenu';
 
 export default function TopBar({ onOpenMenu, onOpenSearch }) {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ export default function TopBar({ onOpenMenu, onOpenSearch }) {
         <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
           {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
         </Button>
+        <UserMenu />
       </div>
     </header>
   );
