@@ -1,11 +1,21 @@
 {
   "outputDirectory": "build",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "redirects": [
     {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "swot-analyse.vercel.app" }],
-      "destination": "https://swot.iamnishant.in/:path*",
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "swot-analyse.vercel.app"
+        }
+      ],
+      "destination": "https://swot.iamnishant.in/$1",
       "permanent": true
     }
   ]
