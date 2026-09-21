@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import GeneratedSwot from './GeneratedSwot';
+import SectionCard from '@/components/common/SectionCard';
 
 const SwotTab = ({ symbol }) => {
   const cleanSymbol = symbol?.split('.')[0] || '';
@@ -24,9 +25,9 @@ const SwotTab = ({ symbol }) => {
   if (!isIndian) {
     return (
       <div className="space-y-4">
-        <div>
-          <h3 className="text-md font-semibold text-gray-800 mb-1">SWOT Analysis</h3>
-          <p className="text-xs text-gray-500 mb-4">
+        <div className="space-y-1">
+          <h2 className="text-sm font-semibold text-foreground">SWOT Analysis</h2>
+          <p className="text-xs text-muted-foreground">
             AI-generated from fundamentals, technicals, and analyst data
           </p>
         </div>
@@ -41,42 +42,37 @@ const SwotTab = ({ symbol }) => {
   return (
     <div className="space-y-6">
       {/* SWOT Analysis */}
-      <div>
-        <h3 className="text-md font-semibold text-gray-800 mb-3">SWOT Analysis</h3>
+      <SectionCard title="SWOT Analysis">
         <iframe
-          className="w-full rounded-lg border border-gray-200"
+          className="w-full rounded-lg border border-border"
           style={{ minHeight: '400px' }}
           src={`https://trendlyne.com/web-widget/swot-widget/Poppins/${cleanSymbol}/?${widgetBase}`}
           title={`SWOT Analysis for ${cleanSymbol}`}
           frameBorder="0"
         ></iframe>
-      </div>
+      </SectionCard>
 
       {/* QVT Score */}
-      <div>
-        <h3 className="text-md font-semibold text-gray-800 mb-3">QVT Score</h3>
-        <p className="text-xs text-gray-500 mb-2">Quality, Valuation & Technicals rating</p>
+      <SectionCard title="QVT Score" description="Quality, Valuation & Technicals rating">
         <iframe
-          className="w-full rounded-lg border border-gray-200"
+          className="w-full rounded-lg border border-border"
           style={{ minHeight: '400px' }}
           src={`https://trendlyne.com/web-widget/qvt-widget/Poppins/${cleanSymbol}/?${widgetBase}`}
           title={`QVT Score for ${cleanSymbol}`}
           frameBorder="0"
         ></iframe>
-      </div>
+      </SectionCard>
 
       {/* Stock Checklist */}
-      <div>
-        <h3 className="text-md font-semibold text-gray-800 mb-3">Stock Checklist</h3>
-        <p className="text-xs text-gray-500 mb-2">Key health criteria pass/fail check</p>
+      <SectionCard title="Stock Checklist" description="Key health criteria pass/fail check">
         <iframe
-          className="w-full rounded-lg border border-gray-200"
+          className="w-full rounded-lg border border-border"
           style={{ minHeight: '400px' }}
           src={`https://trendlyne.com/web-widget/checklist-widget/Poppins/${cleanSymbol}/?${widgetBase}`}
           title={`Checklist for ${cleanSymbol}`}
           frameBorder="0"
         ></iframe>
-      </div>
+      </SectionCard>
     </div>
   );
 };

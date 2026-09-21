@@ -2,6 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStockData } from '../../hooks/useStockData';
 import { useMarket } from '../../context/MarketContext';
 import TabSkeleton from './TabSkeleton';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import { AlertTriangle } from 'lucide-react';
+import StatCard from '@/components/common/StatCard';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorState from '@/components/common/ErrorState';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
+
+const headClass = 'text-xs uppercase tracking-wide text-muted-foreground';
 
 const DAY_OPTIONS = [7, 14, 30];
 
@@ -12,6 +21,7 @@ const PredictionTab = ({ symbol }) => {
   );
   const { currency } = useMarket();
   const canvasRef = useRef(null);
+  const ct = useChartTheme();
 
   const locale = currency === '$' ? 'en-US' : 'en-IN';
   const fmtPrice = (val) =>
@@ -59,7 +69,7 @@ const PredictionTab = ({ symbol }) => {
     const getY = (price) => padT + chartH - ((price - minPrice) / priceRange) * chartH;
 
     // Grid lines
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = ct.grid;
     ctx.lineWidth = 0.5;
     const gridLines = 5;
     for (let i = 0; i <= gridLines; i++) {
@@ -71,7 +81,7 @@ const PredictionTab = ({ symbol }) => {
 
       // Y-axis labels
       const price = maxPrice - (priceRange / gridLines) * i;
-      ctx.fillStyle = '#6b7280';
+      ctx.fillStyle = ct.text;
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText(price.toFixed(2), padL - 6, y + 3);
@@ -79,7 +89,7 @@ const PredictionTab = ({ symbol }) => {
 
     // X-axis labels
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#6b7280';
+    ctx.fillStyle = ct.text;
     ctx.font = '10px sans-serif';
     const labelStep = Math.max(1, Math.floor(labels.length / 8));
     labels.forEach((label, i) => {
@@ -89,13 +99,13 @@ const PredictionTab = ({ symbol }) => {
     });
 
     // Current price point (solid dot)
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = ct.isDark ? ct.primary : ct.foreground;
     ctx.beginPath();
     ctx.arc(getX(0), getY(currentPrice), 5, 0, Math.PI * 2);
     ctx.fill();
 
     // Predicted prices (dashed line)
-    const predColor = data.direction === 'Bullish' ? '#16a34a' : data.direction === 'Neutral' ? '#6b7280' : '#dc2626';
+    const predColor = data.direction === 'Bullish' ? ct.gain : data.direction === 'Neutral' ? ct.text : ct.loss;
     ctx.strokeStyle = predColor;
     ctx.lineWidth = 2;
     ctx.setLineDash([6, 4]);
@@ -116,7 +126,7 @@ const PredictionTab = ({ symbol }) => {
     }
 
     // Current price label
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = ct.isDark ? ct.primary : ct.foreground;
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(`Current: ${currentPrice.toFixed(2)}`, getX(0) + 8, getY(currentPrice) - 8);
@@ -126,7 +136,7 @@ const PredictionTab = ({ symbol }) => {
     ctx.fillStyle = predColor;
     ctx.textAlign = 'right';
     ctx.fillText(endPrice.toFixed(2), getX(allPrices.length - 1) - 8, getY(endPrice) - 8);
-  }, [data]);
+  }, [data, ct]);
 
   useEffect(() => {
     drawChart();
@@ -136,51 +146,40 @@ const PredictionTab = ({ symbol }) => {
   }, [drawChart]);
 
   if (loading) return <TabSkeleton rows={8} />;
-  if (error)
-    return (
-      <div className="text-red-600 text-center py-8">
-        {error}
-        <button onClick={refetch} className="text-blue-600 underline ml-2">
-          Retry
-        </button>
-      </div>
-    );
-  if (!data)
-    return (
-      <div className="text-gray-500 text-center py-8">
-        No prediction data available for this stock.
-      </div>
-    );
+  if (error) return <ErrorState message={error} onRetry={refetch} />;
+  if (!data) return <EmptyState title="No prediction data available for this stock." />;
 
-  const dirColor = data.direction === 'Bullish' ? 'bg-green-100 text-green-800 border-green-300' : data.direction === 'Neutral' ? 'bg-gray-100 text-gray-800 border-gray-300' : 'bg-red-100 text-red-800 border-red-300';
+  const dirColor = data.direction === 'Bullish' ? 'text-gain' : data.direction === 'Neutral' ? 'text-muted-foreground' : 'text-loss';
+  const dirTint = data.direction === 'Bullish' ? 'border-gain/30 bg-gain/5' : data.direction === 'Neutral' ? '' : 'border-loss/30 bg-loss/5';
   const changeSign = data.predicted_change_pct >= 0 ? '+' : '';
 
   return (
     <div className="space-y-6">
       {/* Disclaimer Banner */}
-      <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-4 flex items-start gap-3">
-        <svg className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-        </svg>
+      <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 flex items-start gap-2">
+        <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" aria-hidden />
         <div>
-          <p className="font-bold text-amber-800 text-sm">Disclaimer</p>
-          <p className="text-amber-700 text-sm">{data.disclaimer}</p>
+          <p className="text-xs font-semibold text-foreground">Disclaimer</p>
+          <p className="text-xs text-muted-foreground">{data.disclaimer}</p>
         </div>
       </div>
 
       {/* Day Selector */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600 font-medium">Prediction Period:</span>
-        <div className="flex gap-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted-foreground font-medium">Prediction Period:</span>
+        <div className="inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
           {DAY_OPTIONS.map((d) => (
             <button
               key={d}
+              type="button"
+              aria-pressed={days === d}
               onClick={() => setDays(d)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={cn(
+                'rounded-md px-3 py-1 text-sm font-medium transition-colors',
                 days === d
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
             >
               {d} Days
             </button>
@@ -191,89 +190,85 @@ const PredictionTab = ({ symbol }) => {
       {/* Direction Badge + Model Info */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Direction */}
-        <div className={`rounded-lg border p-4 text-center ${dirColor}`}>
-          <p className="text-xs uppercase tracking-wide font-semibold opacity-70">Direction</p>
-          <p className="text-2xl font-bold mt-1">{data.direction}</p>
-          <p className="text-sm font-medium mt-1">
+        <StatCard
+          label="Direction"
+          value={<span className={dirColor}>{data.direction}</span>}
+          className={dirTint}
+        >
+          <p className={cn('mt-0.5 text-xs font-medium tabular-nums', dirColor)}>
             {changeSign}{data.predicted_change_pct}%
           </p>
-        </div>
+        </StatCard>
 
         {/* Model */}
-        <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
-          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Model</p>
-          <p className="text-lg font-bold text-gray-900 mt-1">{data.model}</p>
-          <p className="text-sm text-gray-500 mt-1">
-            R&sup2; Accuracy: <span className="font-semibold text-gray-800">{data.model_accuracy}%</span>
+        <StatCard label="Model" value={data.model}>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            R&sup2; Accuracy: <span className="font-semibold tabular-nums text-foreground">{data.model_accuracy}%</span>
           </p>
-        </div>
+        </StatCard>
 
         {/* MAPE */}
-        <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
-          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">MAPE</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{data.mape}%</p>
-          <p className="text-xs text-gray-400 mt-1">Mean Absolute % Error</p>
-        </div>
+        <StatCard label="MAPE" value={`${data.mape}%`} sub="Mean Absolute % Error" />
       </div>
 
       {/* Prediction Chart */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">Price Prediction Chart</h3>
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold text-foreground mb-3">Price Prediction Chart</h2>
         <canvas
           ref={canvasRef}
           className="w-full"
           style={{ height: '300px' }}
         />
-        <div className="flex items-center gap-6 mt-3 text-xs text-gray-500">
+        <div className="flex items-center gap-6 mt-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="inline-block w-3 h-3 rounded-full bg-blue-500" /> Current Price
+            <span className="inline-block w-3 h-3 rounded-full bg-foreground dark:bg-primary" /> Current Price
           </span>
           <span className="flex items-center gap-1">
-            <span className="inline-block w-8 border-t-2 border-dashed" style={{ borderColor: data.direction === 'Bullish' ? '#16a34a' : data.direction === 'Neutral' ? '#6b7280' : '#dc2626' }} />
+            <span className="inline-block w-8 border-t-2 border-dashed" style={{ borderColor: data.direction === 'Bullish' ? ct.gain : data.direction === 'Neutral' ? ct.text : ct.loss }} />
             Predicted ({data.direction})
           </span>
         </div>
       </div>
 
       {/* Prediction Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <h3 className="text-sm font-semibold text-gray-700 px-4 py-3 border-b border-gray-100">
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <h2 className="text-sm font-semibold text-foreground px-4 py-3 border-b border-border">
           Day-by-Day Predictions
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-gray-600 text-xs uppercase">
-                <th className="px-4 py-2 text-left">Date</th>
-                <th className="px-4 py-2 text-right">Predicted Price</th>
-                <th className="px-4 py-2 text-right">Change from Current</th>
-              </tr>
-            </thead>
-            <tbody>
+        </h2>
+        <div className="p-2">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className={headClass}>Date</TableHead>
+                <TableHead className={`text-right ${headClass}`}>Predicted Price</TableHead>
+                <TableHead className={`text-right ${headClass}`}>Change from Current</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {(data.predictions || []).map((p, idx) => {
                 const diff = (p.predicted_price || 0) - (data.current_price || 0);
                 const diffPct = data.current_price ? ((diff / data.current_price) * 100).toFixed(2) : '0.00';
                 const isUp = diff >= 0;
                 return (
-                  <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-2 text-gray-700">{p.date}</td>
-                    <td className="px-4 py-2 text-right font-medium text-gray-900">
+                  <TableRow key={idx}>
+                    <TableCell className="text-foreground/85 tabular-nums">{p.date}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums text-foreground">
                       {fmtPrice(p.predicted_price)}
-                    </td>
-                    <td className={`px-4 py-2 text-right font-medium ${isUp ? 'text-green-600' : 'text-red-600'}`}>
+                    </TableCell>
+                    <TableCell className={cn('text-right font-medium tabular-nums', isUp ? 'text-gain' : 'text-loss')}>
                       {isUp ? '+' : ''}{diffPct}%
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </div>
 
       {/* Current Price Footer */}
-      <div className="text-center text-sm text-gray-500">
-        Current Price: <span className="font-semibold text-gray-800">{fmtPrice(data.current_price)}</span>
+      <div className="text-center text-sm text-muted-foreground">
+        Current Price: <span className="font-semibold tabular-nums text-foreground">{fmtPrice(data.current_price)}</span>
       </div>
     </div>
   );

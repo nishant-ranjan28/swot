@@ -178,7 +178,7 @@ const StockSearch = ({
         <div className="relative">
           <input
             type="text"
-            className="w-full border border-gray-300 rounded-lg p-3 pr-10 text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            className="h-11 w-full rounded-lg border border-input bg-card px-4 pr-10 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
             placeholder={market === 'us' ? 'Search for stocks (e.g., Apple, MSFT, GOOGL)...' : 'Search for stocks (e.g., Reliance, TCS, HDFC)...'}
             value={input}
             onChange={handleInputChange}
@@ -189,7 +189,7 @@ const StockSearch = ({
             <button
               type="button"
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
               aria-label="Clear search"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -200,21 +200,21 @@ const StockSearch = ({
         </div>
 
         {isDropdownVisible && suggestions.length > 0 && (
-          <ul className="absolute z-50 bg-white border border-gray-200 rounded-lg w-full max-h-64 overflow-auto mt-2 shadow-lg">
+          <ul className="absolute z-40 mt-2 max-h-64 w-full overflow-auto rounded-lg border border-border bg-popover text-popover-foreground shadow-lg">
             {suggestions.map((stock) => (
               <button
                 key={stock.symbol}
-                className="p-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center w-full text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                className="flex w-full cursor-pointer items-center justify-between border-b border-border/60 p-3 text-left text-sm transition-colors last:border-b-0 hover:bg-muted"
                 onClick={() => {
                   handleSuggestionClick(stock);
                   pushToURL(stock.symbol);
                 }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                  <span className="font-medium text-gray-900">{stock.name}</span>
-                  <span className="text-sm text-gray-500">({stock.symbol})</span>
+                  <span className="font-medium">{stock.name}</span>
+                  <span className="text-xs text-muted-foreground">({stock.symbol})</span>
                 </div>
-                <span className="text-green-600 font-semibold whitespace-nowrap ml-2">
+                <span className="ml-2 whitespace-nowrap font-medium tabular-nums">
                   {currency}{stock.price}
                 </span>
               </button>

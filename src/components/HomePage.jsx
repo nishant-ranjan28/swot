@@ -3,6 +3,16 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import StockSearch from './StockSearch';
 import { useMarket } from '../context/MarketContext';
+import { Newspaper } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import PageContainer from '@/components/common/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import SectionCard from '@/components/common/SectionCard';
+import StatCard from '@/components/common/StatCard';
+import PriceChange from '@/components/common/PriceChange';
+import { cn } from '@/lib/utils';
 
 const formatNumber = (num) => {
   if (!num) return 'N/A';
@@ -73,48 +83,55 @@ const MarketStatus = () => {
   }, [market]);
 
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-      status.isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-    }`}>
-      <span className={`w-2 h-2 rounded-full ${status.isOpen ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
+    <Badge
+      variant={status.isOpen ? 'gain' : 'outline'}
+      className={cn('h-7 gap-2 px-3', !status.isOpen && 'text-muted-foreground')}
+    >
+      <span className={cn('size-2 rounded-full', status.isOpen ? 'bg-gain animate-pulse' : 'bg-muted-foreground/60')} aria-hidden="true"></span>
       {status.text}
-      <span className="text-gray-400 ml-1">IST {status.time}</span>
-    </div>
+      <span className="ml-1 text-muted-foreground tabular-nums">{status.time}</span>
+    </Badge>
   );
 };
 
-const IndexCard = ({ index }) => {
-  const isPositive = index.change >= 0;
-  return (
-    <div className="bg-white rounded-xl p-4 shadow-xs border border-gray-100 hover:shadow-md transition-shadow">
-      <div className="text-sm text-gray-500 font-medium">{index.name}</div>
-      <div className="text-xl font-bold text-gray-900 mt-1">
-        {index.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </div>
-      <div className={`text-sm font-semibold mt-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-        {isPositive ? '+' : ''}{index.change?.toFixed(2)} ({isPositive ? '+' : ''}{index.change_percent?.toFixed(2)}%)
-      </div>
-    </div>
-  );
+const IndexCard = ({ index }) => (
+  <StatCard
+    label={index.name}
+    value={index.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    change={{ value: index.change, percent: index.change_percent }}
+  />
+);
+
+const StatCardSkeleton = () => (
+  <div className="rounded-xl border border-border bg-card p-4">
+    <Skeleton className="h-3 w-20" />
+    <Skeleton className="mt-2 h-5 w-28" />
+    <Skeleton className="mt-2 h-3 w-24" />
+  </div>
+);
+
+const sentimentColor = (score) => (score >= 55 ? 'var(--gain)' : score >= 45 ? 'var(--warning)' : 'var(--loss)');
+
+const VIX_SIGNAL_VARIANT = {
+  'Extreme Fear': 'loss',
+  Fear: 'loss',
+  Neutral: 'warning',
+  Greed: 'gain',
 };
 
 const PriceRangeBar = ({ low, high, current, currencySymbol = '₹' }) => {
   if (!low || !high || !current || high === low) return null;
   const position = Math.min(Math.max(((current - low) / (high - low)) * 100, 0), 100);
   return (
-    <div className="mt-2">
-      <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
+    <div className="mt-3">
+      <div className="mb-1 flex justify-between text-[10px] text-muted-foreground tabular-nums">
         <span>{currencySymbol}{low.toFixed(0)}</span>
-        <span className="text-[10px] text-gray-300">52W Range</span>
+        <span className="text-muted-foreground/70">52W Range</span>
         <span>{currencySymbol}{high.toFixed(0)}</span>
       </div>
-      <div className="relative h-1.5 bg-gray-200 rounded-full">
+      <div className="relative h-1.5 rounded-full bg-muted">
         <div
-          className="absolute h-1.5 bg-linear-to-r from-red-400 via-yellow-400 to-green-400 rounded-full"
-          style={{ width: '100%' }}
-        ></div>
-        <div
-          className="absolute w-2.5 h-2.5 bg-white border-2 border-blue-500 rounded-full -top-0.5 shadow-xs"
+          className="absolute -top-0.5 size-2.5 rounded-full bg-foreground ring-2 ring-card"
           style={{ left: `calc(${position}% - 5px)` }}
         ></div>
       </div>
@@ -122,52 +139,47 @@ const PriceRangeBar = ({ low, high, current, currencySymbol = '₹' }) => {
   );
 };
 
-const StockCard = ({ stock }) => {
-  const isPositive = stock.change >= 0;
-  return (
+const StockCard = ({ stock }) => (
     <Link
       to={`/stock/${stock.symbol}`}
-      className="bg-white rounded-xl p-4 shadow-xs border border-gray-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 block"
+      className="block rounded-xl border border-border bg-card p-4 transition-colors hover:border-foreground/20"
     >
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-gray-900 truncate">{stock.name}</div>
-          <div className="text-xs text-gray-500 mt-0.5">{stock.symbol?.replace('.NS', '')}</div>
+          <div className="text-sm font-semibold truncate">{stock.name}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{stock.symbol?.replace('.NS', '')}</div>
         </div>
         <div className="text-right ml-3">
-          <div className="text-sm font-bold text-gray-900">
+          <div className="text-sm font-semibold tabular-nums">
             {stock.currency === 'USD' ? '$' : '₹'}{stock.price?.toLocaleString(stock.currency === 'USD' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div className={`text-xs font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {isPositive ? '+' : ''}{stock.change_percent?.toFixed(2)}%
-          </div>
+          <PriceChange percent={stock.change_percent} className="text-xs font-medium" />
         </div>
       </div>
       <PriceRangeBar low={stock.week52_low} high={stock.week52_high} current={stock.price} currencySymbol={stock.currency === 'USD' ? '$' : '₹'} />
-      <div className="mt-2 flex justify-between text-xs text-gray-400">
+      <div className="mt-2 flex justify-between text-xs text-muted-foreground tabular-nums">
         <span>Vol: {formatNumber(stock.volume)}</span>
         <span>MCap: {formatNumber(stock.market_cap)}</span>
       </div>
     </Link>
-  );
-};
+);
 
 const SkeletonCard = () => (
-  <div className="bg-white rounded-xl p-4 shadow-xs border border-gray-100 animate-pulse">
+  <div className="rounded-xl border border-border bg-card p-4">
     <div className="flex justify-between">
       <div>
-        <div className="h-4 bg-gray-200 rounded-sm w-24 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded-sm w-16"></div>
+        <Skeleton className="h-4 w-24 mb-2" />
+        <Skeleton className="h-3 w-16" />
       </div>
       <div className="text-right">
-        <div className="h-4 bg-gray-200 rounded-sm w-20 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded-sm w-12 ml-auto"></div>
+        <Skeleton className="h-4 w-20 mb-2" />
+        <Skeleton className="h-3 w-12 ml-auto" />
       </div>
     </div>
-    <div className="mt-3 h-1.5 bg-gray-200 rounded-full"></div>
+    <Skeleton className="mt-3 h-1.5 rounded-full" />
     <div className="mt-2 flex justify-between">
-      <div className="h-3 bg-gray-200 rounded-sm w-16"></div>
-      <div className="h-3 bg-gray-200 rounded-sm w-20"></div>
+      <Skeleton className="h-3 w-16" />
+      <Skeleton className="h-3 w-20" />
     </div>
   </div>
 );
@@ -177,27 +189,41 @@ const NewsCard = ({ article }) => (
     href={article.url}
     target="_blank"
     rel="noopener noreferrer"
-    className="flex gap-3 bg-white rounded-lg p-3 shadow-xs border border-gray-100 hover:shadow-md transition-shadow group"
+    className="group flex gap-3 rounded-md p-2 transition-colors hover:bg-muted/50"
   >
     {article.image ? (
-      <div className="w-20 h-16 shrink-0 rounded-md overflow-hidden bg-gray-100">
-        <img src={article.image} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+      <div className="w-20 h-16 shrink-0 rounded-md overflow-hidden bg-muted">
+        <img src={article.image} alt="" className="w-full h-full rounded-md object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
       </div>
     ) : (
-      <div className="w-20 h-16 shrink-0 rounded-md bg-linear-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
-        <svg className="w-6 h-6 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2 2 0 00-2-2h-2" />
-        </svg>
+      <div className="w-20 h-16 shrink-0 rounded-md bg-muted flex items-center justify-center">
+        <Newspaper className="size-6 text-muted-foreground/60" aria-hidden />
       </div>
     )}
     <div className="flex-1 min-w-0">
-      <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">{article.title}</h4>
-      <div className="flex items-center gap-2 mt-1">
-        <span className="text-[10px] text-blue-600 font-medium">{article.source}</span>
-        <span className="text-[10px] text-gray-400">{formatDate(article.published_at)}</span>
+      <h3 className="text-sm font-medium line-clamp-2 group-hover:text-foreground dark:group-hover:text-primary transition-colors">{article.title}</h3>
+      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+        <span className="font-medium">{article.source}</span>
+        <span>{formatDate(article.published_at)}</span>
       </div>
     </div>
   </a>
+);
+
+const MoverRow = ({ stock, currency }) => (
+  <Link
+    to={`/stock/${stock.symbol}`}
+    className="flex items-center justify-between gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted/50"
+  >
+    <div className="min-w-0">
+      <div className="text-sm font-medium">{stock.symbol?.replace('.NS', '')}</div>
+      <div className="truncate text-xs text-muted-foreground">{stock.name}</div>
+    </div>
+    <div className="shrink-0 text-right">
+      <div className="text-sm font-medium tabular-nums">{currency}{stock.price?.toFixed(2)}</div>
+      <PriceChange percent={stock.change_percent} className="text-xs font-medium" />
+    </div>
+  </Link>
 );
 
 const SECTORS_BY_MARKET = {
@@ -279,307 +305,247 @@ const HomePage = () => {
     : trendingStocks.filter(s => STOCK_SECTORS[s.symbol] === activeSector);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-6">
-        {/* Hero Section */}
-        <div className="text-center py-6 md:py-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            StockPulse
-          </h1>
-          <p className="text-gray-500 text-base md:text-lg mb-4">
-            Search any {marketLabel} stock for in-depth analysis, financials, and more
-          </p>
-          <div className="mb-4">
-            <MarketStatus />
-          </div>
-          <div className="max-w-2xl mx-auto">
-            <StockSearch className="w-full" />
-          </div>
+    <PageContainer>
+      {/* Hero */}
+      <PageHeader
+        title="Markets"
+        description={`Search any ${marketLabel} stock for in-depth analysis, financials, and more`}
+        actions={<MarketStatus />}
+      />
+      <StockSearch className="w-full" />
+
+      {/* Market Indices */}
+      <section>
+        <h2 className="mb-3 text-base font-semibold">Market Overview</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {loadingIndices
+            ? [...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)
+            : indices.map((idx) => <IndexCard key={idx.symbol} index={idx} />)
+          }
         </div>
+      </section>
 
-        {/* Market Indices */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Market Overview</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {loadingIndices
-              ? [...Array(4)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl p-4 shadow-xs animate-pulse">
-                    <div className="h-3 bg-gray-200 rounded-sm w-20 mb-2"></div>
-                    <div className="h-5 bg-gray-200 rounded-sm w-28 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded-sm w-24"></div>
-                  </div>
-                ))
-              : indices.map((idx) => <IndexCard key={idx.symbol} index={idx} />)
-            }
-          </div>
-        </section>
-
-        {/* Market Sentiment */}
-        {sentiment && (
-          <section className="bg-white rounded-xl shadow-xs border border-gray-100 p-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Market Sentiment</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Sentiment Gauge */}
-              <div className="text-center">
-                <div className="relative w-24 h-24 mx-auto">
-                  <svg width="96" height="96" className="-rotate-90">
-                    <circle cx="48" cy="48" r="38" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-                    <circle cx="48" cy="48" r="38" fill="none"
-                      stroke={sentiment.score >= 55 ? '#16a34a' : sentiment.score >= 45 ? '#eab308' : '#dc2626'}
-                      strokeWidth="8"
-                      strokeDasharray={`${((Number.isFinite(sentiment.score) ? sentiment.score : 50) / 100) * 2 * Math.PI * 38} ${2 * Math.PI * 38}`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-xl font-bold" style={{
-                      color: sentiment.score >= 55 ? '#16a34a' : sentiment.score >= 45 ? '#eab308' : '#dc2626'
-                    }}>{sentiment.score}</span>
-                  </div>
-                </div>
-                <div className={`text-sm font-bold mt-1 ${
-                  sentiment.overall.includes('Bullish') ? 'text-green-600' :
-                  sentiment.overall.includes('Bearish') ? 'text-red-600' : 'text-yellow-600'
-                }`}>{sentiment.overall}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">Sentiment Score</div>
-              </div>
-
-              {/* India VIX */}
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="text-xs text-gray-500 font-medium">{sentiment.vix?.name || 'VIX'} (Fear Gauge)</div>
-                <div className="text-xl font-bold text-gray-900 mt-1">{sentiment.vix?.value?.toFixed(2)}</div>
-                <div className={`text-xs font-semibold ${sentiment.vix?.change >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {sentiment.vix?.change >= 0 ? '+' : ''}{sentiment.vix?.change?.toFixed(2)}
-                </div>
-                <div className={`text-xs font-medium mt-1 px-2 py-0.5 rounded-full inline-block ${
-                  sentiment.vix?.signal === 'Extreme Fear' ? 'bg-red-100 text-red-700' :
-                  sentiment.vix?.signal === 'Fear' ? 'bg-orange-100 text-orange-700' :
-                  sentiment.vix?.signal === 'Neutral' ? 'bg-yellow-100 text-yellow-700' :
-                  sentiment.vix?.signal === 'Greed' ? 'bg-green-100 text-green-700' :
-                  'bg-green-200 text-green-800'
-                }`}>{sentiment.vix?.signal}</div>
-                <div className="text-[10px] text-gray-400 mt-1">High VIX = High Fear</div>
-              </div>
-
-              {/* NIFTY Trend */}
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="text-xs text-gray-500 font-medium">{sentiment.index?.name || 'Index'} Trend</div>
-                <div className="space-y-1.5 mt-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">50 DMA</span>
-                    <span className={`text-xs font-semibold ${sentiment.index?.above_50dma ? 'text-green-600' : 'text-red-600'}`}>
-                      {sentiment.index?.above_50dma ? 'Above' : 'Below'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">200 DMA</span>
-                    <span className={`text-xs font-semibold ${sentiment.index?.above_200dma ? 'text-green-600' : 'text-red-600'}`}>
-                      {sentiment.index?.above_200dma ? 'Above' : 'Below'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">From 52W High</span>
-                    <span className="text-xs font-semibold text-red-600">-{sentiment.index?.pct_from_52w_high}%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">From 52W Low</span>
-                    <span className="text-xs font-semibold text-green-600">+{sentiment.index?.pct_from_52w_low}%</span>
-                  </div>
+      {/* Market Sentiment */}
+      {sentiment && (
+        <SectionCard title="Market Sentiment">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Sentiment Gauge */}
+            <div className="text-center">
+              <div className="relative w-24 h-24 mx-auto">
+                <svg width="96" height="96" className="-rotate-90">
+                  <circle cx="48" cy="48" r="38" fill="none" strokeWidth="8" style={{ stroke: 'var(--muted)' }} />
+                  <circle cx="48" cy="48" r="38" fill="none"
+                    style={{ stroke: sentimentColor(sentiment.score) }}
+                    strokeWidth="8"
+                    strokeDasharray={`${((Number.isFinite(sentiment.score) ? sentiment.score : 50) / 100) * 2 * Math.PI * 38} ${2 * Math.PI * 38}`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-xl font-semibold tabular-nums" style={{
+                    color: sentimentColor(sentiment.score)
+                  }}>{sentiment.score}</span>
                 </div>
               </div>
+              <div className={cn('text-sm font-semibold mt-1',
+                sentiment.overall.includes('Bullish') ? 'text-gain' :
+                sentiment.overall.includes('Bearish') ? 'text-loss' : 'text-warning'
+              )}>{sentiment.overall}</div>
+              <div className="text-[10px] text-muted-foreground/70 mt-0.5">Sentiment Score</div>
+            </div>
 
-              {/* Market Breadth */}
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="text-xs text-gray-500 font-medium">Market Breadth</div>
-                <div className="mt-2">
-                  <div className="flex h-4 rounded-full overflow-hidden">
-                    <div className="bg-green-500" style={{ width: `${sentiment.breadth?.pct || 50}%` }}></div>
-                    <div className="bg-red-500" style={{ width: `${100 - (sentiment.breadth?.pct || 50)}%` }}></div>
-                  </div>
-                  <div className="flex justify-between mt-1.5">
-                    <span className="text-xs text-green-600 font-semibold">{sentiment.breadth?.gainers} Advancing</span>
-                    <span className="text-xs text-red-600 font-semibold">{sentiment.breadth?.losers} Declining</span>
-                  </div>
+            {/* India VIX */}
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="text-xs text-muted-foreground font-medium">{sentiment.vix?.name || 'VIX'} (Fear Gauge)</div>
+              <div className="text-xl font-semibold tabular-nums mt-1">{sentiment.vix?.value?.toFixed(2)}</div>
+              <div className={cn('text-xs font-medium tabular-nums', sentiment.vix?.change >= 0 ? 'text-loss' : 'text-gain')}>
+                {sentiment.vix?.change >= 0 ? '+' : ''}{sentiment.vix?.change?.toFixed(2)}
+              </div>
+              <Badge variant={VIX_SIGNAL_VARIANT[sentiment.vix?.signal] || 'gain'} className="mt-1">
+                {sentiment.vix?.signal}
+              </Badge>
+              <div className="text-[10px] text-muted-foreground/70 mt-1">High VIX = High Fear</div>
+            </div>
+
+            {/* NIFTY Trend */}
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="text-xs text-muted-foreground font-medium">{sentiment.index?.name || 'Index'} Trend</div>
+              <div className="space-y-1.5 mt-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">50 DMA</span>
+                  <span className={cn('text-xs font-medium', sentiment.index?.above_50dma ? 'text-gain' : 'text-loss')}>
+                    {sentiment.index?.above_50dma ? 'Above' : 'Below'}
+                  </span>
                 </div>
-                <div className="text-[10px] text-gray-400 mt-2">
-                  Based on {sentiment.breadth?.total} tracked stocks
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">200 DMA</span>
+                  <span className={cn('text-xs font-medium', sentiment.index?.above_200dma ? 'text-gain' : 'text-loss')}>
+                    {sentiment.index?.above_200dma ? 'Above' : 'Below'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">From 52W High</span>
+                  <span className="text-xs font-medium tabular-nums text-loss">-{sentiment.index?.pct_from_52w_high}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">From 52W Low</span>
+                  <span className="text-xs font-medium tabular-nums text-gain">+{sentiment.index?.pct_from_52w_low}%</span>
                 </div>
               </div>
             </div>
-          </section>
-        )}
 
-        {/* Global Markets */}
-        <section>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Global Markets</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            {loadingGlobal
-              ? [...Array(5)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl p-4 shadow-xs animate-pulse">
-                    <div className="h-3 bg-gray-200 rounded-sm w-20 mb-2"></div>
-                    <div className="h-5 bg-gray-200 rounded-sm w-28 mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded-sm w-24"></div>
-                  </div>
-                ))
-              : globalIndices.map((idx) => <IndexCard key={idx.symbol} index={idx} />)
-            }
-          </div>
-        </section>
-
-        {/* Top Gainers & Losers + Latest News side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Gainers & Losers */}
-          <div className="lg:col-span-2">
-            {!loadingStocks && (gainers.length > 0 || losers.length > 0) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {gainers.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                      Top Gainers
-                    </h2>
-                    <div className="space-y-2">
-                      {gainers.map((stock) => (
-                        <Link
-                          key={stock.symbol}
-                          to={`/stock/${stock.symbol}`}
-                          className="flex justify-between items-center bg-white rounded-lg p-3 shadow-xs border border-gray-100 hover:shadow-md transition-shadow"
-                        >
-                          <div>
-                            <div className="text-sm font-semibold text-gray-900">{stock.name}</div>
-                            <div className="text-xs text-gray-500">{stock.symbol?.replace('.NS', '')}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-bold">{currency}{stock.price?.toFixed(2)}</div>
-                            <div className="text-xs font-semibold text-green-600">+{stock.change_percent?.toFixed(2)}%</div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {losers.length > 0 && (
-                  <section>
-                    <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                      <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                      Top Losers
-                    </h2>
-                    <div className="space-y-2">
-                      {losers.map((stock) => (
-                        <Link
-                          key={stock.symbol}
-                          to={`/stock/${stock.symbol}`}
-                          className="flex justify-between items-center bg-white rounded-lg p-3 shadow-xs border border-gray-100 hover:shadow-md transition-shadow"
-                        >
-                          <div>
-                            <div className="text-sm font-semibold text-gray-900">{stock.name}</div>
-                            <div className="text-xs text-gray-500">{stock.symbol?.replace('.NS', '')}</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-bold">{currency}{stock.price?.toFixed(2)}</div>
-                            <div className="text-xs font-semibold text-red-600">{stock.change_percent?.toFixed(2)}%</div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </section>
-                )}
+            {/* Market Breadth */}
+            <div className="rounded-lg bg-muted/40 p-3">
+              <div className="text-xs text-muted-foreground font-medium">Market Breadth</div>
+              <div className="mt-2">
+                <div className="flex h-4 rounded-full overflow-hidden">
+                  <div className="bg-gain" style={{ width: `${sentiment.breadth?.pct || 50}%` }}></div>
+                  <div className="bg-loss" style={{ width: `${100 - (sentiment.breadth?.pct || 50)}%` }}></div>
+                </div>
+                <div className="flex justify-between mt-1.5 tabular-nums">
+                  <span className="text-xs text-gain font-medium">{sentiment.breadth?.gainers} Advancing</span>
+                  <span className="text-xs text-loss font-medium">{sentiment.breadth?.losers} Declining</span>
+                </div>
               </div>
-            )}
+              <div className="text-[10px] text-muted-foreground/70 mt-2">
+                Based on {sentiment.breadth?.total} tracked stocks
+              </div>
+            </div>
           </div>
+        </SectionCard>
+      )}
 
-          {/* Latest News */}
-          <section>
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-lg font-semibold text-gray-800">Latest News</h2>
-              <Link to="/news" className="text-xs text-blue-600 hover:text-blue-800 font-medium">
-                View all
+      {/* Global Markets */}
+      <SectionCard title="Global Markets">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {loadingGlobal
+            ? [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)
+            : globalIndices.map((idx) => <IndexCard key={idx.symbol} index={idx} />)
+          }
+        </div>
+      </SectionCard>
+
+      {/* Top Gainers & Losers + Latest News side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Gainers & Losers */}
+        <div className="lg:col-span-2">
+          {!loadingStocks && (gainers.length > 0 || losers.length > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {gainers.length > 0 && (
+                <SectionCard
+                  title={<span className="flex items-center gap-2"><span className="size-2 rounded-full bg-gain" aria-hidden="true"></span>Top Gainers</span>}
+                  contentClassName="p-2"
+                >
+                  <div className="space-y-0.5">
+                    {gainers.map((stock) => (
+                      <MoverRow key={stock.symbol} stock={stock} currency={currency} />
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+
+              {losers.length > 0 && (
+                <SectionCard
+                  title={<span className="flex items-center gap-2"><span className="size-2 rounded-full bg-loss" aria-hidden="true"></span>Top Losers</span>}
+                  contentClassName="p-2"
+                >
+                  <div className="space-y-0.5">
+                    {losers.map((stock) => (
+                      <MoverRow key={stock.symbol} stock={stock} currency={currency} />
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Latest News */}
+        <SectionCard
+          title="Latest News"
+          action={
+            <Link to="/news" className="text-xs font-medium text-foreground dark:text-primary hover:underline">
+              View all
+            </Link>
+          }
+          contentClassName="p-2"
+        >
+          {loadingNews ? (
+            <div className="space-y-1">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex gap-3 p-2">
+                  <Skeleton className="w-20 h-16 shrink-0" />
+                  <div className="flex-1">
+                    <Skeleton className="h-3 w-full mb-2" />
+                    <Skeleton className="h-3 w-3/4 mb-2" />
+                    <Skeleton className="h-2 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {news.map((article, idx) => (
+                <NewsCard key={idx} article={article} />
+              ))}
+            </div>
+          )}
+        </SectionCard>
+      </div>
+
+      {/* Popular Stocks with Sector Filter */}
+      <section>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <h2 className="text-base font-semibold">Popular Stocks</h2>
+          <div className="flex gap-1 overflow-x-auto pb-1">
+            {(SECTORS_BY_MARKET[market] || SECTORS_BY_MARKET.in).map((sector) => (
+              <button
+                key={sector}
+                type="button"
+                aria-pressed={activeSector === sector}
+                onClick={() => setActiveSector(sector)}
+                className={cn(
+                  'rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors',
+                  activeSector === sector
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+              >
+                {sector}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {loadingStocks
+            ? [...Array(8)].map((_, i) => <SkeletonCard key={i} />)
+            : filteredStocks.length > 0
+              ? filteredStocks.map((stock) => <StockCard key={stock.symbol} stock={stock} />)
+              : (
+                <div className="col-span-full text-center py-8 text-muted-foreground text-sm">
+                  No stocks found in {activeSector} sector
+                </div>
+              )
+          }
+        </div>
+      </section>
+
+      {/* Quick Links */}
+      <SectionCard title="Explore">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {(market === 'us'
+            ? ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'JPM', 'NFLX', 'AMD']
+            : ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TMCV', 'SBIN', 'ITC', 'WIPRO', 'ADANIENT', 'BAJFINANCE']
+          ).map((sym) => (
+            <Button key={sym} variant="outline" size="sm" asChild>
+              <Link to={`/stock/${market === 'us' ? sym : `${sym}.NS`}`}>
+                {sym}
               </Link>
-            </div>
-            {loadingNews ? (
-              <div className="space-y-3">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex gap-3 bg-white rounded-lg p-3 shadow-xs animate-pulse">
-                    <div className="w-20 h-16 bg-gray-200 rounded-md shrink-0"></div>
-                    <div className="flex-1">
-                      <div className="h-3 bg-gray-200 rounded-sm w-full mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded-sm w-3/4 mb-2"></div>
-                      <div className="h-2 bg-gray-200 rounded-sm w-1/3"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {news.map((article, idx) => (
-                  <NewsCard key={idx} article={article} />
-                ))}
-              </div>
-            )}
-          </section>
+            </Button>
+          ))}
         </div>
-
-        {/* Popular Stocks with Sector Filter */}
-        <section>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-            <h2 className="text-lg font-semibold text-gray-800">Popular Stocks</h2>
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {(SECTORS_BY_MARKET[market] || SECTORS_BY_MARKET.in).map((sector) => (
-                <button
-                  key={sector}
-                  onClick={() => setActiveSector(sector)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                    activeSector === sector
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {sector}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {loadingStocks
-              ? [...Array(8)].map((_, i) => <SkeletonCard key={i} />)
-              : filteredStocks.length > 0
-                ? filteredStocks.map((stock) => <StockCard key={stock.symbol} stock={stock} />)
-                : (
-                  <div className="col-span-full text-center py-8 text-gray-400 text-sm">
-                    No stocks found in {activeSector} sector
-                  </div>
-                )
-            }
-          </div>
-        </section>
-
-        {/* Quick Links */}
-        <section className="pb-6">
-          <div className="bg-white rounded-xl p-6 shadow-xs border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Explore</h2>
-            <div className="flex flex-wrap gap-2">
-              {(market === 'us'
-                ? ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'JPM', 'NFLX', 'AMD']
-                : ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'TMCV', 'SBIN', 'ITC', 'WIPRO', 'ADANIENT', 'BAJFINANCE']
-              ).map((sym) => (
-                <Link
-                  key={sym}
-                  to={`/stock/${market === 'us' ? sym : `${sym}.NS`}`}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-blue-100 hover:text-blue-700 transition-colors"
-                >
-                  {sym}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <style>{`
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-      `}</style>
-    </div>
+      </SectionCard>
+    </PageContainer>
   );
 };
 

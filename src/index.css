@@ -85,6 +85,7 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-gain: var(--gain);
   --color-loss: var(--loss);
+  --color-warning: var(--warning);
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -111,6 +112,7 @@
   --ring: #eab308;
   --gain: #16a34a;
   --loss: #dc2626;
+  --warning: #a16207;
   --chart-1: #eab308;
   --chart-2: #0ea5e9;
   --chart-3: #8b5cf6;
@@ -147,6 +149,7 @@
   --ring: #fdd458;
   --gain: #22c55e;
   --loss: #ef4444;
+  --warning: #facc15;
   --chart-1: #fdd458;
   --chart-2: #38bdf8;
   --chart-3: #a78bfa;

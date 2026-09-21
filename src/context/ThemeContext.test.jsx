@@ -26,3 +26,17 @@ test('respects stored light preference and toggles', () => {
   expect(document.documentElement).toHaveClass('dark');
   expect(JSON.parse(localStorage.getItem('stockpulse_theme'))).toBe('dark');
 });
+
+test('html class is already flipped when children re-render after toggle', () => {
+  const seen = [];
+  function Recorder() {
+    const { isDark, toggleTheme } = useTheme();
+    seen.push([isDark, document.documentElement.classList.contains('dark')]);
+    return <button onClick={toggleTheme}>t</button>;
+  }
+  render(<ThemeProvider><Recorder /></ThemeProvider>);
+  act(() => screen.getByRole('button').click());
+  const [isDark, htmlDark] = seen[seen.length - 1];
+  expect(isDark).toBe(false);
+  expect(htmlDark).toBe(false);
+});

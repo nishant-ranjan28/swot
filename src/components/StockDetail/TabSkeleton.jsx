@@ -1,11 +1,11 @@
-import React from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const TabSkeleton = ({ rows = 5 }) => (
-  <div className="space-y-4 animate-pulse">
+  <div className="space-y-4">
     {[...Array(rows)].map((_, i) => (
       <div key={i} className="flex justify-between items-center">
-        <div className="h-4 bg-gray-200 rounded-sm w-1/3"></div>
-        <div className="h-4 bg-gray-200 rounded-sm w-1/4"></div>
+        <Skeleton className="h-4 w-1/3" />
+        <Skeleton className="h-4 w-1/4" />
       </div>
     ))}
   </div>

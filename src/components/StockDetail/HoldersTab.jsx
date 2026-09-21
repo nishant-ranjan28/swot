@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { useStockData } from '../../hooks/useStockData';
 import TabSkeleton from './TabSkeleton';
+import SectionCard from '@/components/common/SectionCard';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorState from '@/components/common/ErrorState';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 const formatNumber = (num) => {
   if (!num) return 'N/A';
@@ -9,23 +14,25 @@ const formatNumber = (num) => {
   return num.toLocaleString('en-IN');
 };
 
+const headClass = 'text-xs uppercase tracking-wide text-muted-foreground';
+
 const OwnershipBar = ({ label, value }) => {
   const isPercent = typeof value === 'number' && value <= 100;
   return (
     <div className="flex items-center gap-3 py-2">
-      <span className="text-sm text-gray-600 w-48">{label}</span>
+      <span className="text-sm text-muted-foreground w-48">{label}</span>
       {isPercent ? (
         <>
-          <div className="flex-1 bg-gray-200 rounded-full h-3">
+          <div className="flex-1 bg-muted rounded-full h-2.5">
             <div
-              className="h-3 rounded-full bg-blue-500"
+              className="h-2.5 rounded-full bg-primary"
               style={{ width: `${Math.min(value, 100)}%` }}
             ></div>
           </div>
-          <span className="text-sm font-semibold text-gray-900 w-16 text-right">{value}%</span>
+          <span className="text-sm font-semibold tabular-nums text-foreground w-16 text-right">{value}%</span>
         </>
       ) : (
-        <span className="text-sm font-semibold text-gray-900">{value}</span>
+        <span className="text-sm font-semibold tabular-nums text-foreground">{value}</span>
       )}
     </div>
   );
@@ -36,8 +43,8 @@ const HoldersTab = ({ symbol }) => {
   const [holderType, setHolderType] = useState('institutional');
 
   if (loading) return <TabSkeleton rows={8} />;
-  if (error) return <div className="text-red-600 text-center py-8">{error} <button onClick={refetch} className="text-blue-600 underline ml-2">Retry</button></div>;
-  if (!data) return <div className="text-gray-500 text-center py-8">No holder data available.</div>;
+  if (error) return <ErrorState message={error} onRetry={refetch} />;
+  if (!data) return <EmptyState title="No holder data available." />;
 
   const holders = holderType === 'institutional' ? data.institutional : data.mutual_fund;
   const hasHolders = holders?.length > 0;
@@ -47,28 +54,28 @@ const HoldersTab = ({ symbol }) => {
     <div className="space-y-6">
       {/* Ownership Breakdown */}
       {hasOwnership && (
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-md font-semibold text-gray-800 mb-3">Ownership Breakdown</h3>
-          <div className="space-y-1">
-            {data.ownership.map((item, idx) => (
-              <OwnershipBar key={idx} label={item.category} value={item.value} />
-            ))}
-          </div>
-        </div>
+        <SectionCard title="Ownership Breakdown" contentClassName="space-y-1 py-2">
+          {data.ownership.map((item, idx) => (
+            <OwnershipBar key={idx} label={item.category} value={item.value} />
+          ))}
+        </SectionCard>
       )}
 
       {/* Institutional / Mutual Fund Toggle */}
       <div>
-        <div className="flex gap-2 mb-4">
+        <div className="mb-4 inline-flex gap-1 rounded-lg border border-border bg-muted/40 p-1">
           {['institutional', 'mutual_fund'].map((type) => (
             <button
               key={type}
+              type="button"
+              aria-pressed={holderType === type}
               onClick={() => setHolderType(type)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={cn(
+                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                 holderType === type
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
             >
               {type === 'institutional' ? 'Institutional' : 'Mutual Fund'}
             </button>
@@ -76,35 +83,36 @@ const HoldersTab = ({ symbol }) => {
         </div>
 
         {hasHolders ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left p-2 text-gray-600 font-medium">Holder</th>
-                  <th className="text-right p-2 text-gray-600 font-medium">Shares</th>
-                  <th className="text-right p-2 text-gray-600 font-medium">% Held</th>
-                  <th className="text-right p-2 text-gray-600 font-medium hidden md:table-cell">Date</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="rounded-xl border border-border bg-card p-2">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className={headClass}>Holder</TableHead>
+                  <TableHead className={`text-right ${headClass}`}>Shares</TableHead>
+                  <TableHead className={`text-right ${headClass}`}>% Held</TableHead>
+                  <TableHead className={`text-right hidden md:table-cell ${headClass}`}>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {holders.map((holder, idx) => (
-                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-2 text-gray-700 max-w-xs truncate">{holder.name}</td>
-                    <td className="p-2 text-right text-gray-900">{formatNumber(holder.shares)}</td>
-                    <td className="p-2 text-right text-gray-900">
+                  <TableRow key={idx}>
+                    <TableCell className="text-foreground/85 max-w-xs truncate">{holder.name}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatNumber(holder.shares)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
                       {holder.percent_held ? `${(holder.percent_held * 100).toFixed(2)}%` : 'N/A'}
-                    </td>
-                    <td className="p-2 text-right text-gray-500 hidden md:table-cell">{holder.date_reported || 'N/A'}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground hidden md:table-cell">{holder.date_reported || 'N/A'}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         ) : (
-          <div className="text-gray-500 text-center py-6 bg-gray-50 rounded-lg">
-            Detailed {holderType.replace('_', ' ')} holder data is not available for this stock.
-            {hasOwnership && <span className="block text-sm mt-1">See the ownership breakdown above for available data.</span>}
-          </div>
+          <EmptyState
+            className="py-8"
+            title={`Detailed ${holderType.replace('_', ' ')} holder data is not available for this stock.`}
+            description={hasOwnership ? 'See the ownership breakdown above for available data.' : undefined}
+          />
         )}
       </div>
     </div>

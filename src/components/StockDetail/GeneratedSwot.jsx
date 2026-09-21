@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
+import { Lightbulb, ShieldAlert, TrendingDown, TrendingUp } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import EmptyState from '@/components/common/EmptyState';
+import { cn } from '@/lib/utils';
 
 const SWOT_COLORS = {
-  S: { bg: 'bg-green-50', border: 'border-green-200', title: 'text-green-800', icon: '💪' },
-  W: { bg: 'bg-red-50', border: 'border-red-200', title: 'text-red-800', icon: '⚠️' },
-  O: { bg: 'bg-blue-50', border: 'border-blue-200', title: 'text-blue-800', icon: '🚀' },
-  T: { bg: 'bg-orange-50', border: 'border-orange-200', title: 'text-orange-800', icon: '🔻' },
+  S: { accent: 'border-t-gain', title: 'text-gain', icon: TrendingUp },
+  W: { accent: 'border-t-loss', title: 'text-loss', icon: TrendingDown },
+  O: { accent: 'border-t-chart-2', title: 'text-chart-2', icon: Lightbulb },
+  T: { accent: 'border-t-warning', title: 'text-warning', icon: ShieldAlert },
 };
 
 function generateSwot(financials, technical, overview, analysts) {
@@ -167,13 +171,13 @@ const GeneratedSwot = ({ symbol }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-48" />
+          <Skeleton key={i} className="rounded-xl h-48" />
         ))}
       </div>
     );
   }
 
-  if (!swot) return <div className="text-gray-400 text-center py-8">Unable to generate SWOT analysis</div>;
+  if (!swot) return <EmptyState title="Unable to generate SWOT analysis" />;
 
   const sections = [
     { key: 'S', label: 'Strengths', items: swot.strengths },
@@ -187,15 +191,16 @@ const GeneratedSwot = ({ symbol }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {sections.map(({ key, label, items }) => {
           const colors = SWOT_COLORS[key];
+          const Icon = colors.icon;
           return (
-            <div key={key} className={`${colors.bg} border ${colors.border} rounded-xl p-4`}>
-              <h3 className={`text-sm font-bold ${colors.title} mb-3 flex items-center gap-2`}>
-                <span>{colors.icon}</span> {label}
+            <div key={key} className={cn('rounded-xl border border-border border-t-2 bg-card p-4', colors.accent)}>
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Icon className={cn('size-4', colors.title)} aria-hidden /> {label}
               </h3>
               <ul className="space-y-2">
                 {items.map((item, i) => (
-                  <li key={i} className="text-sm text-gray-700 flex items-start gap-2">
-                    <span className="text-gray-400 mt-0.5">&#8226;</span>
+                  <li key={i} className="text-sm text-foreground/85 flex items-start gap-2">
+                    <span className="text-muted-foreground/70 mt-0.5">&#8226;</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -204,7 +209,7 @@ const GeneratedSwot = ({ symbol }) => {
           );
         })}
       </div>
-      <p className="text-xs text-gray-400 text-center mt-4">
+      <p className="text-xs text-muted-foreground/70 text-center mt-4">
         Auto-generated from financial data, technical indicators, and analyst ratings. Not investment advice.
       </p>
     </div>

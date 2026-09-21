@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import { withAlpha } from '@/lib/color';
 
 const PERIODS = [
   { value: '1mo', label: '1M' },
@@ -20,6 +22,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [period, setPeriod] = useState('3mo');
+  const ct = useChartTheme();
 
   useEffect(() => {
     if (!symbol) return;
@@ -66,7 +69,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
     ctx.clearRect(0, 0, W, H);
 
     // Grid lines
-    ctx.strokeStyle = '#f0f0f0';
+    ctx.strokeStyle = ct.grid;
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const y = pad.top + (cH / 4) * i;
@@ -75,7 +78,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
       ctx.lineTo(W - pad.right, y);
       ctx.stroke();
       const val = maxP - (range / 4) * i;
-      ctx.fillStyle = '#999';
+      ctx.fillStyle = ct.text;
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText(val.toFixed(decimals), pad.left - 5, y + 3);
@@ -84,8 +87,9 @@ function PriceChart({ symbol, title, decimals = 2 }) {
     // Gradient fill
     const gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
     const isUp = closes[closes.length - 1] >= closes[0];
-    gradient.addColorStop(0, isUp ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)');
-    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    const lineColor = isUp ? ct.gain : ct.loss;
+    gradient.addColorStop(0, withAlpha(lineColor, 0.15));
+    gradient.addColorStop(1, withAlpha(lineColor, 0));
 
     const gap = cW / (closes.length - 1);
 
@@ -104,7 +108,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
     ctx.fill();
 
     // Line
-    ctx.strokeStyle = isUp ? '#22c55e' : '#ef4444';
+    ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     closes.forEach((c, i) => {
@@ -116,7 +120,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
     ctx.stroke();
 
     // X-axis date labels
-    ctx.fillStyle = '#999';
+    ctx.fillStyle = ct.text;
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     const labelCount = Math.min(6, chartData.length);
@@ -127,7 +131,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
       const label = d.length > 10 ? d.substring(0, 10) : d;
       ctx.fillText(label, x, H - 8);
     }
-  }, [chartData, decimals]);
+  }, [chartData, decimals, ct]);
 
   return (
     <div className="mb-6">
@@ -162,7 +166,7 @@ function PriceChart({ symbol, title, decimals = 2 }) {
       {!loading && !error && chartData && chartData.length > 0 && (
         <canvas
           ref={canvasRef}
-          className="w-full bg-white rounded-lg border border-gray-200"
+          className="w-full rounded-lg border border-border bg-card"
           style={{ height: '320px' }}
         />
       )}

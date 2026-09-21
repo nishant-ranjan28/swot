@@ -15,6 +15,13 @@ import TechnicalTab from './TechnicalTab';
 import FundamentalTab from './FundamentalTab';
 import PredictionTab from './PredictionTab';
 import { generateStockReport } from '../../utils/exportUtils';
+import { FileDown } from 'lucide-react';
+import PageContainer from '@/components/common/PageContainer';
+import PriceChange from '@/components/common/PriceChange';
+import ErrorState from '@/components/common/ErrorState';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -50,14 +57,37 @@ const StockDetailPage = () => {
     setSearchParams({ tab: tabId });
   };
 
+  const handleTabKeyDown = (event) => {
+    const currentIndex = TABS.findIndex((tab) => tab.id === activeTab);
+    let nextIndex;
+    switch (event.key) {
+      case 'ArrowRight':
+        nextIndex = (currentIndex + 1) % TABS.length;
+        break;
+      case 'ArrowLeft':
+        nextIndex = (currentIndex - 1 + TABS.length) % TABS.length;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = TABS.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const nextId = TABS[nextIndex].id;
+    setActiveTab(nextId);
+    document.getElementById(`tab-${nextId}`)?.focus();
+  };
+
   const handleStockSelect = (stock) => {
     navigate(`/stock/${stock.symbol}`);
   };
 
   const quote = summary?.quote;
   const stockCurrency = quote?.currency === 'USD' ? '$' : '₹';
-  const changeColor = quote?.change >= 0 ? 'text-green-600' : 'text-red-600';
-  const changeSign = quote?.change >= 0 ? '+' : '';
 
   const renderTab = () => {
     switch (activeTab) {
@@ -91,89 +121,103 @@ const StockDetailPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Search Bar */}
-        <div className="max-w-4xl mx-auto">
-          <StockSearch onSelect={handleStockSelect} className="w-full" />
+    <PageContainer className="space-y-4 md:space-y-6">
+      {/* Search Bar */}
+      <div className="max-w-4xl mx-auto">
+        <StockSearch onSelect={handleStockSelect} className="w-full" />
+      </div>
+
+      {!quote && <h1 className="sr-only">{symbol}</h1>}
+
+      {/* Price Banner */}
+      {quote && (
+        <div className="sticky top-16 z-30 rounded-xl border border-border bg-card/95 p-4 backdrop-blur md:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg font-semibold text-foreground">
+                {quote.name || symbol}
+              </h1>
+              <Badge variant="outline">{symbol}</Badge>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-2xl font-semibold tabular-nums text-foreground">
+                  {stockCurrency}{quote.price?.toLocaleString(stockCurrency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}
+                </div>
+                <PriceChange
+                  value={quote.change}
+                  percent={quote.change_percent}
+                  showIcon
+                  className="text-sm font-medium"
+                />
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => generateStockReport(quote, summary?.overview, summary?.financials, stockCurrency)}
+                className="ml-2"
+                title="Download PDF report"
+              >
+                <FileDown aria-hidden />
+                PDF Report
+              </Button>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* Price Banner */}
-        {quote && (
-          <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 sticky top-16 z-40">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {quote.name || symbol}
-                </h1>
-                <span className="text-sm text-gray-500">{symbol}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-900">
-                    {stockCurrency}{quote.price?.toLocaleString(stockCurrency === '$' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div className={`text-lg font-semibold ${changeColor}`}>
-                    {changeSign}{quote.change?.toFixed(2)} ({changeSign}{quote.change_percent?.toFixed(2)}%)
-                  </div>
-                </div>
+      {loading && (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-border border-t-primary"></div>
+        </div>
+      )}
+
+      {error && <ErrorState message={error} />}
+
+      {/* Tabs */}
+      {summary && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+            <div
+              role="tablist"
+              aria-label="Stock sections"
+              className="flex min-w-max border-b border-border px-2"
+              onKeyDown={handleTabKeyDown}
+            >
+              {TABS.map((tab) => (
                 <button
-                  onClick={() => generateStockReport(quote, summary?.overview, summary?.financials, stockCurrency)}
-                  className="ml-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-medium transition-colors focus:outline-hidden flex items-center gap-1.5"
-                  title="Download PDF report"
+                  key={tab.id}
+                  type="button"
+                  id={`tab-${tab.id}`}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls="stock-tabpanel"
+                  tabIndex={activeTab === tab.id ? 0 : -1}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'relative px-3 py-2.5 text-sm whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-sm',
+                    activeTab === tab.id
+                      ? 'text-foreground font-medium after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:bg-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  PDF Report
+                  {tab.label}
                 </button>
-              </div>
+              ))}
             </div>
           </div>
-        )}
 
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div
+            role="tabpanel"
+            id="stock-tabpanel"
+            aria-labelledby={`tab-${activeTab}`}
+            className="p-4 md:p-6"
+          >
+            {renderTab()}
           </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-600">{error}</p>
-          </div>
-        )}
-
-        {/* Tabs */}
-        {summary && (
-          <>
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
-                <div className="flex min-w-max border-b border-gray-200">
-                  {TABS.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors focus:outline-hidden ${
-                        activeTab === tab.id
-                          ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 md:p-6">
-                {renderTab()}
-              </div>
-            </div>
-          </>
-        )}
-      </main>
-    </div>
+        </div>
+      )}
+    </PageContainer>
   );
 };
 

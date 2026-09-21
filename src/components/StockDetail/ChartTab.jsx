@@ -4,6 +4,20 @@ import { useStockData } from '../../hooks/useStockData';
 import { useMarket } from '../../context/MarketContext';
 import { getDrawings, addDrawing, clearDrawings } from '../../utils/chartDrawings';
 import TabSkeleton from './TabSkeleton';
+import { useChartTheme } from '@/hooks/useChartTheme';
+import StatCard from '@/components/common/StatCard';
+import PriceChange from '@/components/common/PriceChange';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorState from '@/components/common/ErrorState';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+
+const pillGroup = 'inline-flex flex-wrap items-center gap-1 rounded-lg border border-border bg-muted/40 p-1';
+const pillClass = (active) => cn(
+  'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+  active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+);
 
 const RANGES = [
   { label: '1W', value: '5d' },
@@ -25,34 +39,69 @@ const formatVolume = (vol) => {
   return vol.toString();
 };
 
+// Theme-dependent chart options, shared by creation and the theme-change effect.
+const themeOptions = (ct) => ({
+  layout: {
+    background: { type: ColorType.Solid, color: ct.background },
+    textColor: ct.text,
+  },
+  grid: {
+    vertLines: { color: ct.grid },
+    horzLines: { color: ct.grid },
+  },
+  rightPriceScale: { borderColor: ct.grid },
+  timeScale: { borderColor: ct.grid },
+});
+
+const candleColors = (ct) => ({
+  upColor: ct.gain,
+  downColor: ct.loss,
+  borderDownColor: ct.loss,
+  borderUpColor: ct.gain,
+  wickDownColor: ct.loss,
+  wickUpColor: ct.gain,
+});
+
+const toVolumeData = (validData, ct) => validData.map((d) => ({
+  time: d.date.split('T')[0],
+  value: d.volume || 0,
+  color: d.close >= d.open ? ct.gainArea : ct.lossArea,
+}));
+
 const DRAWING_COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 const FIB_LEVELS = [0, 0.236, 0.382, 0.5, 0.618, 1];
 
 const DrawingToolbar = ({ activeTool, setActiveTool, drawingColor, setDrawingColor, onClearAll, drawingCount }) => (
-  <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-xs">
-    <span className="text-gray-400 font-medium mr-1">Draw:</span>
+  <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 bg-muted/40 border-b border-border text-xs">
+    <span className="text-muted-foreground/70 font-medium mr-1">Draw:</span>
     {[
       { tool: null, label: 'Off', icon: '↗' },
       { tool: 'hline', label: 'H-Line', icon: '─' },
       { tool: 'fibonacci', label: 'Fib', icon: '⟋' },
     ].map(({ tool, label, icon }) => (
-      <button
+      <Button
         key={label}
+        type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => setActiveTool(activeTool === tool ? null : tool)}
-        className={`px-2 py-1 rounded-sm transition-colors ${
-          activeTool === tool ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
-        }`}
+        className={cn(
+          'h-7 px-2 text-xs',
+          activeTool === tool
+            ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground dark:hover:bg-primary/90'
+            : 'text-muted-foreground'
+        )}
         title={label}
       >
         {icon} {label}
-      </button>
+      </Button>
     ))}
     <div className="flex gap-1 ml-2">
       {DRAWING_COLORS.map(c => (
         <button
           key={c}
           onClick={() => setDrawingColor(c)}
-          className={`w-4 h-4 rounded-full border-2 ${drawingColor === c ? 'border-gray-900' : 'border-transparent'}`}
+          className={`w-4 h-4 rounded-full border-2 ${drawingColor === c ? 'border-foreground' : 'border-transparent'}`}
           style={{ backgroundColor: c }}
         />
       ))}
@@ -60,7 +109,7 @@ const DrawingToolbar = ({ activeTool, setActiveTool, drawingColor, setDrawingCol
     {drawingCount > 0 && (
       <button
         onClick={onClearAll}
-        className="ml-auto text-red-500 hover:text-red-700 text-xs font-medium"
+        className="ml-auto text-loss hover:text-loss/80 text-xs font-medium"
       >
         Clear All ({drawingCount})
       </button>
@@ -72,6 +121,11 @@ const StockChart = ({ data, height = 400, activeTool, drawingColor, drawings, on
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const drawingSeriesRef = useRef([]);
+  const candleSeriesRef = useRef(null);
+  const volumeSeriesRef = useRef(null);
+  const validDataRef = useRef([]);
+  const ct = useChartTheme();
+  const ctRef = useRef(ct);
 
   const renderDrawings = useCallback((chart, validData) => {
     // Remove old drawing series
@@ -122,46 +176,45 @@ const StockChart = ({ data, height = 400, activeTool, drawingColor, drawings, on
     });
   }, [drawings]);
 
+  // Recolor in place on theme change; recreating the chart would lose zoom and drawings.
+  // Declared before the creation effect so ctRef is current when a new chart is built.
+  useEffect(() => {
+    ctRef.current = ct;
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.applyOptions(themeOptions(ct));
+    candleSeriesRef.current?.applyOptions(candleColors(ct));
+    volumeSeriesRef.current?.setData(toVolumeData(validDataRef.current, ct));
+  }, [ct]);
+
   useEffect(() => {
     if (!chartContainerRef.current || !data || data.length === 0) return;
 
     const container = chartContainerRef.current;
 
+    const theme = themeOptions(ctRef.current);
     const chart = createChart(container, {
       width: container.clientWidth,
       height,
-      layout: {
-        background: { type: ColorType.Solid, color: '#ffffff' },
-        textColor: '#333',
-      },
-      grid: {
-        vertLines: { color: '#f0f0f0' },
-        horzLines: { color: '#f0f0f0' },
-      },
+      layout: theme.layout,
+      grid: theme.grid,
       crosshair: {
         mode: CrosshairMode.Normal,
       },
-      rightPriceScale: {
-        borderColor: '#e0e0e0',
-      },
+      rightPriceScale: theme.rightPriceScale,
       timeScale: {
-        borderColor: '#e0e0e0',
+        ...theme.timeScale,
         timeVisible: false,
       },
     });
 
     chartRef.current = chart;
 
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#16a34a',
-      downColor: '#dc2626',
-      borderDownColor: '#dc2626',
-      borderUpColor: '#16a34a',
-      wickDownColor: '#dc2626',
-      wickUpColor: '#16a34a',
-    });
+    const candlestickSeries = chart.addSeries(CandlestickSeries, candleColors(ctRef.current));
+    candleSeriesRef.current = candlestickSeries;
 
     const validData = data.filter((d) => d.open != null && d.high != null && d.low != null && d.close != null);
+    validDataRef.current = validData;
 
     const candleData = validData.map((d) => ({
       time: d.date.split('T')[0],
@@ -177,18 +230,13 @@ const StockChart = ({ data, height = 400, activeTool, drawingColor, drawings, on
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume',
     });
+    volumeSeriesRef.current = volumeSeries;
 
     chart.priceScale('volume').applyOptions({
       scaleMargins: { top: 0.8, bottom: 0 },
     });
 
-    const volumeData = validData.map((d) => ({
-      time: d.date.split('T')[0],
-      value: d.volume || 0,
-      color: d.close >= d.open ? 'rgba(22, 163, 74, 0.3)' : 'rgba(220, 38, 38, 0.3)',
-    }));
-
-    volumeSeries.setData(volumeData);
+    volumeSeries.setData(toVolumeData(validData, ctRef.current));
 
     // Render saved drawings
     renderDrawings(chart, validData);
@@ -225,6 +273,9 @@ const StockChart = ({ data, height = 400, activeTool, drawingColor, drawings, on
       chart.remove();
       chartRef.current = null;
       drawingSeriesRef.current = [];
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
+      validDataRef.current = [];
     };
   }, [data, height, activeTool, drawingColor, renderDrawings, onAddDrawing, fibState, setFibState]);
 
@@ -259,18 +310,18 @@ const MiniChart = ({ symbol, range, label, height = 250 }) => {
   const historyData = data?.data || [];
 
   return (
-    <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
-      <div className="px-3 py-1.5 bg-gray-50 border-b border-gray-100">
-        <span className="text-xs font-semibold text-gray-600">{label}</span>
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="px-3 py-1.5 bg-muted/40 border-b border-border">
+        <span className="text-xs font-semibold text-muted-foreground">{label}</span>
       </div>
       {loading ? (
-        <div className="animate-pulse" style={{ height }}><div className="h-full bg-gray-50" /></div>
+        <div className="p-2" style={{ height }}><Skeleton className="h-full w-full" /></div>
       ) : historyData.length > 0 ? (
         <div style={{ height }}>
           <StockChart data={historyData} height={height} />
         </div>
       ) : (
-        <div className="text-gray-400 text-xs text-center py-8">No data</div>
+        <div className="text-muted-foreground/70 text-xs text-center py-8">No data</div>
       )}
     </div>
   );
@@ -318,29 +369,27 @@ const ChartTab = ({ symbol }) => {
     <div className="space-y-4">
       {/* Range Selector + View Mode */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex gap-1.5">
+        <div className={pillGroup}>
           {RANGES.map((r) => (
             <button
               key={r.value}
+              type="button"
+              aria-pressed={range === r.value}
               onClick={() => setRange(r.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                range === r.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={pillClass(range === r.value)}
             >
               {r.label}
             </button>
           ))}
         </div>
-        <div className="hidden md:flex items-center bg-gray-100 rounded-lg overflow-hidden">
+        <div className={cn(pillGroup, 'hidden md:inline-flex')}>
           {VIEW_MODES.map(m => (
             <button
               key={m.value}
+              type="button"
+              aria-pressed={viewMode === m.value}
               onClick={() => setViewMode(m.value)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                viewMode === m.value ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-200'
-              }`}
+              className={pillClass(viewMode === m.value)}
             >
               {m.label}
             </button>
@@ -351,24 +400,14 @@ const ChartTab = ({ symbol }) => {
       {/* Stats Row */}
       {viewMode === 'single' && !loading && historyData.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-xs text-gray-500">Period Return</div>
-            <div className={`text-sm font-bold ${overallChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {overallChange >= 0 ? '+' : ''}{overallChangePct.toFixed(2)}%
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-xs text-gray-500">Period High</div>
-            <div className="text-sm font-bold text-gray-900">{formatPrice(highest, currency)}</div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-xs text-gray-500">Period Low</div>
-            <div className="text-sm font-bold text-gray-900">{formatPrice(lowest, currency)}</div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <div className="text-xs text-gray-500">Avg Volume</div>
-            <div className="text-sm font-bold text-gray-900">{formatVolume(avgVolume)}</div>
-          </div>
+          <StatCard
+            label="Period Return"
+            value={<PriceChange percent={overallChangePct} />}
+            className="p-3"
+          />
+          <StatCard label="Period High" value={formatPrice(highest, currency)} className="p-3" />
+          <StatCard label="Period Low" value={formatPrice(lowest, currency)} className="p-3" />
+          <StatCard label="Avg Volume" value={formatVolume(avgVolume)} className="p-3" />
         </div>
       )}
 
@@ -378,9 +417,9 @@ const ChartTab = ({ symbol }) => {
           {loading ? (
             <TabSkeleton rows={10} />
           ) : error ? (
-            <div className="text-red-600 text-center py-8">{error} <button onClick={refetch} className="text-blue-600 underline ml-2">Retry</button></div>
+            <ErrorState message={error} onRetry={refetch} />
           ) : historyData.length > 0 ? (
-            <div className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
               <DrawingToolbar
                 activeTool={activeTool}
                 setActiveTool={(t) => { setActiveTool(t); setFibState(null); }}
@@ -390,7 +429,7 @@ const ChartTab = ({ symbol }) => {
                 drawingCount={drawings.length}
               />
               {fibState && activeTool === 'fibonacci' && (
-                <div className="px-3 py-1 bg-purple-50 text-purple-700 text-xs">
+                <div className="px-3 py-1 bg-primary/10 text-foreground text-xs">
                   Click second point to complete Fibonacci retracement
                 </div>
               )}
@@ -405,7 +444,7 @@ const ChartTab = ({ symbol }) => {
               />
             </div>
           ) : (
-            <div className="text-gray-500 text-center py-8">No chart data available for this period.</div>
+            <EmptyState title="No chart data available for this period." />
           )}
         </>
       )}
