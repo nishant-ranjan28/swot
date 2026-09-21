@@ -29,17 +29,24 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 TIMEOUT_SECONDS = 20.0
 TEMPERATURE = 0.3
-MAX_TOKENS = 300
+# Reasoning models (e.g. gpt-oss) spend part of the cap on hidden reasoning; the
+# summary itself is still capped by sanitize_summary, so a roomy cap costs nothing.
+MAX_TOKENS = 1024
+
+# Groq only accepts reasoning params on reasoning models; gpt-oss is the default.
+GROQ_REASONING_PREFIXES = ("openai/gpt-oss",)
 
 
 class LLMProvider:
     def __init__(self, name: str, base_url: str, api_key: str, model: str,
-                 extra_headers: dict | None = None):
+                 extra_headers: dict | None = None, extra_body: dict | None = None):
         self.name = name
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key or ""
         self.model = model
         self.extra_headers = dict(extra_headers or {})
+        # Provider-specific request fields (e.g. reasoning controls).
+        self.extra_body = dict(extra_body or {})
 
     def __repr__(self) -> str:  # never show the key
         return f"LLMProvider(name={self.name!r}, model={self.model!r}, key_set={bool(self.api_key)})"
@@ -57,12 +64,18 @@ def providers_from_settings(settings: dict) -> list[LLMProvider]:
     openrouter_headers = {"X-Title": "StockPulse"}
     if app_url:
         openrouter_headers = {"HTTP-Referer": app_url, **openrouter_headers}
+    groq_model = settings.get("llm_model_groq") or ""
+    # Keep reasoning short and out of the response so the cap goes to the answer.
+    groq_body = ({"reasoning_effort": "low", "include_reasoning": False}
+                 if groq_model.startswith(GROQ_REASONING_PREFIXES) else {})
+    # OpenRouter's unified reasoning control; non-reasoning models ignore it.
+    openrouter_body = {"reasoning": {"effort": "low", "exclude": True}}
     return [
         LLMProvider("groq", GROQ_BASE_URL, settings.get("groq_api_key") or "",
-                    settings.get("llm_model_groq") or ""),
+                    groq_model, extra_body=groq_body),
         LLMProvider("openrouter", OPENROUTER_BASE_URL, settings.get("openrouter_api_key") or "",
                     settings.get("llm_model_openrouter") or "",
-                    openrouter_headers),
+                    openrouter_headers, extra_body=openrouter_body),
     ]
 
 
@@ -116,6 +129,7 @@ class LLMClient:
                 resp = await self._client.post(
                     f"{provider.base_url}/chat/completions",
                     json={
+                        **provider.extra_body,
                         "model": provider.model,
                         "messages": messages,
                         "temperature": TEMPERATURE,

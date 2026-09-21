@@ -74,7 +74,7 @@ async def test_groq_success_request_shape():
         "model": "groq-model",
         "messages": MESSAGES,
         "temperature": 0.3,
-        "max_tokens": 300,
+        "max_tokens": 1024,
     }
     assert req.extensions["timeout"]["read"] == 20
     assert llm.calls == 1
@@ -269,8 +269,8 @@ def test_job_settings_llm_defaults(monkeypatch):
     s = job_settings()
     assert s["groq_api_key"] == ""
     assert s["openrouter_api_key"] == ""
-    assert s["llm_model_groq"] == "llama-3.3-70b-versatile"
-    assert s["llm_model_openrouter"] == "meta-llama/llama-3.3-70b-instruct:free"
+    assert s["llm_model_groq"] == "openai/gpt-oss-120b"
+    assert s["llm_model_openrouter"] == "google/gemma-4-31b-it:free"
     assert s["llm_max_calls"] == 60
 
 
@@ -331,3 +331,65 @@ async def test_empty_app_url_sends_no_referer_header():
     (req,) = seen
     assert "http-referer" not in req.headers
     assert req.headers["x-title"] == "StockPulse"
+
+
+# ---- reasoning models ----------------------------------------------------------
+
+
+def _body_for(provider, responder=None):
+    llm, requests = make(responder or (lambda r: ok()), providers=[provider])
+    return llm, requests
+
+
+@pytest.mark.asyncio
+async def test_groq_gpt_oss_turns_reasoning_down_and_hides_it():
+    # gpt-oss is a reasoning model: reasoning tokens count against the cap, so ask for
+    # low effort and leave the reasoning text out of the response.
+    (gp, _) = providers_from_settings({"groq_api_key": GROQ_KEY, "openrouter_api_key": "",
+                                       "llm_model_groq": "openai/gpt-oss-120b",
+                                       "llm_model_openrouter": "o", "app_url": ""})
+    llm, requests = _body_for(gp)
+    await llm.summarize(MESSAGES)
+    body = json.loads(requests[0].content)
+    assert body["model"] == "openai/gpt-oss-120b"
+    assert body["reasoning_effort"] == "low"
+    assert body["include_reasoning"] is False
+    assert body["max_tokens"] == 1024
+
+
+@pytest.mark.asyncio
+async def test_groq_non_reasoning_model_gets_no_reasoning_params():
+    # Groq rejects reasoning params on models that don't reason.
+    (gp, _) = providers_from_settings({"groq_api_key": GROQ_KEY, "openrouter_api_key": "",
+                                       "llm_model_groq": "llama-3.1-8b-instant",
+                                       "llm_model_openrouter": "o", "app_url": ""})
+    llm, requests = _body_for(gp)
+    await llm.summarize(MESSAGES)
+    body = json.loads(requests[0].content)
+    assert "reasoning_effort" not in body and "include_reasoning" not in body
+
+
+@pytest.mark.asyncio
+async def test_openrouter_always_sends_unified_reasoning_control():
+    # OpenRouter's unified `reasoning` object is ignored by non-reasoning models.
+    (_, orp) = providers_from_settings({"groq_api_key": "", "openrouter_api_key": OR_KEY,
+                                        "llm_model_groq": "g", "llm_model_openrouter": "o",
+                                        "app_url": "https://x.example"})
+    llm, requests = _body_for(orp)
+    await llm.summarize(MESSAGES)
+    body = json.loads(requests[0].content)
+    assert body["reasoning"] == {"effort": "low", "exclude": True}
+
+
+@pytest.mark.asyncio
+async def test_reasoning_only_response_moves_to_next_provider():
+    # If a reasoning model spends the budget thinking and returns empty content,
+    # that's a failed attempt: fall through to the next provider.
+    def responder(req):
+        if "groq" in str(req.url):
+            return httpx.Response(200, json={"choices": [{"message": {"content": "", "reasoning": "thinking..."}}]})
+        return ok("From OpenRouter.")
+    g = LLMProvider("groq", GROQ_BASE_URL, GROQ_KEY, "openai/gpt-oss-120b")
+    o = LLMProvider("openrouter", OPENROUTER_BASE_URL, OR_KEY, "o")
+    llm, _ = make(responder, providers=[g, o])
+    assert await llm.summarize(MESSAGES) == "From OpenRouter."

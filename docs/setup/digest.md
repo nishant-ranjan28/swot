@@ -45,11 +45,18 @@ values below are placeholders. Never commit real keys.
 
 1. **Groq key (AI summary).** Go to [console.groq.com](https://console.groq.com) →
    **API Keys** → **Create API Key**. Groq has a free tier. The default model is
-   `llama-3.3-70b-versatile`.
+   `openai/gpt-oss-120b` (Groq's recommended replacement for the retired
+   `llama-3.3-70b-versatile`). It is a reasoning model, so the app asks it for low
+   reasoning effort and leaves the reasoning out of the response; otherwise reasoning
+   tokens could use up the answer.
 
 2. **OpenRouter key (optional fallback).** Go to [openrouter.ai](https://openrouter.ai) →
    **Keys** → **Create Key**. Free models have a `:free` suffix. The default model is
-   `meta-llama/llama-3.3-70b-instruct:free`.
+   `google/gemma-4-31b-it:free`. If you'd rather never chase renamed free models, set
+   `LLM_MODEL_OPENROUTER=openrouter/free`: OpenRouter then routes to whichever free
+   model is available (quality varies between calls). The app always sends
+   OpenRouter's `reasoning: {effort: low, exclude: true}`, which non-reasoning models
+   ignore.
 
    > **Model ids must be verified.** Providers rename and retire models. Before you
    > deploy, and whenever summaries stop appearing, check each id against the provider's
@@ -64,8 +71,8 @@ values below are placeholders. Never commit real keys.
    | --- | --- |
    | `GROQ_API_KEY` | `<groq-api-key>` |
    | `OPENROUTER_API_KEY` | `<openrouter-api-key>` (optional) |
-   | `LLM_MODEL_GROQ` | optional; default `llama-3.3-70b-versatile` |
-   | `LLM_MODEL_OPENROUTER` | optional; default `meta-llama/llama-3.3-70b-instruct:free` |
+   | `LLM_MODEL_GROQ` | optional; default `openai/gpt-oss-120b` |
+   | `LLM_MODEL_OPENROUTER` | optional; default `google/gemma-4-31b-it:free` (or `openrouter/free`) |
    | `LLM_MAX_CALLS_PER_RUN` | optional; default `60`. This caps LLM requests per digest run, across both providers. Users after the cap get no summary. |
 
    Both LLM keys are optional. With neither set, the digest still goes out without a
