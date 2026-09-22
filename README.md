@@ -106,7 +106,20 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### Environment Variables
-Set `REACT_APP_API_URL` on Vercel pointing to your Render backend URL.
+
+**Frontend (Vercel).** These are embedded in the public JavaScript bundle, so only these public values belong here:
+
+| Variable | Purpose |
+|---|---|
+| `REACT_APP_API_URL` | Your Render backend URL |
+| `VITE_SUPABASE_URL` | Supabase project URL (optional; enables accounts) |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key (public by design; protected by RLS) |
+
+News comes from the backend (Google News RSS + yfinance) and needs no API keys. A test (`src/security/noClientSecrets.test.js`) fails if frontend code reads any other secret-looking variable.
+
+**Backend (Render).** Secrets live only here: Supabase service-role key, Brevo, job secret, Groq/OpenRouter. See [`docs/setup/supabase.md`](docs/setup/supabase.md), [`docs/setup/alerts.md`](docs/setup/alerts.md) and [`docs/setup/digest.md`](docs/setup/digest.md).
+
+Never commit `.env*` files; they are gitignored.
 
 ---
 
