@@ -2,20 +2,17 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+Only the latest `main` branch (deployed at https://swot.iamnishant.in) receives security fixes.
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+Please report vulnerabilities privately through GitHub: **Security → Report a vulnerability** on this repository. Don't open a public issue for security problems.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+Include what you found, how to reproduce it, and the impact you expect. You'll get an acknowledgement as soon as the report is read, and a fix or a decision once it has been investigated.
+
+## Secrets
+
+- Never commit `.env*` files. They are gitignored.
+- Frontend environment variables are embedded in the public JavaScript bundle. Only public values belong there: `REACT_APP_API_URL`, `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (the anon key is protected by Supabase row-level security). `src/security/noClientSecrets.test.js` enforces this.
+- Every other credential lives only in the backend host's environment: the Supabase service-role key, the Brevo API key, the job secret and the Groq/OpenRouter keys.
+- If a secret is ever committed or exposed, rotate it at the provider first. Removing it from git history doesn't make it safe again, because clones and forks keep the old commits.
