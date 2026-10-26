@@ -1,4 +1,6 @@
 # backend/services/stock_service.py
+from concurrent.futures import ThreadPoolExecutor
+
 import yfinance as yf
 from yahooquery import Ticker as YQTicker
 import httpx
@@ -71,6 +73,38 @@ class StockService:
             return info
         except Exception:
             return None
+
+    def _get_ticker_quote(self, symbol: str) -> dict | None:
+        """Get quote fields from ticker info, falling back to recent price history."""
+        info = self._get_ticker_info(symbol) or {}
+        if info.get("regularMarketPrice"):
+            return info
+
+        try:
+            history = yf.Ticker(symbol).history(period="5d")
+            if history is None or history.empty:
+                return info or None
+
+            closes = history["Close"].dropna()
+            if closes.empty:
+                return info or None
+
+            latest_date = closes.index[-1]
+            latest = history.loc[latest_date]
+            price = float(closes.iloc[-1])
+            previous_close = float(closes.iloc[-2]) if len(closes) > 1 else float(latest.get("Open", price))
+            volume = latest.get("Volume", 0)
+            volume = 0 if pd.isna(volume) else int(volume)
+            return {
+                **info,
+                "regularMarketPrice": price,
+                "previousClose": previous_close,
+                "volume": volume,
+                "dayHigh": float(latest.get("High", price)),
+                "dayLow": float(latest.get("Low", price)),
+            }
+        except Exception:
+            return info or None
 
     # Known US stock symbols to skip .NS/.BO resolution
     US_SYMBOLS = {
@@ -199,8 +233,8 @@ class StockService:
         if cached is not None:
             return cached
 
-        info = self._get_ticker_info(symbol)
-        if not info:
+        info = self._get_ticker_quote(symbol)
+        if not info or not info.get("regularMarketPrice"):
             return None
 
         price = info.get("regularMarketPrice", 0)
@@ -687,34 +721,38 @@ class StockService:
     }
 
     def _yf_fallback_batch(self, symbols: list[str]) -> dict:
-        """Fallback: fetch quotes one-by-one via yfinance when yahooquery fails."""
+        """Fallback to yfinance ticker data and recent history when yahooquery fails."""
+        if not symbols:
+            return {}
         results = {}
-        for sym in symbols:
-            try:
-                info = self._get_ticker_info(sym)
-                if not info:
+        with ThreadPoolExecutor(max_workers=min(5, len(symbols))) as executor:
+            for sym, info in zip(symbols, executor.map(self._get_ticker_quote, symbols)):
+                try:
+                    if not info:
+                        continue
+                    price = info.get("regularMarketPrice", 0)
+                    prev = info.get("previousClose", 0)
+                    if not price:
+                        continue
+                    change = round(price - prev, 2) if price and prev else 0
+                    change_pct = round((change / prev) * 100, 2) if prev else 0
+                    results[sym] = {
+                        "symbol": sym,
+                        "name": info.get("shortName", sym),
+                        "price": price,
+                        "previous_close": prev,
+                        "change": change,
+                        "change_percent": change_pct,
+                        "volume": info.get("volume"),
+                        "market_cap": info.get("marketCap"),
+                        "day_high": info.get("dayHigh"),
+                        "day_low": info.get("dayLow"),
+                        "week52_high": info.get("fiftyTwoWeekHigh"),
+                        "week52_low": info.get("fiftyTwoWeekLow"),
+                        "currency": info.get("currency", "INR"),
+                    }
+                except Exception:
                     continue
-                price = info.get("regularMarketPrice", 0)
-                prev = info.get("previousClose", 0)
-                change = round(price - prev, 2) if price and prev else 0
-                change_pct = round((change / prev) * 100, 2) if prev else 0
-                results[sym] = {
-                    "symbol": sym,
-                    "name": info.get("shortName", ""),
-                    "price": price,
-                    "previous_close": prev,
-                    "change": change,
-                    "change_percent": change_pct,
-                    "volume": info.get("volume"),
-                    "market_cap": info.get("marketCap"),
-                    "day_high": info.get("dayHigh"),
-                    "day_low": info.get("dayLow"),
-                    "week52_high": info.get("fiftyTwoWeekHigh"),
-                    "week52_low": info.get("fiftyTwoWeekLow"),
-                    "currency": info.get("currency", "INR"),
-                }
-            except Exception:
-                continue
         return results
 
     def get_batch_quotes(self, symbols: list[str]) -> dict:
@@ -754,10 +792,11 @@ class StockService:
         except Exception as e:
             print(f"Batch quote error (yahooquery): {e}")
 
-        # Fallback to yfinance if yahooquery returned nothing
-        if not results:
-            print(f"yahooquery returned empty, falling back to yfinance for {len(symbols)} symbols")
-            results = self._yf_fallback_batch(symbols)
+        # Fill missing or zero-price quotes with yfinance, then its chart-history endpoint.
+        missing = [sym for sym in symbols if not results.get(sym, {}).get("price")]
+        if missing:
+            print(f"yahooquery returned {len(missing)} missing quotes, falling back to yfinance")
+            results.update(self._yf_fallback_batch(missing))
 
         if results:
             cache_manager.set("batch_quote", cache_key, results, ttl=60)
@@ -789,10 +828,13 @@ class StockService:
         results = []
         for idx in indices:
             try:
-                ticker = yf.Ticker(idx["symbol"])
-                info = ticker.info
+                info = self._get_ticker_quote(idx["symbol"])
+                if not info:
+                    continue
                 price = info.get("regularMarketPrice", 0)
                 prev = info.get("previousClose", 0)
+                if not price:
+                    continue
                 change = round(price - prev, 2) if price and prev else 0
                 change_pct = round((change / prev) * 100, 2) if prev else 0
                 results.append({

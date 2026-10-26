@@ -111,7 +111,7 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 | Variable | Purpose |
 |---|---|
-| `REACT_APP_API_URL` | Your Render backend URL |
+| `REACT_APP_API_URL` | Optional backend URL override; defaults to the production Render API |
 | `VITE_SUPABASE_URL` | Supabase project URL (optional; enables accounts) |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key (public by design; protected by RLS) |
 
