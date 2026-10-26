@@ -112,6 +112,8 @@ const StatCardSkeleton = () => (
 );
 
 const sentimentColor = (score) => (score >= 55 ? 'var(--gain)' : score >= 45 ? 'var(--warning)' : 'var(--loss)');
+const getSentimentOverall = (sentiment) =>
+  typeof sentiment?.overall === 'string' ? sentiment.overall : 'Unavailable';
 
 const VIX_SIGNAL_VARIANT = {
   'Extreme Fear': 'loss',
@@ -292,6 +294,7 @@ const HomePage = () => {
   const filteredStocks = activeSector === 'All'
     ? trendingStocks
     : trendingStocks.filter(s => STOCK_SECTORS[s.symbol] === activeSector);
+  const sentimentOverall = getSentimentOverall(sentiment);
 
   return (
     <PageContainer>
@@ -337,9 +340,9 @@ const HomePage = () => {
                 </div>
               </div>
               <div className={cn('text-sm font-semibold mt-1',
-                sentiment.overall.includes('Bullish') ? 'text-gain' :
-                sentiment.overall.includes('Bearish') ? 'text-loss' : 'text-warning'
-              )}>{sentiment.overall}</div>
+                sentimentOverall.includes('Bullish') ? 'text-gain' :
+                sentimentOverall.includes('Bearish') ? 'text-loss' : 'text-warning'
+              )}>{sentimentOverall}</div>
               <div className="text-[10px] text-muted-foreground mt-0.5">Sentiment Score</div>
             </div>
 
