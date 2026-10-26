@@ -123,6 +123,18 @@ async def get_stock_news(symbol: str):
     return {"articles": articles}
 
 
+@router.get("/global-risk/news")
+@limiter.limit(SEARCH_RATE_LIMIT)
+async def get_global_risk_news(
+    request: Request,
+    region: Annotated[str, Query(pattern="^(world|south-asia|middle-east|europe|east-asia|north-america|africa)$")] = "world",
+    category: Annotated[str, Query(pattern="^(all|geopolitics|natural|shipping|markets)$")] = "all",
+    market: Annotated[str, Query(pattern="^(in|us)$")] = "in",
+):
+    articles = await asyncio.to_thread(stock_service.get_global_risk_news, region, category, market)
+    return {"articles": articles, "region": region, "category": category, "source": "Google News RSS"}
+
+
 @router.get("/earnings-calendar")
 async def get_earnings_calendar(market: Annotated[str, Query(pattern="^(in|us)$")] = "in"):
     data = await asyncio.to_thread(stock_service.get_earnings_calendar, market)
