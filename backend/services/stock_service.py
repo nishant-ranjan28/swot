@@ -1116,6 +1116,40 @@ class StockService:
             cache_manager.set("news", cache_key, all_articles, ttl=300)
         return all_articles
 
+    def get_global_risk_news(self, region: str = "world", category: str = "all", market: str = "in") -> list[dict]:
+        """Get recent global-risk headlines using the existing Google News RSS source."""
+        region_terms = {
+            "world": "global international",
+            "south-asia": "India Pakistan Bangladesh Sri Lanka Nepal",
+            "middle-east": "Middle East Israel Gaza Iran Iraq Lebanon Yemen",
+            "europe": "Europe Ukraine Russia NATO",
+            "east-asia": "China Taiwan Japan South Korea East Asia",
+            "north-america": "United States Canada Mexico North America",
+            "africa": "Africa Sudan Sahel Congo Ethiopia",
+        }
+        category_terms = {
+            "all": "conflict unrest sanctions disaster earthquake flood wildfire cyclone shipping trade disruption",
+            "geopolitics": "conflict military escalation sanctions protest unrest",
+            "natural": "earthquake flood wildfire cyclone hurricane drought extreme weather",
+            "shipping": 'shipping maritime "Strait of Hormuz" "Red Sea" "Suez Canal" "Panama Canal" disruption',
+            "markets": 'oil gas gold copper commodity supply disruption trade tariff',
+        }
+        region_query = region_terms.get(region)
+        topic_query = category_terms.get(category)
+        if not region_query or not topic_query or market not in ("in", "us"):
+            return []
+
+        cache_key = f"global-risk:{region}:{category}:{market}"
+        cached = cache_manager.get("news", cache_key)
+        if cached is not None:
+            return cached
+
+        query = f"{region_query} {topic_query}"
+        articles = self._fetch_google_news(query, "IN" if market == "in" else "US")
+        articles.sort(key=lambda x: _parse_date_for_sort(x.get("published_at", "")), reverse=True)
+        cache_manager.set("news", cache_key, articles, ttl=300)
+        return articles
+
     def _find_support_resistance(self, prices, window=20):
         """Find support and resistance levels."""
         if len(prices) < window * 2:
