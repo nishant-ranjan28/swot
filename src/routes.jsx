@@ -24,6 +24,7 @@ import MacroPage from './components/MacroPage';
 import MutualFundPage from './components/MutualFundPage';
 import EtfPage from './components/EtfPage';
 import TrendingPage from './components/TrendingPage';
+import GlobalRiskPage from './components/GlobalRiskPage';
 import SettingsPage from './components/SettingsPage';
 import AlertsPage from './components/AlertsPage';
 import LoginPage from './components/auth/LoginPage';
@@ -57,6 +58,7 @@ export const PAGE_ROUTES = [
   { path: '/mutual-funds', element: <MutualFundPage /> },
   { path: '/etf', element: <EtfPage /> },
   { path: '/trending', element: <TrendingPage /> },
+  { path: '/global-risk', element: <GlobalRiskPage /> },
   { path: '/news', element: <NewsPage /> },
   // Account pages (reached from the TopBar user menu, not the sidebar nav).
   { path: '/login', element: <LoginPage /> },

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Bitcoin, Gem, ArrowLeftRight, Globe,
   Filter, ScanSearch, GitCompare, Grid3x3, History,
   PiggyBank, Layers,
-  Newspaper, Flame, Landmark, Handshake, CalendarCheck, CalendarDays, Rocket,
+  Newspaper, Flame, Landmark, Handshake, CalendarCheck, CalendarDays, Rocket, Globe2,
   Star, Briefcase, Bell,
   Calculator, Receipt, BookOpen,
 } from 'lucide-react';
@@ -29,6 +29,7 @@ export const NAV_GROUPS = [
   ]},
   { label: 'Intelligence', items: [
     { to: '/news', label: 'News', icon: Newspaper },
+    { to: '/global-risk', label: 'Global Risk', icon: Globe2 },
     { to: '/trending', label: 'Trending', icon: Flame },
     { to: '/fii-dii', label: 'FII / DII', icon: Landmark },
     { to: '/deals', label: 'Insider Deals', icon: Handshake },
