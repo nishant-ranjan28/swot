@@ -6,8 +6,13 @@ from utils.cache import cache_manager
 
 
 @pytest.fixture
-def service():
-    return StockService()
+def service(monkeypatch):
+    # Legacy-provider cases isolate the chart endpoint, tested separately in
+    # test_yahoo_resilience.py. Never call live Yahoo APIs from unit tests.
+    cache_manager._caches.clear()
+    monkeypatch.setattr(StockService, "_get_chart_quote", lambda self, symbol: None)
+    yield StockService()
+    cache_manager._caches.clear()
 
 
 class TestResolveSymbol:
@@ -20,7 +25,9 @@ class TestResolveSymbol:
     def test_bare_symbol_gets_ns_suffix(self, service):
         with patch("yfinance.Ticker") as mock_ticker:
             mock_info = {"regularMarketPrice": 2500.0}
-            mock_ticker.return_value.info = mock_info
+            mock_ticker.side_effect = lambda symbol: MagicMock(
+                info=mock_info if symbol == "RELIANCE.NS" else {}
+            )
             result = service.resolve_indian_symbol("RELIANCE")
             assert result == "RELIANCE.NS"
 
@@ -28,7 +35,7 @@ class TestResolveSymbol:
         with patch("yfinance.Ticker") as mock_ticker:
             def side_effect(symbol):
                 mock = MagicMock()
-                if symbol == "RELIANCE.NS":
+                if symbol != "RELIANCE.BO":
                     mock.info = {}
                 else:
                     mock.info = {"regularMarketPrice": 2500.0}
