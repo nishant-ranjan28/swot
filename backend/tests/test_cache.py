@@ -31,3 +31,21 @@ def test_cache_clear_category():
     cache.clear("search")
     assert cache.get("search", "key1") is None
     assert cache.get("search", "key2") is None
+
+
+def test_explicit_ttl_is_readable_and_clearable():
+    cache = CacheManager()
+    cache.set("ticker_info", "AAPL", {"price": 150}, ttl=60)
+    assert cache.get("ticker_info", "AAPL") == {"price": 150}
+    cache.clear("ticker_info")
+    assert cache.get("ticker_info", "AAPL") is None
+
+
+def test_ttl_is_per_entry_and_overwrite_replaces_value():
+    cache = CacheManager()
+    cache.set("quote", "AAPL", 150, ttl=60)
+    cache.set("quote", "MSFT", 200, ttl=0)
+    assert cache.get("quote", "AAPL") == 150
+    assert cache.get("quote", "MSFT") is None
+    cache.set("quote", "AAPL", 151, ttl=120)
+    assert cache.get("quote", "AAPL") == 151

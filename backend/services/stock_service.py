@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pandas_ta as ta
 from datetime import datetime
-from urllib.parse import quote_plus
+from urllib.parse import quote, quote_plus
 from utils.cache import cache_manager
 from config import CACHE_TTL, IST, MARKET_OPEN, MARKET_CLOSE
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -63,19 +63,69 @@ class StockService:
         if cached is not None:
             return cached
 
+        if cache_manager.get("ticker_info_unavailable", symbol):
+            return None
+
         try:
             ticker = yf.Ticker(symbol)
             info = ticker.info
             # yfinance returns empty dict or dict without price for invalid tickers
             if not info or "regularMarketPrice" not in info:
+                cache_manager.set("ticker_info_unavailable", symbol, True, ttl=300)
                 return None
             cache_manager.set("ticker_info", symbol, info, ttl=60)
             return info
         except Exception:
+            cache_manager.set("ticker_info_unavailable", symbol, True, ttl=300)
+            return None
+
+    def _get_chart_quote(self, symbol: str) -> dict | None:
+        """Price data without the cookie/crumb-dependent quoteSummary API."""
+        cached = cache_manager.get("chart_quote", symbol)
+        if cached is not None:
+            return cached
+        try:
+            response = httpx.get(
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{quote(symbol, safe='')}",
+                params={"interval": "1d", "range": "5d"},
+                headers={"User-Agent": "Mozilla/5.0"}, timeout=10,
+            )
+            response.raise_for_status()
+            chart = response.json()["chart"]
+            if chart.get("error") or not chart.get("result"):
+                return None
+            data = chart["result"][0]
+            meta = data["meta"]
+            bars = data.get("indicators", {}).get("quote", [{}])[0]
+            closes = [v for v in bars.get("close", []) if v is not None and math.isfinite(v)]
+            price = meta.get("regularMarketPrice") or (closes[-1] if closes else None)
+            if not price or not math.isfinite(price) or price <= 0:
+                return None
+            previous = meta.get("previousClose") or (
+                closes[-2] if len(closes) > 1 else meta.get("chartPreviousClose")
+            )
+            opens = [v for v in bars.get("open", []) if v is not None]
+            info = {
+                "regularMarketPrice": price, "previousClose": previous,
+                "shortName": meta.get("shortName") or meta.get("longName") or symbol,
+                "currency": meta.get("currency"),
+                "volume": meta.get("regularMarketVolume"),
+                "dayHigh": meta.get("regularMarketDayHigh"),
+                "dayLow": meta.get("regularMarketDayLow"),
+                "open": opens[-1] if opens else None,
+                "fiftyTwoWeekHigh": meta.get("fiftyTwoWeekHigh"),
+                "fiftyTwoWeekLow": meta.get("fiftyTwoWeekLow"),
+            }
+            cache_manager.set("chart_quote", symbol, info, ttl=self._get_quote_ttl())
+            return info
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
             return None
 
     def _get_ticker_quote(self, symbol: str) -> dict | None:
-        """Get quote fields from ticker info, falling back to recent price history."""
+        """Chart prices first, then legacy quote and history providers."""
+        chart = self._get_chart_quote(symbol)
+        if chart:
+            return chart
         info = self._get_ticker_info(symbol) or {}
         if info.get("regularMarketPrice"):
             return info
@@ -131,19 +181,19 @@ class StockService:
             return symbol
 
         # Try as US stock first (no suffix)
-        info = self._get_ticker_info(symbol)
+        info = self._get_chart_quote(symbol) or self._get_ticker_info(symbol)
         if info:
             return symbol
 
         # Try NSE
         ns_symbol = f"{symbol}.NS"
-        info = self._get_ticker_info(ns_symbol)
+        info = self._get_chart_quote(ns_symbol) or self._get_ticker_info(ns_symbol)
         if info:
             return ns_symbol
 
         # Fallback to BSE
         bo_symbol = f"{symbol}.BO"
-        info = self._get_ticker_info(bo_symbol)
+        info = self._get_chart_quote(bo_symbol) or self._get_ticker_info(bo_symbol)
         if info:
             return bo_symbol
 
@@ -269,6 +319,8 @@ class StockService:
             return cached
 
         info = self._get_ticker_info(symbol)
+        partial = not info
+        info = info or self._get_chart_quote(symbol)
         if not info:
             return None
 
@@ -289,7 +341,9 @@ class StockService:
             "currency": info.get("currency", "INR"),
         }
 
-        cache_manager.set("overview", symbol, result)
+        # Retry missing fundamentals soon instead of caching a partial overview
+        # for the full overview lifetime.
+        cache_manager.set("overview", symbol, result, ttl=60 if partial else None)
         return result
 
     def get_financials(self, symbol: str) -> dict | None:
@@ -722,11 +776,14 @@ class StockService:
 
     def _yf_fallback_batch(self, symbols: list[str]) -> dict:
         """Fallback to yfinance ticker data and recent history when yahooquery fails."""
+        return self._quote_batch(symbols, self._get_ticker_quote)
+
+    def _quote_batch(self, symbols: list[str], get_quote) -> dict:
         if not symbols:
             return {}
         results = {}
         with ThreadPoolExecutor(max_workers=min(5, len(symbols))) as executor:
-            for sym, info in zip(symbols, executor.map(self._get_ticker_quote, symbols)):
+            for sym, info in zip(symbols, executor.map(get_quote, symbols)):
                 try:
                     if not info:
                         continue
@@ -756,16 +813,20 @@ class StockService:
         return results
 
     def get_batch_quotes(self, symbols: list[str]) -> dict:
-        """Fetch quotes for multiple symbols using yahooquery, with yfinance fallback."""
+        """Chart prices first; authenticated Yahoo APIs are fallback only."""
         if not symbols:
             return {}
         cache_key = f"batch_{'_'.join(sorted(symbols[:20]))}"
         cached = cache_manager.get("batch_quote", cache_key)
         if cached is not None:
             return cached
-        results = {}
+        results = self._quote_batch(symbols, self._get_chart_quote)
+        missing = [sym for sym in symbols if sym not in results]
+        if not missing:
+            cache_manager.set("batch_quote", cache_key, results, ttl=self._get_quote_ttl())
+            return results
         try:
-            tickers = YQTicker(symbols)
+            tickers = YQTicker(missing)
             prices = tickers.price
             for sym, data in prices.items():
                 if isinstance(data, str):  # Error message

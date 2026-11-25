@@ -1,31 +1,39 @@
-from cachetools import TTLCache
+from threading import RLock
+
+from cachetools import TLRUCache
 from config import CACHE_TTL, CACHE_MAX_SIZE
 
 
 class CacheManager:
     def __init__(self):
         self._caches = {}
+        self._lock = RLock()
 
-    def _get_or_create_cache(self, category: str, ttl: int | None = None) -> TTLCache:
-        cache_key = f"{category}_{ttl}" if ttl else category
-        if cache_key not in self._caches:
-            resolved_ttl = ttl or CACHE_TTL.get(category, 300)
+    def _get_or_create_cache(self, category: str) -> TLRUCache:
+        if category not in self._caches:
             max_size = CACHE_MAX_SIZE.get(category, CACHE_MAX_SIZE.get("data", 500))
-            self._caches[cache_key] = TTLCache(maxsize=max_size, ttl=resolved_ttl)
-        return self._caches[cache_key]
+            # Keep each category in one cache. Per-entry TTLs must not change the
+            # lookup namespace (get() doesn't receive the writer's TTL).
+            self._caches[category] = TLRUCache(
+                maxsize=max_size, ttu=lambda key, entry, now: now + entry[1]
+            )
+        return self._caches[category]
 
     def get(self, category: str, key: str):
-        cache = self._get_or_create_cache(category)
-        return cache.get(key)
+        with self._lock:
+            entry = self._get_or_create_cache(category).get(key)
+            return entry[0] if entry is not None else None
 
     def set(self, category: str, key: str, value, ttl: int | None = None):
-        cache = self._get_or_create_cache(category, ttl)
-        cache[key] = value
+        with self._lock:
+            resolved_ttl = ttl if ttl is not None else CACHE_TTL.get(category, 300)
+            self._get_or_create_cache(category)[key] = (value, resolved_ttl)
 
     def clear(self, category: str):
-        keys_to_remove = [k for k in self._caches if k == category or k.startswith(f"{category}_")]
-        for k in keys_to_remove:
-            self._caches[k].clear()
+        with self._lock:
+            cache = self._caches.get(category)
+            if cache is not None:
+                cache.clear()
 
 
 # Singleton instance
