@@ -1,5 +1,6 @@
 # backend/services/stock_service.py
 from concurrent.futures import ThreadPoolExecutor
+import asyncio
 
 import yfinance as yf
 from yahooquery import Ticker as YQTicker
@@ -923,8 +924,7 @@ class StockService:
 
         try:
             # VIX (fear gauge)
-            vix = yf.Ticker(config["vix"])
-            vix_info = vix.info
+            vix_info = self._get_ticker_info(config["vix"]) or self._get_chart_quote(config["vix"]) or {}
             vix_price = vix_info.get("regularMarketPrice", 0)
             vix_prev = vix_info.get("previousClose", 0)
             vix_change = round(vix_price - vix_prev, 2) if vix_price and vix_prev else 0
@@ -946,8 +946,7 @@ class StockService:
             vix_label = "VIX" if market == "us" else "India VIX"
 
             # Index position analysis
-            index_ticker = yf.Ticker(config["index"])
-            idx_info = index_ticker.info
+            idx_info = self._get_ticker_info(config["index"]) or self._get_chart_quote(config["index"]) or {}
             idx_price = idx_info.get("regularMarketPrice", 0)
             idx_50dma = idx_info.get("fiftyDayAverage", 0)
             idx_200dma = idx_info.get("twoHundredDayAverage", 0)
@@ -1867,6 +1866,39 @@ class StockService:
             "rec_sell": {"operator": "gt", "operands": [cls._ANALYST, 3.5]},
         }
 
+    async def _request_yahoo_screener(self, payload: dict, timeout: float) -> dict:
+        """Share safe crumb handling and provider backoff across screener callers."""
+        if cache_manager.get("yahoo_screener_unavailable", "provider"):
+            raise ValueError("Yahoo screener temporarily unavailable")
+        try:
+            async with httpx.AsyncClient(
+                headers={"User-Agent": "Mozilla/5.0"}, follow_redirects=True,
+                timeout=timeout,
+            ) as client:
+                await client.get("https://fc.yahoo.com/curveball?crumb")
+                crumb_response = await client.get("https://query2.finance.yahoo.com/v1/test/getcrumb")
+                crumb_response.raise_for_status()
+                crumb = crumb_response.text.strip()
+                # An error page is not a token, even if Yahoo returned HTTP 200.
+                if (not crumb or len(crumb) > 256
+                        or any(ord(c) < 33 or ord(c) > 126 or c in '<>{}[]"' for c in crumb)):
+                    raise ValueError("Yahoo returned an invalid screener token")
+                response = await client.post(
+                    "https://query2.finance.yahoo.com/v1/finance/screener",
+                    params={"crumb": crumb}, json=payload,
+                )
+                response.raise_for_status()
+                finance = response.json()["finance"]
+                if not isinstance(finance, dict) or finance.get("error") or not finance.get("result"):
+                    raise ValueError("Yahoo screener returned no result")
+                result = finance["result"][0]
+                if not isinstance(result, dict) or not isinstance(result.get("quotes"), list):
+                    raise ValueError("Yahoo screener returned invalid quotes")
+                return result
+        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
+            cache_manager.set("yahoo_screener_unavailable", "provider", True, ttl=120)
+            raise
+
     async def screener_query(self, params: dict) -> dict:
         """Query Yahoo Finance screener with filters. Searches all 8000+ Indian stocks."""
         size = min(int(params.get("size", 50)), 200)
@@ -1912,27 +1944,17 @@ class StockService:
             return cached
 
         try:
-            headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
-            async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-                await client.get("https://fc.yahoo.com/curveball?crumb")
-                crumb_resp = await client.get("https://query2.finance.yahoo.com/v1/test/getcrumb")
-                crumb = crumb_resp.text
-
-                url = f"https://query2.finance.yahoo.com/v1/finance/screener?crumb={crumb}"
-                payload = {
-                    "offset": 0, "size": size,
-                    "sortField": sort_field, "sortType": sort_type,
-                    "quoteType": "EQUITY",
-                    "query": {"operator": "AND", "operands": [
-                        region_filter,
-                        *(user_operands if logic == "AND" else
-                          [{"operator": "OR", "operands": user_operands}] if user_operands else [])
-                    ]},
-                }
-                resp = await client.post(url, json=payload, timeout=20.0)
-                data = resp.json()
-
-            result_data = data.get("finance", {}).get("result", [{}])[0]
+            payload = {
+                "offset": 0, "size": size,
+                "sortField": sort_field, "sortType": sort_type,
+                "quoteType": "EQUITY",
+                "query": {"operator": "AND", "operands": [
+                    region_filter,
+                    *(user_operands if logic == "AND" else
+                      [{"operator": "OR", "operands": user_operands}] if user_operands else [])
+                ]},
+            }
+            result_data = await self._request_yahoo_screener(payload, timeout=20.0)
             total = result_data.get("total", 0)
             quotes = result_data.get("quotes", [])
 
@@ -1995,48 +2017,49 @@ class StockService:
             return result
 
         except Exception as e:
-            print(f"Yahoo screener error: {e}")
-            # Fallback
-            fallback = self.get_screener_data(self.SCREENER_STOCKS[:size])
-            return {"stocks": fallback, "total": len(fallback), "showing": len(fallback)}
+            print(f"Yahoo screener unavailable: {type(e).__name__}")
+            # Chart data has no valuation/profitability fields. Don't pretend
+            # unfiltered popular stocks satisfy fundamental screening filters.
+            if user_operands:
+                fallback = []
+                warning = "Fundamental screening is temporarily unavailable. Clear filters to view available prices for popular stocks."
+            else:
+                symbols = self.SCREENER_STOCKS if region == "in" else self.POPULAR_STOCKS.get(region, [])
+                fallback = await asyncio.to_thread(self.get_screener_data, symbols[:size]) if symbols else []
+                warning = "Full-market screening is temporarily unavailable. Showing available prices for popular stocks; fundamental fields may be missing."
+            result = {"stocks": fallback, "total": len(fallback), "showing": len(fallback),
+                      "warning": warning, "source": "chart_fallback"}
+            cache_manager.set("screener", cache_key, result, ttl=30)
+            return result
 
     async def get_screener_symbols(self, size: int = 100, sort_field: str = "intradaymarketcap", sort_type: str = "desc") -> list[str]:
         """Fetch Indian stock symbols from Yahoo Finance screener API."""
-        cache_key = f"screener_symbols_{size}_{sort_field}"
+        cache_key = f"screener_symbols_{size}_{sort_field}_{sort_type}"
         cached = cache_manager.get("screener", cache_key)
         if cached is not None:
             return cached
 
         try:
-            headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
-            async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-                await client.get("https://fc.yahoo.com/curveball?crumb")
-                crumb_resp = await client.get("https://query2.finance.yahoo.com/v1/test/getcrumb")
-                crumb = crumb_resp.text
-
-                url = f"https://query2.finance.yahoo.com/v1/finance/screener?crumb={crumb}"
-                payload = {
-                    "offset": 0, "size": size,
-                    "sortField": sort_field, "sortType": sort_type,
-                    "quoteType": "EQUITY",
-                    "query": {"operator": "AND", "operands": [
-                        {"operator": "eq", "operands": ["region", "in"]},
-                    ]}
-                }
-                resp = await client.post(url, json=payload, timeout=15.0)
-                data = resp.json()
-
-            quotes = data.get("finance", {}).get("result", [{}])[0].get("quotes", [])
+            payload = {
+                "offset": 0, "size": size,
+                "sortField": sort_field, "sortType": sort_type,
+                "quoteType": "EQUITY",
+                "query": {"operator": "AND", "operands": [
+                    {"operator": "eq", "operands": ["region", "in"]},
+                ]}
+            }
+            data = await self._request_yahoo_screener(payload, timeout=15.0)
+            quotes = data.get("quotes", [])
             symbols = [q.get("symbol", "") for q in quotes if q.get("symbol", "").endswith((".NS", ".BO"))]
             cache_manager.set("screener", cache_key, symbols, ttl=900)
             return symbols
         except Exception as e:
-            print(f"Yahoo screener API error: {e}")
+            print(f"Yahoo screener symbols unavailable: {type(e).__name__}")
             # Fallback to hardcoded list
             return self.SCREENER_STOCKS
 
     def get_screener_data(self, symbols: list[str] = None) -> list[dict]:
-        """Get fundamental data for stocks for screening."""
+        """Use cached fundamentals or chart prices without authenticated fanout."""
         stock_list = symbols or self.SCREENER_STOCKS
         cache_key = "_".join(sorted(stock_list[:10])) + f"_{len(stock_list)}"
         cached = cache_manager.get("screener", cache_key)
@@ -2044,9 +2067,14 @@ class StockService:
             return cached
 
         results = []
+        def available_info(symbol):
+            return cache_manager.get("ticker_info", symbol) or self._get_chart_quote(symbol)
+
+        with ThreadPoolExecutor(max_workers=min(5, len(stock_list))) as executor:
+            infos = dict(zip(stock_list, executor.map(available_info, stock_list)))
         for symbol in stock_list:
             try:
-                info = self._get_ticker_info(symbol)
+                info = infos.get(symbol)
                 if not info or not info.get("regularMarketPrice"):
                     continue
 
@@ -2094,7 +2122,7 @@ class StockService:
                     "total_cash": info.get("totalCash"),
                     "cash_per_share": info.get("totalCashPerShare"),
                     # Dividends (dividendYield is already a percentage in yfinance)
-                    "dividend_yield": round(info.get("dividendYield", 0), 2) if info.get("dividendYield") else 0,
+                    "dividend_yield": round(info["dividendYield"], 2) if info.get("dividendYield") is not None else None,
                     "payout_ratio": pct(info.get("payoutRatio")),
                     "five_yr_avg_yield": info.get("fiveYearAvgDividendYield"),
                     # Price & Technical
@@ -2121,7 +2149,7 @@ class StockService:
             except Exception:
                 continue
 
-        cache_manager.set("screener", cache_key, results, ttl=900)
+        cache_manager.set("screener", cache_key, results, ttl=60 if results else 15)
         return results
 
     def get_52week_scanner(self, market: str = "in") -> dict:
@@ -2499,7 +2527,7 @@ class StockService:
                 if df.empty or len(df) < 50:
                     continue
 
-                name = ticker.info.get("shortName", symbol) if hasattr(ticker, "info") else symbol
+                name = (self._get_chart_quote(symbol) or {}).get("shortName", symbol)
 
                 # Compute indicators
                 df.ta.sma(length=50, append=True)
@@ -2699,7 +2727,7 @@ class StockService:
 
         try:
             ticker = yf.Ticker(symbol)
-            info = ticker.info
+            info = self._get_ticker_info(symbol) or self._get_chart_quote(symbol) or {}
             if not info:
                 return None
 
