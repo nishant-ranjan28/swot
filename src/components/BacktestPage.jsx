@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import api from '../api';
+import { stockSymbolPath } from '@/lib/requestValues';
 import { useMarket } from '../context/MarketContext';
 import { AlertTriangle, ChevronDown, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -166,7 +167,7 @@ function BacktestPage() {
       return;
     }
     try {
-      const { data } = await api.get(`/api/stocks/search?q=${encodeURIComponent(query)}&market=${market}`);
+      const { data } = await api.get('/api/stocks/search', { params: { q: query, market } });
       setSearchResults(data.results || []);
       setShowDropdown(true);
     } catch {
@@ -204,7 +205,7 @@ function BacktestPage() {
     setError(null);
     setResult(null);
     try {
-      const { data } = await api.get(`/api/backtest/${encodeURIComponent(symbol)}`, {
+      const { data } = await api.get(`/api/backtest/${stockSymbolPath(symbol)}`, {
         params: { strategy, period, cash },
       });
       setResult(data);

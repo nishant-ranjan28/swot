@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Search } from 'lucide-react';
 import api from '../api';
+import { isSchemeCode } from '@/lib/requestValues';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,10 +40,15 @@ function NavChart({ schemeCode, period }) {
 
   useEffect(() => {
     if (!schemeCode) return;
+    if (!isSchemeCode(schemeCode)) {
+      setError('Invalid fund code');
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
-    api.get(`/api/mf/${schemeCode}/history?period=${period}`)
+    api.get(`/api/mf/${encodeURIComponent(String(schemeCode))}/history`, { params: { period } })
       .then(res => {
         if (!cancelled) {
           const data = (res.data.data || [])
@@ -175,7 +181,7 @@ function MFOverlapTool() {
     clearTimeout(ref.current);
     const timer = setTimeout(async () => {
       try {
-        const res = await api.get(`/api/mf/search?q=${encodeURIComponent(query)}`);
+        const res = await api.get('/api/mf/search', { params: { q: query } });
         setResults(res.data.results || []);
         setShow(true);
       } catch { setResults([]); }
@@ -185,10 +191,11 @@ function MFOverlapTool() {
 
   const checkOverlap = async () => {
     if (!fund1 || !fund2) return;
+    if (!isSchemeCode(fund1.scheme_code) || !isSchemeCode(fund2.scheme_code)) return;
     setLoading(true);
     setOverlap(null);
     try {
-      const res = await api.get(`/api/mf/overlap?codes=${fund1.scheme_code},${fund2.scheme_code}`);
+      const res = await api.get('/api/mf/overlap', { params: { codes: `${fund1.scheme_code},${fund2.scheme_code}` } });
       setOverlap(res.data);
     } catch {
       setOverlap(null);
@@ -335,7 +342,7 @@ function MutualFundPage() {
   useEffect(() => {
     setLoadingTop(true);
     const cat = activeCategory === 'All' ? 'all' : activeCategory;
-    api.get(`/api/mf/top?category=${encodeURIComponent(cat)}`)
+    api.get('/api/mf/top', { params: { category: cat } })
       .then(res => setTopFunds(res.data.funds || []))
       .catch(() => setTopFunds([]))
       .finally(() => setLoadingTop(false));
@@ -352,7 +359,7 @@ function MutualFundPage() {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await api.get(`/api/mf/search?q=${encodeURIComponent(searchQuery)}`);
+        const res = await api.get('/api/mf/search', { params: { q: searchQuery } });
         setSearchResults(res.data.results || []);
         setShowDropdown(true);
       } catch {
@@ -517,13 +524,20 @@ function FundDetail({ schemeCode, schemeName, period, setPeriod, onBack }) {
   const [loadingHoldings, setLoadingHoldings] = useState(true);
 
   useEffect(() => {
+    if (!isSchemeCode(schemeCode)) {
+      setNav(null);
+      setHoldings(null);
+      setLoading(false);
+      setLoadingHoldings(false);
+      return;
+    }
     setLoading(true);
     setLoadingHoldings(true);
-    api.get(`/api/mf/${schemeCode}/nav`)
+    api.get(`/api/mf/${encodeURIComponent(String(schemeCode))}/nav`)
       .then(res => setNav(res.data))
       .catch(() => setNav(null))
       .finally(() => setLoading(false));
-    api.get(`/api/mf/${schemeCode}/holdings`)
+    api.get(`/api/mf/${encodeURIComponent(String(schemeCode))}/holdings`)
       .then(res => setHoldings(res.data))
       .catch(() => setHoldings(null))
       .finally(() => setLoadingHoldings(false));

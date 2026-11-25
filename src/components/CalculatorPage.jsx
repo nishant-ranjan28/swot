@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ChevronLeft } from 'lucide-react';
 import api from '../api';
+import { stockSymbolPath } from '@/lib/requestValues';
 import { useChartTheme } from '@/hooks/useChartTheme';
 import { cn } from '@/lib/utils';
 import { selectClass } from '@/lib/select';
@@ -207,12 +208,12 @@ const SearchInput = ({ label, value, onChange, onSelect, placeholder, searchEndp
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (val.trim().length < 2) { setSuggestions([]); setShowDropdown(false); return; }
     debounceRef.current = setTimeout(() => {
-      const encoded = encodeURIComponent(val.trim());
+      const params = { q: val.trim() };
       if (searchBoth) {
         // Search both stocks and MFs, merge and dedupe
         Promise.all([
-          api.get(`/api/stocks/search?q=${encoded}`).catch(() => ({ data: { results: [] } })),
-          api.get(`/api/stocks/search/mf?q=${encoded}`).catch(() => ({ data: { results: [] } })),
+          api.get('/api/stocks/search', { params }).catch(() => ({ data: { results: [] } })),
+          api.get('/api/stocks/search/mf', { params }).catch(() => ({ data: { results: [] } })),
         ]).then(([stockRes, mfRes]) => {
           const stocks = (stockRes.data.results || []).map(s => ({ ...s, category: 'Stock' }));
           const mfs = (mfRes.data.results || []).map(m => ({ ...m, category: 'Mutual Fund' }));
@@ -226,7 +227,8 @@ const SearchInput = ({ label, value, onChange, onSelect, placeholder, searchEndp
           setShowDropdown(merged.length > 0);
         });
       } else {
-        api.get(`${searchEndpoint}?q=${encoded}`)
+        const endpoint = searchEndpoint === '/api/stocks/search/mf' ? '/api/stocks/search/mf' : '/api/stocks/search';
+        api.get(endpoint, { params })
           .then(res => {
             const results = res.data.results || [];
             setSuggestions(results.slice(0, 8));
@@ -296,9 +298,15 @@ const SipTool = () => {
   const calculate = (sym) => {
     const s = sym || symbol;
     if (!s) return;
-    const resolved = s.includes('.') ? s : `${s.toUpperCase()}.NS`;
+    let resolved;
+    try {
+      resolved = stockSymbolPath(s.includes('.') ? s : `${s.toUpperCase()}.NS`);
+    } catch {
+      setError('Enter a valid stock symbol.');
+      return;
+    }
     setLoading(true); setError(null);
-    api.get(`/api/stocks/sip/${resolved}?amount=${amount}&years=${years}`)
+    api.get(`/api/stocks/sip/${resolved}`, { params: { amount, years } })
       .then(res => setResult(res.data))
       .catch(() => setError('Could not calculate. Check the symbol or fund name.'))
       .finally(() => setLoading(false));
@@ -408,9 +416,15 @@ const LumpsumTool = () => {
   const calculate = (sym) => {
     const s = sym || symbol;
     if (!s) return;
-    const resolved = s.includes('.') ? s : `${s.toUpperCase()}.NS`;
+    let resolved;
+    try {
+      resolved = stockSymbolPath(s.includes('.') ? s : `${s.toUpperCase()}.NS`);
+    } catch {
+      setError('Enter a valid stock symbol.');
+      return;
+    }
     setLoading(true); setError(null);
-    api.get(`/api/stocks/${resolved}/history?range=${years}y`)
+    api.get(`/api/stocks/${resolved}/history`, { params: { range: `${years}y` } })
       .then(res => {
         const data = res.data.data;
         if (!data || data.length < 2) { setError('No data available'); return; }
@@ -500,12 +514,18 @@ const CompareTool = () => {
   const calculate = (sym) => {
     const s = sym || symbol;
     if (!s) return;
-    const resolved = s.includes('.') ? s : `${s.toUpperCase()}.NS`;
+    let resolved;
+    try {
+      resolved = stockSymbolPath(s.includes('.') ? s : `${s.toUpperCase()}.NS`);
+    } catch {
+      setError('Enter a valid stock symbol.');
+      return;
+    }
     setLoading(true); setError(null);
 
     Promise.all([
-      api.get(`/api/stocks/sip/${resolved}?amount=${amount}&years=${years}`),
-      api.get(`/api/stocks/${resolved}/history?range=${years}y`),
+      api.get(`/api/stocks/sip/${resolved}`, { params: { amount, years } }),
+      api.get(`/api/stocks/${resolved}/history`, { params: { range: `${years}y` } }),
     ]).then(([sipRes, histRes]) => {
       const sipData = sipRes.data;
       const histData = histRes.data.data;
