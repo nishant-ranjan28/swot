@@ -173,6 +173,7 @@ const ScreenerPage = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [warning, setWarning] = useState(null);
   const [filters, setFilters] = useState({});
   const [sortKey, setSortKey] = useState('market_cap');
   const [sortDir, setSortDir] = useState('desc');
@@ -184,6 +185,7 @@ const ScreenerPage = () => {
   const fetchStocks = useCallback(() => {
     setLoading(true);
     setError(null);
+    setWarning(null);
 
     const params = new URLSearchParams();
     params.set('size', resultSize);
@@ -203,6 +205,7 @@ const ScreenerPage = () => {
       .then((res) => {
         setStocks(res.data.stocks || []);
         setTotal(res.data.total || 0);
+        setWarning(res.data.warning || null);
       })
       .catch(() => setError('Failed to load screener data'))
       .finally(() => setLoading(false));
@@ -381,6 +384,11 @@ const ScreenerPage = () => {
       </div>
 
       {/* Table */}
+      {!loading && !error && warning && (
+        <p role="status" className="mb-3 rounded-lg border border-border bg-muted p-3 text-sm text-muted-foreground">
+          {warning}
+        </p>
+      )}
       {error ? (
         <ErrorState message={error} onRetry={fetchStocks} />
       ) : loading ? (
@@ -431,7 +439,7 @@ const ScreenerPage = () => {
               {sortedStocks.length === 0 && (
                 <TableRow className="hover:bg-transparent">
                   <TableCell colSpan={COLUMNS.length} className="whitespace-normal p-4">
-                    <EmptyState icon={SearchX} title="No stocks match your filters." className="border-0 py-8" />
+                    <EmptyState icon={SearchX} title={warning ? 'Screening results are temporarily unavailable.' : 'No stocks match your filters.'} className="border-0 py-8" />
                   </TableCell>
                 </TableRow>
               )}
