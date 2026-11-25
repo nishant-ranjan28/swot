@@ -60,7 +60,7 @@ test('SIP with default inputs shows the same invested/value/returns', async () =
   renderAt('/calculators?tool=sip');
   fireEvent.click(screen.getByRole('button', { name: 'RELIANCE' }));
   await waitFor(() => expect(text()).toContain('Total Invested'));
-  expect(api.get).toHaveBeenCalledWith('/api/stocks/sip/RELIANCE.NS?amount=5000&years=5');
+  expect(api.get).toHaveBeenCalledWith('/api/stocks/sip/RELIANCE.NS', { params: { amount: 5000, years: 5 } });
   expectStat('Total Invested', '₹3.00 L');
   expectStat('Current Value', '₹4.12 L');
   expectStat('Total Returns', '+37.45%', '₹1.12 L');
@@ -71,7 +71,7 @@ test('Lumpsum with default inputs computes the same returns', async () => {
   renderAt('/calculators?tool=lumpsum');
   fireEvent.click(screen.getByRole('button', { name: 'RELIANCE' }));
   await waitFor(() => expect(text()).toContain('Current Value'));
-  expect(api.get).toHaveBeenCalledWith('/api/stocks/RELIANCE.NS/history?range=5y');
+  expect(api.get).toHaveBeenCalledWith('/api/stocks/RELIANCE.NS/history', { params: { range: '5y' } });
   expectStat('Invested', '₹1.00 L');
   expectStat('Current Value', '₹2.00 L');
   expectStat('Returns', '+100.00%', '₹1.00 L');
@@ -114,8 +114,8 @@ test('Compare calls both APIs and shows the same SIP vs lumpsum numbers', async 
   renderAt('/calculators?tool=compare');
   fireEvent.click(screen.getByRole('button', { name: 'RELIANCE' }));
   await waitFor(() => expect(text()).toContain('wins by'));
-  expect(api.get).toHaveBeenCalledWith('/api/stocks/sip/RELIANCE.NS?amount=5000&years=5');
-  expect(api.get).toHaveBeenCalledWith('/api/stocks/RELIANCE.NS/history?range=5y');
+  expect(api.get).toHaveBeenCalledWith('/api/stocks/sip/RELIANCE.NS', { params: { amount: 5000, years: 5 } });
+  expect(api.get).toHaveBeenCalledWith('/api/stocks/RELIANCE.NS/history', { params: { range: '5y' } });
   // Lumpsum invests the SIP total (₹3,00,000) at 100 → 3000 units, worth 3000 × 200 = ₹6,00,000.
   // Return 100%; CAGR over 504/252 = 2 years is √2 − 1 = 41.42%.
   expectStat('Invested', '₹3.00 L', 'Value', '₹6.00 L', 'Returns', '100.00%', 'CAGR', '41.42%');
@@ -130,7 +130,7 @@ test('SIP uses the period chosen in the select', async () => {
   fireEvent.change(screen.getByRole('combobox', { name: /period/i }), { target: { value: '10' } });
   expect(screen.getByDisplayValue('10 Years')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'RELIANCE' }));
-  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/stocks/sip/RELIANCE.NS?amount=5000&years=10'));
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/stocks/sip/RELIANCE.NS', { params: { amount: 5000, years: 10 } }));
 });
 
 test('EMI recalculates when the rate changes', () => {
@@ -145,4 +145,13 @@ test('EMI recalculates when the rate changes', () => {
   expectStat('Total Payment', '₹46.32 L');
   expect(text()).toContain('Principal: 43%');
   expect(text()).toContain('Interest: 57%');
+});
+
+test.each(['sip', 'lumpsum', 'compare'])('%s rejects symbols that inject paths or query parameters', async (tool) => {
+  renderAt(`/calculators?tool=${tool}`);
+  const input = screen.getByRole('textbox', { name: /Search Stock/ });
+  fireEvent.change(input, { target: { value: '../../jobs/check-alerts?market=us#' } });
+  fireEvent.click(screen.getByRole('button', { name: tool === 'compare' ? 'Compare' : 'Calculate' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(/valid stock symbol/i);
+  expect(api.get).not.toHaveBeenCalled();
 });

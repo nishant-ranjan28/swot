@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
+import { stockSymbolPath } from '@/lib/requestValues';
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -158,7 +159,7 @@ const StockInput = ({ value, onChange, onSelect, onRemove, canRemove }) => {
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await api.get(`/api/stocks/search?q=${encodeURIComponent(q)}`);
+        const res = await api.get('/api/stocks/search', { params: { q } });
         const stocks = (res.data.results || []).slice(0, 6);
         setResults(stocks);
         setOpen(stocks.length > 0);
@@ -265,7 +266,7 @@ const ComparePage = () => {
       const resolved = symbols.map(sym => sym.includes('.') ? sym : `${sym}.NS`);
       const results = await Promise.all(
         resolved.map((sym) =>
-          api.get(`/api/stocks/${encodeURIComponent(sym)}/summary`)
+          api.get(`/api/stocks/${stockSymbolPath(sym)}/summary`)
             .then(res => ({ symbol: sym, data: res.data, ok: true }))
             .catch(() => ({ symbol: sym, data: null, ok: false }))
         )

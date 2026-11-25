@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, Search, UserSearch } from 'lucide-react';
 import api from '../api';
+import { stockSymbolPath } from '@/lib/requestValues';
 import { useMarket } from '../context/MarketContext';
 import PageContainer from '@/components/common/PageContainer';
 import PageHeader from '@/components/common/PageHeader';
@@ -39,7 +40,7 @@ function DealsPage() {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await api.get(`/api/stocks/search?q=${encodeURIComponent(query)}&market=${market}`);
+        const res = await api.get('/api/stocks/search', { params: { q: query, market } });
         setSuggestions(res.data.results || []);
         setShowDropdown(true);
       } catch {
@@ -70,7 +71,7 @@ function DealsPage() {
     setSearched(true);
 
     try {
-      const res = await api.get(`/api/stocks/${encodeURIComponent(sym)}/insider`);
+      const res = await api.get(`/api/stocks/${stockSymbolPath(sym)}/insider`);
       setTransactions(res.data.transactions || []);
     } catch (err) {
       if (err.response?.status === 404) {
